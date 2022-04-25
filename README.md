@@ -4,7 +4,18 @@ A Discord bot based on [JDA](https://github.com/DV8FromTheWorld/JDA) that provid
 [**Invite the Squeeth Discord Bot to your server!**](https://discord.com/api/oauth2/authorize?client_id=966062130472304681&permissions=0&scope=bot)
 
 # Features
-- Provides you with near real-time data provided by [Laevitas](https://app.laevitas.ch/dashboard/squeeth)
+Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/squeeth)
+- Live Statistics
+  - Price
+  - Volume
+  - Funding
+  - IV
+  - Normalization Factor
+- The Greeks
+- More Commands Soon:tm:
+  - Funding Calculator
+  - Squiz (Squeeth Quiz)
+  - :eyes: 
 
 # Requirements to Self-Host
 
