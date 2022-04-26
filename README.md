@@ -1,7 +1,7 @@
 # Squeeth Discord Bot
 A Discord bot based on [JDA](https://github.com/DV8FromTheWorld/JDA) that provides you with quick and easy access to info of the [Squeeth](https://squeeth.com) ecosystem
 
-[**Invite the Squeeth Discord Bot to your server!**](https://discord.com/api/oauth2/authorize?client_id=966062130472304681&permissions=0&scope=bot)
+[**Invite the Squeeth Discord Bot to your server!**](https://discord.com/oauth2/authorize?client_id=966062130472304681&permissions=0&scope=applications.commands%20bot)
 
 # Features
 Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/squeeth)
