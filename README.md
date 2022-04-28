@@ -3,17 +3,21 @@ A Discord bot based on [JDA](https://github.com/DV8FromTheWorld/JDA) that provid
 
 [**Invite the Squeeth Discord Bot to your server!**](https://discord.com/oauth2/authorize?client_id=966062130472304681&permissions=0&scope=applications.commands%20bot)
 
+# How to Use
+
+Run `/help` to get a list of commands in a server it is in OR in the bot's DMs!
+
 # Features
 Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/squeeth)
 - Live Statistics
   - Price
   - Volume
   - Funding
-  - IV
+  - Implied Volatility
   - Normalization Factor
 - The Greeks
+- Funding Calculator
 - More Commands Soon:tm:
-  - Funding Calculator
   - Squiz (Squeeth Quiz)
   - :eyes: 
 
@@ -29,8 +33,9 @@ When self-hosting, pass the following arguments to the jar when running:
 1. [Discord Bot Token](https://discord.com/developers/applications)
 2. Laevitas API Key
 3. Your Discord User ID (to run bot admin commands)
+4. True/False (only run true if you updated the bot, then afterwards false)
 
-Failure to pass these three arguments in the correct order may result in either the bot outright crashing, unexpected behavior, and/or not enough Squeeth memes.
+Failure to pass these four arguments in the correct order may result in either the bot outright crashing, unexpected behavior, and/or not enough Squeeth memes.
 
 # Contact
 
