@@ -16,18 +16,19 @@ import java.util.Iterator;
 import java.util.List;
 
 public class CommandsHandler extends ListenerAdapter {
-    public static final HashMap<String, ICommand> mappingOfCommands = new HashMap<>() {{
+    public static final HashMap<String, BotCommand> mappingOfCommands = new HashMap<>() {{
         put("ping", new Ping());
         put("shutdown", new Shutdown());
         put("about", new About());
         put("greeks", new Greeks());
         put("stats", new Stats());
         put("help", new Help());
+        put("funding", new Funding());
     }};
 
     public static long adminUserID;
 
-    public static void checkAndSetSlashCommands() {
+    public static void checkAndSetSlashCommands(boolean updateCommands) {
         JDA api = Launcher.api;
         List<Command> listOfActiveCommands = api.retrieveCommands().complete();
         List<String> detectedCommandNames = new ArrayList<>();
@@ -36,7 +37,11 @@ public class CommandsHandler extends ListenerAdapter {
         for (Iterator<Command> it = listOfActiveCommands.iterator(); it.hasNext(); ) {
             Command cmd = it.next();
             if(mappingOfCommands.containsKey(cmd.getName())) {
-                mappingOfCommands.get(cmd.getName()).setCommandId(cmd.getIdLong());
+                BotCommand botCmd = mappingOfCommands.get(cmd.getName());
+                botCmd.setCommandId(cmd.getIdLong());
+                if(updateCommands)
+                    botCmd.updateCommand(api);
+
                 detectedCommandNames.add(cmd.getName());
 
                 it.remove();
@@ -56,9 +61,8 @@ public class CommandsHandler extends ListenerAdapter {
 
             for(String cmdName: missingCommands) {
                 System.out.println("[CommandsHandler] Adding new slash command: " + cmdName);
-                Command cmd = api.upsertCommand(cmdName, mappingOfCommands.get(cmdName).getDescription()).complete();
-
-                mappingOfCommands.get(cmdName).setCommandId(cmd.getIdLong());
+                BotCommand cmd = mappingOfCommands.get(cmdName);
+                cmd.addCommand(api);
             }
         }
 
@@ -66,8 +70,13 @@ public class CommandsHandler extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
-        ICommand cmd = mappingOfCommands.get(event.getName());
-        Object response = cmd.runCommand(event.getUser().getIdLong());
+        BotCommand cmd = mappingOfCommands.get(event.getName());
+        Object response;
+
+        if(event.getOptions().isEmpty())
+            response = cmd.runCommand(event.getUser().getIdLong());
+        else
+            response = cmd.runCommand(event.getUser().getIdLong(), event.getOptions());
 
         if(cmd.isOnlyEmbed()) {
             event.replyEmbeds((MessageEmbed) response).setEphemeral(true).queue();

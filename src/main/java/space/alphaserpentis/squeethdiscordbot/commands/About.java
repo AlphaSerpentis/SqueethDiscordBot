@@ -1,8 +1,12 @@
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
-public class About extends ICommand {
+import java.util.List;
+
+public class About extends BotCommand {
 
     public About() {
         name = "about";
@@ -21,5 +25,22 @@ public class About extends ICommand {
         eb.setFooter("Developed by Amethyst C. | API Data by Laevitas");
 
         return eb.build();
+    }
+
+    @Override
+    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+        return runCommand(userId);
+    }
+
+    @Override
+    public void addCommand(JDA jda) {
+        net.dv8tion.jda.api.interactions.commands.Command cmd = jda.upsertCommand(name, description).complete();
+
+        commandId = cmd.getIdLong();
+    }
+
+    @Override
+    public void updateCommand(JDA jda) {
+
     }
 }

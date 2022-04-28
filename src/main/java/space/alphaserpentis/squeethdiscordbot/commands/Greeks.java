@@ -1,12 +1,15 @@
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
 import java.awt.*;
 import java.math.BigDecimal;
+import java.util.List;
 
-public class Greeks extends ICommand {
+public class Greeks extends BotCommand {
 
     public Greeks() {
         name = "greeks";
@@ -28,5 +31,22 @@ public class Greeks extends ICommand {
         eb.setColor(new Color(14, 255, 212, 76));
 
         return eb.build();
+    }
+
+    @Override
+    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+        return runCommand(userId);
+    }
+
+    @Override
+    public void addCommand(JDA jda) {
+        net.dv8tion.jda.api.interactions.commands.Command cmd = jda.upsertCommand(name, description).complete();
+
+        commandId = cmd.getIdLong();
+    }
+
+    @Override
+    public void updateCommand(JDA jda) {
+
     }
 }

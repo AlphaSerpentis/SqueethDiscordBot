@@ -7,12 +7,18 @@ import java.io.IOException;
 
 public class StatusHandler {
 
-    private final String statusMessage = "oSQTH: $"; // Might change in the future to use a list instead for more statuses
+    /**
+     * @implNote May change in the future to use a list instead for more statuses
+     */
+    private final String statusMessage = "oSQTH: $";
 
     public StatusHandler() {
         runStatusRotation();
     }
 
+    /**
+     * Runs a thread that rotates the status every 5 minutes.
+     */
     public void runStatusRotation() {
         new Thread(() -> {
             while(true) {
@@ -26,10 +32,14 @@ public class StatusHandler {
         }).start();
     }
 
+    /**
+     * Calls {@link space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler#pollForData(String)} and updates {@link space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler#latestSqueethData} as a side effect
+     * @throws IOException
+     */
     private void updateStatus() throws IOException {
         LaevitasHandler.pollForData("analytics/defi/squeeth");
 
-        Launcher.api.getPresence().setActivity(Activity.watching(statusMessage + LaevitasHandler.latestSqueethData.getoSQTHPrice() + " | Current Implied Funding: " + LaevitasHandler.latestSqueethData.getDelta() + " | IV: " + LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility() + "%"));
+        Launcher.api.getPresence().setActivity(Activity.watching(statusMessage + LaevitasHandler.latestSqueethData.getoSQTHPrice() + " | Current Implied Funding: " + LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue() + "% | IV: " + LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility() + "%"));
     }
 
 }

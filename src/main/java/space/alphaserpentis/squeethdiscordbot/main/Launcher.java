@@ -14,6 +14,9 @@ import java.net.URL;
 
 public class Launcher {
 
+    /**
+     * The JDA instance being utilized
+     */
     public static JDA api;
 
     public Launcher(String[] args) throws LoginException, InterruptedException, IOException {
@@ -36,21 +39,29 @@ public class Launcher {
         api.awaitReady();
 
         // Verify commands are up-to-date
-        CommandsHandler.checkAndSetSlashCommands();
+        CommandsHandler.checkAndSetSlashCommands(Boolean.parseBoolean(args[3]));
 
         // Start the StatusHandler
         new StatusHandler();
     }
 
+    /**
+     * Shuts down the program
+     */
     public static void shutdown() {
         api.shutdown();
         System.exit(0);
     }
 
+    /**
+     *
+     * @param args Requires 4 arguments for: (1) bot token, (2) Laevitas API, (3) bot admin Discord user ID, (4) update commands
+     * @throws Exception If 4 arguments aren't passed exactly
+     */
     public static void main(String[] args) throws Exception {
 
-        if(args.length != 3)
-            throw new Exception("Invalid arg count; requires 3 arguments for: (1) bot token, (2) Laevitas API, (3) bot admin Discord user ID");
+        if(args.length != 4)
+            throw new Exception("Invalid arg count; requires 4 arguments for: (1) bot token, (2) Laevitas API, (3) bot admin Discord user ID, (4) update commands");
         else {
             new Launcher(args);
         }
