@@ -34,6 +34,11 @@ public class Settings extends BotCommand {
 
         eb.setTitle("Server Settings");
 
+        if(event.getGuild() == null) {
+            eb.setDescription("Nice try.");
+            return eb.build();
+        }
+
         switch (optionMappingList.get(0).getAsString().toLowerCase()) {
             case "ephemeral" -> setChangeOnlyEphemeral(event.getGuild().getIdLong(), optionMappingList.get(1).getAsString(), eb);
         }

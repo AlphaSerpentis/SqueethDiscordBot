@@ -7,6 +7,8 @@ A Discord bot based on [JDA](https://github.com/DV8FromTheWorld/JDA) that provid
 
 Run `/help` to get a list of commands in a server it is in OR in the bot's DMs!
 
+If you're a server owner/admin, run `/settings` to see how to configure your 
+
 # Features
 Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/squeeth)
 - Live Statistics
@@ -19,7 +21,8 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
 - Funding Calculator
 - More Commands Soon:tm:
   - Squiz (Squeeth Quiz)
-  - :eyes: 
+  - Short Vault Stats
+  - :eyes:
 
 # Requirements to Self-Host
 
@@ -33,7 +36,8 @@ When self-hosting, pass the following arguments to the jar when running:
 1. [Discord Bot Token](https://discord.com/developers/applications)
 2. Laevitas API Key
 3. Your Discord User ID (to run bot admin commands)
-4. True/False (only run true if you updated the bot, then afterwards false)
+4. Path to a JSON file to store server data
+5. True/False (only run true if you updated the bot, then afterwards false)
 
 Failure to pass these four arguments in the correct order may result in either the bot outright crashing, unexpected behavior, and/or not enough Squeeth memes.
 
