@@ -4,28 +4,27 @@ import net.dv8tion.jda.api.entities.Activity;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import java.io.IOException;
+import java.text.NumberFormat;
 
 public class StatusHandler {
 
-    /**
-     * @implNote May change in the future to use a list instead for more statuses
-     */
-    private final String statusMessage = "oSQTH: $";
+    private int statusIndex;
 
     public StatusHandler() {
         runStatusRotation();
     }
 
     /**
-     * Runs a thread that rotates the status every 5 minutes.
+     * Runs a thread that rotates the status every 15 seconds.
      */
     public void runStatusRotation() {
+        LaevitasHandler.timedPoller();
         new Thread(() -> {
             while(true) {
                 try {
                     updateStatus();
-                    Thread.sleep(300000);
-                } catch (InterruptedException | IOException e) {
+                    Thread.sleep(15000);
+                } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -33,13 +32,21 @@ public class StatusHandler {
     }
 
     /**
-     * Calls {@link space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler#pollForData(String)} and updates {@link space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler#latestSqueethData} as a side effect
-     * @throws IOException
+     * Rotates the status
      */
-    private void updateStatus() throws IOException {
-        LaevitasHandler.pollForData("analytics/defi/squeeth");
+    private void updateStatus() {
+        String statusMessage = " | /help";
 
-        Launcher.api.getPresence().setActivity(Activity.watching(statusMessage + LaevitasHandler.latestSqueethData.getoSQTHPrice() + " | Current Implied Funding: " + LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue() + "% | IV: " + LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility() + "%"));
+        if(statusIndex > 2)
+            statusIndex = 0;
+
+        switch(statusIndex++) {
+            case 0 -> statusMessage = "oSQTH: $" + NumberFormat.getInstance().format(LaevitasHandler.latestSqueethData.getoSQTHPrice()) + statusMessage;
+            case 1 -> statusMessage = "Implied Funding: " + LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue() + "%" + statusMessage;
+            case 2 -> statusMessage = "IV: " + LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility() + "%" + statusMessage;
+        }
+
+        Launcher.api.getPresence().setActivity(Activity.watching(statusMessage));
     }
 
 }
