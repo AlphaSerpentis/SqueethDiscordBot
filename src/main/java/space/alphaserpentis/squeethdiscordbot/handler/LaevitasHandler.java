@@ -15,6 +15,19 @@ public class LaevitasHandler {
     public static String KEY;
     public static SqueethData latestSqueethData = new SqueethData();
 
+    public static void timedPoller() {
+        new Thread(() -> {
+            while(true) {
+                try {
+                    pollForData("analytics/defi/squeeth");
+                    Thread.sleep(300000);
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }).start();
+    }
+
     public static void pollForData(String append) throws IOException {
         URL fullURL = new URL(API_URL.toString() + append);
 

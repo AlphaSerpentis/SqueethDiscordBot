@@ -2,6 +2,8 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -39,8 +41,12 @@ public class Settings extends BotCommand {
             return eb.build();
         }
 
-        switch (optionMappingList.get(0).getAsString().toLowerCase()) {
-            case "ephemeral" -> setChangeOnlyEphemeral(event.getGuild().getIdLong(), optionMappingList.get(1).getAsString(), eb);
+        if(verifyServerPerms(event.getMember())) {
+            switch (optionMappingList.get(0).getAsString().toLowerCase()) {
+                case "ephemeral" -> setChangeOnlyEphemeral(event.getGuild().getIdLong(), optionMappingList.get(1).getAsString(), eb);
+            }
+        } else {
+            eb.setDescription("You do not have `Manage Server` permissions");
         }
 
         // You remembered to add the case to the list of settings in defaultResponse, right?
@@ -94,5 +100,11 @@ public class Settings extends BotCommand {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private boolean verifyServerPerms(Member member) {
+        return member.hasPermission(
+                Permission.MANAGE_SERVER
+        );
     }
 }
