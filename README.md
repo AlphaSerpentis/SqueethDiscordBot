@@ -7,7 +7,7 @@ A Discord bot based on [JDA](https://github.com/DV8FromTheWorld/JDA) that provid
 
 Run `/help` to get a list of commands in a server it is in OR in the bot's DMs!
 
-If you're a server owner/admin, run `/settings` to see how to configure your 
+If you're a server owner/admin, run `/settings` to see how to configure your server
 
 # Features
 Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/squeeth)
