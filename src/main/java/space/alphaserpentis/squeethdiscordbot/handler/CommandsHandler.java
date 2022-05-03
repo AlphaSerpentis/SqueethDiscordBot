@@ -17,13 +17,13 @@ import java.util.List;
 
 public class CommandsHandler extends ListenerAdapter {
     public static final HashMap<String, BotCommand> mappingOfCommands = new HashMap<>() {{
-        put("ping", new Ping());
         put("shutdown", new Shutdown());
         put("about", new About());
         put("greeks", new Greeks());
         put("stats", new Stats());
         put("help", new Help());
         put("funding", new Funding());
+        put("settings", new Settings());
     }};
 
     public static long adminUserID;
@@ -71,17 +71,21 @@ public class CommandsHandler extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         BotCommand cmd = mappingOfCommands.get(event.getName());
+        boolean sendAsEphemeral = true;
         Object response;
+
+        if(event.getGuild() != null)
+            sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
 
         if(event.getOptions().isEmpty())
             response = cmd.runCommand(event.getUser().getIdLong());
         else
-            response = cmd.runCommand(event.getUser().getIdLong(), event.getOptions());
+            response = cmd.runCommand(event.getUser().getIdLong(), event);
 
         if(cmd.isOnlyEmbed()) {
-            event.replyEmbeds((MessageEmbed) response).setEphemeral(true).queue();
+            event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral).queue();
         } else {
-            event.reply((Message) response).setEphemeral(true).queue();
+            event.reply((Message) response).setEphemeral(sendAsEphemeral).queue();
         }
     }
 }

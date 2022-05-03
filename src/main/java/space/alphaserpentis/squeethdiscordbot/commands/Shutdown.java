@@ -3,11 +3,10 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
-
-import java.util.List;
 
 public class Shutdown extends BotCommand {
 
@@ -28,7 +27,7 @@ public class Shutdown extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         return runCommand(userId);
     }
 

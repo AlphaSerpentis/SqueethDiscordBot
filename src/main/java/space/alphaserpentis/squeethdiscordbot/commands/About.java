@@ -2,9 +2,9 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-
-import java.util.List;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.Command;
+import org.jetbrains.annotations.NotNull;
 
 public class About extends BotCommand {
 
@@ -28,13 +28,13 @@ public class About extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         return runCommand(userId);
     }
 
     @Override
     public void addCommand(JDA jda) {
-        net.dv8tion.jda.api.interactions.commands.Command cmd = jda.upsertCommand(name, description).complete();
+        Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }

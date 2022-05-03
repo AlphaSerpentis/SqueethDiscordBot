@@ -2,13 +2,13 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.data.SqueethData;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
 import java.awt.*;
 import java.text.NumberFormat;
-import java.util.List;
 
 public class Stats extends BotCommand {
 
@@ -43,7 +43,7 @@ public class Stats extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         return runCommand(userId);
     }
 

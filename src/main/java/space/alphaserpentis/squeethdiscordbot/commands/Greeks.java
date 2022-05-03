@@ -2,12 +2,12 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
 import java.awt.*;
 import java.math.BigDecimal;
-import java.util.List;
 
 public class Greeks extends BotCommand {
 
@@ -34,7 +34,7 @@ public class Greeks extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         return runCommand(userId);
     }
 
