@@ -2,9 +2,11 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
 import java.awt.*;
@@ -31,8 +33,9 @@ public class Funding extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, List<OptionMapping> optionMappingList) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
+        List<OptionMapping> optionMappingList = event.getOptions();
         Double amt, funding, thetaCalculated, amtHeld;
         Integer days;
 
@@ -51,7 +54,7 @@ public class Funding extends BotCommand {
 
         eb.setTitle("Funding Calculator");
         eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic!");
-        eb.addField("Estimated Funding", "With $" + amt + " (" + NumberFormat.getInstance().format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding + "% current implied funding, and holding for " + days + " days, you might pay $" + NumberFormat.getInstance().format(amtHeld * thetaCalculated * days) + " in funding.", false);
+        eb.addField("Estimated Funding", "With $" + NumberFormat.getInstance().format(amt) + " (" + NumberFormat.getInstance().format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding + "% current implied funding, and holding for " + days + " days, you might pay $" + NumberFormat.getInstance().format(amtHeld * thetaCalculated * days) + " in funding.", false);
 
         return eb.build();
     }

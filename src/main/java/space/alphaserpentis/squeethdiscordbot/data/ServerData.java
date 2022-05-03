@@ -2,12 +2,13 @@ package space.alphaserpentis.squeethdiscordbot.data;
 
 public class ServerData {
 
-    public static void parseJSON() {
+    private boolean onlyEphemeral = true;
 
+    public void setOnlyEphemeral(boolean value) {
+        onlyEphemeral = value;
     }
 
-    public static void writeToJSON() {
-
+    public boolean isOnlyEphemeral() {
+        return onlyEphemeral;
     }
-
 }
