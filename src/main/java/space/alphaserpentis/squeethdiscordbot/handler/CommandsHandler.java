@@ -24,6 +24,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("help", new Help());
         put("funding", new Funding());
         put("settings", new Settings());
+        put("resources", new Resources());
     }};
 
     public static long adminUserID;

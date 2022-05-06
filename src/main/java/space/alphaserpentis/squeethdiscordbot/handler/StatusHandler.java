@@ -3,7 +3,6 @@ package space.alphaserpentis.squeethdiscordbot.handler;
 import net.dv8tion.jda.api.entities.Activity;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import java.io.IOException;
 import java.text.NumberFormat;
 
 public class StatusHandler {
@@ -42,7 +41,7 @@ public class StatusHandler {
 
         switch(statusIndex++) {
             case 0 -> statusMessage = "oSQTH: $" + NumberFormat.getInstance().format(LaevitasHandler.latestSqueethData.getoSQTHPrice()) + statusMessage;
-            case 1 -> statusMessage = "Implied Funding: " + LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue() + "%" + statusMessage;
+            case 1 -> statusMessage = "Impl. Funding: " + LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue() + "%" + statusMessage;
             case 2 -> statusMessage = "IV: " + LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility() + "%" + statusMessage;
         }
 
