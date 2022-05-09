@@ -12,7 +12,6 @@ public abstract class BotCommand {
     protected long commandId;
     protected boolean onlyEmbed, onlyEphemeral;
 
-    abstract public Object runCommand(long userId);
     abstract public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event);
 
     abstract public void addCommand(JDA jda);

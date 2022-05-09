@@ -15,7 +15,7 @@ public class Resources extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("Educational Resources");
@@ -63,11 +63,6 @@ public class Resources extends BotCommand {
         );
 
         return eb.build();
-    }
-
-    @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
-        return null;
     }
 
     @Override

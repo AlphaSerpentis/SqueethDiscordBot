@@ -22,17 +22,6 @@ public class Funding extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId) { // How did we get here?
-        EmbedBuilder eb = new EmbedBuilder();
-
-        eb.setTitle("Error");
-        eb.setDescription("No options passed?");
-        eb.setColor(Color.RED);
-
-        return eb.build();
-    }
-
-    @Override
     public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();

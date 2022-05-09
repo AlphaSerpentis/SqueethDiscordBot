@@ -19,7 +19,7 @@ public class Stats extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         SqueethData data = LaevitasHandler.latestSqueethData;
@@ -40,11 +40,6 @@ public class Stats extends BotCommand {
         eb.setColor(new Color(14, 255, 212, 76));
 
         return eb.build();
-    }
-
-    @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
-        return runCommand(userId);
     }
 
     @Override

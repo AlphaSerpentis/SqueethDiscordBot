@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.commands.*;
+import space.alphaserpentis.squeethdiscordbot.data.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("funding", new Funding());
         put("settings", new Settings());
         put("resources", new Resources());
+        put("clean", new Clean());
     }};
 
     public static long adminUserID;
@@ -72,21 +74,29 @@ public class CommandsHandler extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         BotCommand cmd = mappingOfCommands.get(event.getName());
-        boolean sendAsEphemeral = true;
-        Object response;
+        Message message = null;
+        boolean sendAsEphemeral = cmd.isOnlyEphemeral();
+        Object response = cmd.runCommand(event.getUser().getIdLong(), event);
 
-        if(event.getGuild() != null)
+        if(!sendAsEphemeral && event.getGuild() != null)
             sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
 
-        if(event.getOptions().isEmpty())
-            response = cmd.runCommand(event.getUser().getIdLong());
-        else
-            response = cmd.runCommand(event.getUser().getIdLong(), event);
-
         if(cmd.isOnlyEmbed()) {
-            event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral).queue();
+            if(!sendAsEphemeral && event.getGuild() != null) {
+                message = event.replyEmbeds((MessageEmbed) response).setEphemeral(false).complete().retrieveOriginal().complete();
+            } else {
+                event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral).queue();
+            }
         } else {
-            event.reply((Message) response).setEphemeral(sendAsEphemeral).queue();
+            if(!sendAsEphemeral && event.getGuild() != null) {
+                message = event.replyEmbeds((MessageEmbed) response).setEphemeral(false).complete().retrieveOriginal().complete();
+            } else {
+                event.reply((Message) response).setEphemeral(sendAsEphemeral).queue();
+            }
+        }
+
+        if(message != null) {
+            ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
         }
     }
 }
