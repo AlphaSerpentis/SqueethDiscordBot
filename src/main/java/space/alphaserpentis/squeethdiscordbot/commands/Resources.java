@@ -96,11 +96,11 @@ public class Resources extends ButtonCommand {
         switch(event.getButton().getId()) {
             case "resources_next" -> {
                 pending = event.editMessageEmbeds(eb.addField(pages.get(currentPage)).build());
-                buttons.add(Button.secondary("resources_page", currentPage++ + 1 + "/" + pages.size()));
+                buttons.add(Button.secondary("resources_page", currentPage++ + 1 + "/" + pages.size()).asDisabled());
             }
             case "resources_previous" -> {
                 pending = event.editMessageEmbeds(eb.addField(pages.get(currentPage - 2)).build());
-                buttons.add(Button.secondary("resources_page", currentPage-- - 1 + "/" + pages.size()));
+                buttons.add(Button.secondary("resources_page", currentPage-- - 1 + "/" + pages.size()).asDisabled());
             }
         }
 

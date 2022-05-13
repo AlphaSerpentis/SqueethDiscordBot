@@ -99,12 +99,12 @@ public class CommandsHandler extends ListenerAdapter {
             }
         }
 
-        if(cmd.getButtonHashMap() != null)
+        if(!cmd.getButtonHashMap().isEmpty())
             reply.addActionRow(((ButtonCommand) cmd).addButtons());
 
         message = reply.complete().retrieveOriginal().complete();
 
-        if(message != null) {
+        if(message != null && event.getGuild() != null) {
             ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
         }
     }
