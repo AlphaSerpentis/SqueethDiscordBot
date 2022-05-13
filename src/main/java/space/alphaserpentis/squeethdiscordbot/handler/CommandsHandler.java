@@ -1,11 +1,14 @@
 package space.alphaserpentis.squeethdiscordbot.handler;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.commands.*;
 import space.alphaserpentis.squeethdiscordbot.data.ServerCache;
@@ -74,29 +77,48 @@ public class CommandsHandler extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         BotCommand cmd = mappingOfCommands.get(event.getName());
-        Message message = null;
+        Message message;
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
-        Object response = cmd.runCommand(event.getUser().getIdLong(), event);
+        Object response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+        ReplyCallbackAction reply;
 
         if(!sendAsEphemeral && event.getGuild() != null)
             sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
 
         if(cmd.isOnlyEmbed()) {
             if(!sendAsEphemeral && event.getGuild() != null) {
-                message = event.replyEmbeds((MessageEmbed) response).setEphemeral(false).complete().retrieveOriginal().complete();
+                reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(false);
             } else {
-                event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral).queue();
+                reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral);
             }
         } else {
             if(!sendAsEphemeral && event.getGuild() != null) {
-                message = event.replyEmbeds((MessageEmbed) response).setEphemeral(false).complete().retrieveOriginal().complete();
+                reply = event.reply((Message) response).setEphemeral(false);
             } else {
-                event.reply((Message) response).setEphemeral(sendAsEphemeral).queue();
+                reply = event.reply((Message) response).setEphemeral(sendAsEphemeral);
             }
         }
+
+        if(cmd.getButtonHashMap() != null)
+            reply.addActionRow(((ButtonCommand) cmd).addButtons());
+
+        message = reply.complete().retrieveOriginal().complete();
 
         if(message != null) {
             ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
         }
+    }
+
+    @Override
+    public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
+        for(String cmdName: mappingOfCommands.keySet()) {
+            if(event.getButton().getId().contains(cmdName)) {
+                ((ButtonCommand) mappingOfCommands.get(cmdName)).runButtonInteraction(event);
+            }
+        }
+    }
+
+    private MessageEmbed inactiveCommandResponse() {
+        return new EmbedBuilder().setDescription("This command is currently not active").build();
     }
 }

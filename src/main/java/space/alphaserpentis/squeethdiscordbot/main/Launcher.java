@@ -4,10 +4,9 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.StatusHandler;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.http.HttpService;
+import space.alphaserpentis.squeethdiscordbot.handler.*;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -45,8 +44,12 @@ public class Launcher {
         // Initialize the server data and load them
         ServerDataHandler.init(Path.of(args[3]));
 
+        // Initialize the web3 instance
+        EthereumRPCHandler.web3 = Web3j.build(new HttpService(args[4]));
+        EthereumRPCHandler.url = new URL(args[4]);
+
         // Verify commands are up-to-date
-        CommandsHandler.checkAndSetSlashCommands(Boolean.parseBoolean(args[4]));
+        CommandsHandler.checkAndSetSlashCommands(Boolean.parseBoolean(args[5]));
 
         // Start the StatusHandler
         new StatusHandler();
@@ -62,13 +65,13 @@ public class Launcher {
 
     /**
      *
-     * @param args Requires 4 arguments for: (1) bot token, (2) Laevitas API, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) update commands
-     * @throws Exception If 4 arguments aren't passed exactly
+     * @param args Requires 6 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) HTTPS link to Ethereum RPC node,(6) update commands
+     * @throws Exception If 6 arguments aren't passed exactly
      */
     public static void main(String[] args) throws Exception {
 
-        if(args.length != 5)
-            throw new Exception("Invalid arg count; requires 4 arguments for: (1) bot token, (2) Laevitas API, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) update commands");
+        if(args.length != 6)
+            throw new Exception("Invalid arg count; Requires 6 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) HTTPS link to Ethereum RPC node,(6) update commands");
         else {
             new Launcher(args);
         }
