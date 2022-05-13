@@ -2,17 +2,18 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
 
 public abstract class BotCommand {
 
     protected String name, description;
-    protected OptionData options;
     protected long commandId;
-    protected boolean onlyEmbed, onlyEphemeral;
+    protected boolean onlyEmbed, onlyEphemeral, isActive = true;
+    protected HashMap<String, Button> buttonHashMap = new HashMap<>();
 
-    abstract public Object runCommand(long userId);
     abstract public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event);
 
     abstract public void addCommand(JDA jda);
@@ -27,15 +28,21 @@ public abstract class BotCommand {
     public String getDescription() {
         return description;
     }
-    public OptionData getOptions() {
-        return options;
-    }
     public long getCommandId() {
         return commandId;
     }
     public boolean isOnlyEmbed() { return onlyEmbed; }
     public boolean isOnlyEphemeral() {
-        return onlyEphemeral;
+        return onlyEphemeral || !isActive;
+    }
+    public boolean isActive() {
+        return isActive;
+    }
+    public Button getButton(String key) {
+        return buttonHashMap.get(key);
+    }
+    public HashMap<String, Button> getButtonHashMap() {
+        return buttonHashMap;
     }
 
 }

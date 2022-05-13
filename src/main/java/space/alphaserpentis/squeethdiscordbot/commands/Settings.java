@@ -21,10 +21,6 @@ public class Settings extends BotCommand {
         description = "Configure the server settings";
         onlyEmbed = true;
     }
-    @Override
-    public Object runCommand(long userId) {
-        return defaultResponse();
-    }
 
     @Override
     public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
@@ -32,7 +28,7 @@ public class Settings extends BotCommand {
         List<OptionMapping> optionMappingList = event.getOptions();
 
         if(optionMappingList.size() != 2)
-            return runCommand(userId);
+            return defaultResponse();
 
         eb.setTitle("Server Settings");
 

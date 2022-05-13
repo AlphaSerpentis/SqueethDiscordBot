@@ -15,7 +15,7 @@ public class About extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId) {
+    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("About [Name To Be Determined]");
@@ -25,11 +25,6 @@ public class About extends BotCommand {
         eb.setFooter("Developed by Amethyst C. | API Data by Laevitas");
 
         return eb.build();
-    }
-
-    @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
-        return runCommand(userId);
     }
 
     @Override
