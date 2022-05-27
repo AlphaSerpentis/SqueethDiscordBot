@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
-import java.awt.*;
 import java.text.NumberFormat;
 import java.util.List;
 
@@ -25,8 +24,8 @@ public class Funding extends BotCommand {
     public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
-        Double amt, funding, thetaCalculated, amtHeld;
-        Integer days;
+        double amt, funding, thetaCalculated, amtHeld;
+        int days;
 
         // 0th Index should be amount of oSQTH in USD
         amt = optionMappingList.get(0).getAsDouble();
@@ -49,7 +48,7 @@ public class Funding extends BotCommand {
     }
 
     @Override
-    public void addCommand(JDA jda) {
+    public void addCommand(@NotNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
                 .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
@@ -60,7 +59,7 @@ public class Funding extends BotCommand {
     }
 
     @Override
-    public void updateCommand(JDA jda) {
+    public void updateCommand(@NotNull JDA jda) {
         Command cmd = jda.editCommandById(getCommandId()).complete();
 
         cmd.editCommand().clearOptions()

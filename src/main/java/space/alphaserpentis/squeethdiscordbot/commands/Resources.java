@@ -122,7 +122,7 @@ public class Resources extends ButtonCommand {
     }
 
     @Override
-    public void addCommand(JDA jda) {
+    public void addCommand(@NotNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .complete();
 
@@ -130,7 +130,7 @@ public class Resources extends ButtonCommand {
     }
 
     @Override
-    public void updateCommand(JDA jda) {
+    public void updateCommand(@NotNull JDA jda) {
     }
 
     @Override

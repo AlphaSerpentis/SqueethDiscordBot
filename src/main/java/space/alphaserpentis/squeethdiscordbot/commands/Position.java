@@ -21,23 +21,34 @@ import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.text.NumberFormat;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class Position extends BotCommand {
+
+    private HashMap<Long, Long> ratelimitMap = new HashMap<>();
 
     public Position() {
         name = "position";
         description = "Checks your wallet's Squeeth position";
         onlyEmbed = true;
         onlyEphemeral = true;
-        isActive = false;
+        deferReplies = true;
+//        isActive = false;
     }
 
     @Override
     public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
+
+        Long rateLimit = ratelimitMap.get(event.getUser().getIdLong());
+
+        if(rateLimit != null) {
+            if(rateLimit > Instant.now().getEpochSecond()) eb.setDescription("You are still rate limited");
+        }
 
         if(event.getOptions().isEmpty())
             eb.setDescription("Missing Ethereum address");
@@ -46,99 +57,101 @@ public class Position extends BotCommand {
         BigInteger response_osqthBal = null, response_ethUSD = null, response_osqthETH = null;
 
         try {
-            Function balanceOf = new Function(
-                    "balanceOf",
-                    List.of(
-                            new Address(event.getOptions().get(0).getAsString())
-                    ),
-                    List.of(
-                            new TypeReference<Uint256>() {
-                            }
-                    )
-            );
+            EthereumRPCHandler.getAssetTransfersOfUser(event.getOptions().get(0).getAsString(), osqth);
 
-            Function getTwap_ethUSD = new Function(
-                    "getTwap",
-                    Arrays.asList(
-                            new org.web3j.abi.datatypes.Address(ethUSDPool),
-                            new org.web3j.abi.datatypes.Address(weth),
-                            new org.web3j.abi.datatypes.Address(usdc),
-                            new Uint32(420),
-                            new org.web3j.abi.datatypes.Bool(true)
-                    ),
-                    List.of(
-                            new TypeReference<Uint256>() {
-                            }
-                    )
-            );
-
-            Function getTwap_osqth = new Function(
-                    "getTwap",
-                    Arrays.asList(
-                            new org.web3j.abi.datatypes.Address(ethOSQTHPool),
-                            new org.web3j.abi.datatypes.Address(osqth),
-                            new org.web3j.abi.datatypes.Address(weth),
-                            new Uint32(420),
-                            new org.web3j.abi.datatypes.Bool(true)
-                    ),
-                    List.of(
-                            new TypeReference<Uint256>() {
-                            }
-                    )
-            );
-
-            Web3j web3 = EthereumRPCHandler.web3;
-
-            response_osqthBal = (BigInteger) FunctionReturnDecoder.decode(
-                    web3.ethCall(
-                            Transaction.createEthCallTransaction(
-                                    "0x0000000000000000000000000000000000000000",
-                                    osqth,
-                                    FunctionEncoder.encode(
-                                            balanceOf
-                                    )
-                            ),
-                            DefaultBlockParameter.valueOf(web3.ethBlockNumber().send().getBlockNumber())
-                    ).sendAsync().get().getResult(),
-                    balanceOf.getOutputParameters()
-            ).get(0).getValue();
-
-            response_ethUSD = (BigInteger) FunctionReturnDecoder.decode(
-                    web3.ethCall(
-                            Transaction.createEthCallTransaction(
-                                    "0x0000000000000000000000000000000000000000",
-                                    oracle,
-                                    FunctionEncoder.encode(
-                                            getTwap_ethUSD
-                                    )
-                            ),
-                            DefaultBlockParameter.valueOf(web3.ethBlockNumber().send().getBlockNumber())
-                    ).sendAsync().get().getResult(),
-                    balanceOf.getOutputParameters()
-            ).get(0).getValue();
-
-            response_osqthETH = (BigInteger) FunctionReturnDecoder.decode(
-                    web3.ethCall(
-                            Transaction.createEthCallTransaction(
-                                    "0x0000000000000000000000000000000000000000",
-                                    oracle,
-                                    FunctionEncoder.encode(
-                                            getTwap_osqth
-                                    )
-                            ),
-                            DefaultBlockParameter.valueOf(web3.ethBlockNumber().send().getBlockNumber())
-                    ).sendAsync().get().getResult(),
-                    balanceOf.getOutputParameters()
-            ).get(0).getValue();
-        } catch(IOException e) {
-            eb.setDescription("Error Occurred: IOException");
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            eb.setDescription("Error Occurred: ExecutionException");
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            eb.setDescription("Error Occurred: InterruptedException");
-            throw new RuntimeException(e);
+//            Function balanceOf = new Function(
+//                    "balanceOf",
+//                    List.of(
+//                            new Address(event.getOptions().get(0).getAsString())
+//                    ),
+//                    List.of(
+//                            new TypeReference<Uint256>() {
+//                            }
+//                    )
+//            );
+//
+//            Function getTwap_ethUSD = new Function(
+//                    "getTwap",
+//                    Arrays.asList(
+//                            new org.web3j.abi.datatypes.Address(ethUSDPool),
+//                            new org.web3j.abi.datatypes.Address(weth),
+//                            new org.web3j.abi.datatypes.Address(usdc),
+//                            new Uint32(420),
+//                            new org.web3j.abi.datatypes.Bool(true)
+//                    ),
+//                    List.of(
+//                            new TypeReference<Uint256>() {
+//                            }
+//                    )
+//            );
+//
+//            Function getTwap_osqth = new Function(
+//                    "getTwap",
+//                    Arrays.asList(
+//                            new org.web3j.abi.datatypes.Address(ethOSQTHPool),
+//                            new org.web3j.abi.datatypes.Address(osqth),
+//                            new org.web3j.abi.datatypes.Address(weth),
+//                            new Uint32(420),
+//                            new org.web3j.abi.datatypes.Bool(true)
+//                    ),
+//                    List.of(
+//                            new TypeReference<Uint256>() {
+//                            }
+//                    )
+//            );
+//
+//            Web3j web3 = EthereumRPCHandler.web3;
+//
+//            response_osqthBal = (BigInteger) FunctionReturnDecoder.decode(
+//                    web3.ethCall(
+//                            Transaction.createEthCallTransaction(
+//                                    "0x0000000000000000000000000000000000000000",
+//                                    osqth,
+//                                    FunctionEncoder.encode(
+//                                            balanceOf
+//                                    )
+//                            ),
+//                            DefaultBlockParameter.valueOf(web3.ethBlockNumber().send().getBlockNumber())
+//                    ).sendAsync().get().getResult(),
+//                    balanceOf.getOutputParameters()
+//            ).get(0).getValue();
+//
+//            response_ethUSD = (BigInteger) FunctionReturnDecoder.decode(
+//                    web3.ethCall(
+//                            Transaction.createEthCallTransaction(
+//                                    "0x0000000000000000000000000000000000000000",
+//                                    oracle,
+//                                    FunctionEncoder.encode(
+//                                            getTwap_ethUSD
+//                                    )
+//                            ),
+//                            DefaultBlockParameter.valueOf(web3.ethBlockNumber().send().getBlockNumber())
+//                    ).sendAsync().get().getResult(),
+//                    balanceOf.getOutputParameters()
+//            ).get(0).getValue();
+//
+//            response_osqthETH = (BigInteger) FunctionReturnDecoder.decode(
+//                    web3.ethCall(
+//                            Transaction.createEthCallTransaction(
+//                                    "0x0000000000000000000000000000000000000000",
+//                                    oracle,
+//                                    FunctionEncoder.encode(
+//                                            getTwap_osqth
+//                                    )
+//                            ),
+//                            DefaultBlockParameter.valueOf(web3.ethBlockNumber().send().getBlockNumber())
+//                    ).sendAsync().get().getResult(),
+//                    balanceOf.getOutputParameters()
+//            ).get(0).getValue();
+//        } catch(IOException e) {
+//            eb.setDescription("Error Occurred: IOException");
+//            throw new RuntimeException(e);
+//        } catch (ExecutionException e) {
+//            eb.setDescription("Error Occurred: ExecutionException");
+//            throw new RuntimeException(e);
+//        } catch (InterruptedException e) {
+//            eb.setDescription("Error Occurred: InterruptedException");
+//            throw new RuntimeException(e);
         } finally {
             if (response_ethUSD == null && response_osqthETH == null && response_osqthBal == null) {
                 eb.setDescription("Data error: One of the API responses are null");
@@ -152,7 +165,7 @@ public class Position extends BotCommand {
     }
 
     @Override
-    public void addCommand(JDA jda) {
+    public void addCommand(@NotNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.STRING, "address", "Your Ethereum address")
                 .complete();
@@ -161,7 +174,7 @@ public class Position extends BotCommand {
     }
 
     @Override
-    public void updateCommand(JDA jda) {
+    public void updateCommand(@NotNull JDA jda) {
 
     }
 }

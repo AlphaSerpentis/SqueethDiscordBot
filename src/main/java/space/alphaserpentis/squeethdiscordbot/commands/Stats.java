@@ -3,6 +3,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.data.SqueethData;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
@@ -43,14 +44,14 @@ public class Stats extends BotCommand {
     }
 
     @Override
-    public void addCommand(JDA jda) {
-        net.dv8tion.jda.api.interactions.commands.Command cmd = jda.upsertCommand(name, description).complete();
+    public void addCommand(@NotNull JDA jda) {
+        Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
-    public void updateCommand(JDA jda) {
+    public void updateCommand(@NotNull JDA jda) {
 
     }
 }
