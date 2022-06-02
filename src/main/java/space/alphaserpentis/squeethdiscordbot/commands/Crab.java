@@ -124,7 +124,7 @@ public class Crab extends BotCommand {
         eb.addField("ETH Collateral", NumberFormat.getInstance().format(ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
         eb.addField("Vault Debt", NumberFormat.getInstance().format(shortoSQTH.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
         eb.addField("Collateral Ratio", NumberFormat.getInstance().format(calculateCollateralRatio()) + "%", false);
-        eb.addField("Price per Crab Token", "$" + NumberFormat.getInstance().format(usdPerCrab) + " (" + NumberFormat.getInstance().format(ethPerCrab) + " Ξ)", false);
+//        eb.addField("Price per Crab Token", "$" + NumberFormat.getInstance().format(usdPerCrab) + " (" + NumberFormat.getInstance().format(ethPerCrab) + " Ξ)", false);
         eb.addField("Total Supply of Crab", NumberFormat.getInstance().format(crabTotalSupply.divide(BigInteger.valueOf((long) Math.pow(10,18)))), false);
         eb.addField("Last Rebalance", "<t:" + lastHedgeTime + ">", false);
         eb.setFooter("Last Updated at " + Instant.ofEpochSecond(lastRun).atOffset(ZoneOffset.UTC).toOffsetTime());
