@@ -1,23 +1,17 @@
 package space.alphaserpentis.squeethdiscordbot.handler;
 
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.commands.*;
 import space.alphaserpentis.squeethdiscordbot.data.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class CommandsHandler extends ListenerAdapter {
     public static final HashMap<String, BotCommand> mappingOfCommands = new HashMap<>() {{
@@ -30,6 +24,8 @@ public class CommandsHandler extends ListenerAdapter {
         put("settings", new Settings());
         put("resources", new Resources());
         put("clean", new Clean());
+        put("crab", new Crab());
+//        put("position", new Position());
     }};
 
     public static long adminUserID;
@@ -78,31 +74,8 @@ public class CommandsHandler extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         BotCommand cmd = mappingOfCommands.get(event.getName());
         Message message;
-        boolean sendAsEphemeral = cmd.isOnlyEphemeral();
-        Object response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
-        ReplyCallbackAction reply;
 
-        if(!sendAsEphemeral && event.getGuild() != null)
-            sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
-
-        if(cmd.isOnlyEmbed()) {
-            if(!sendAsEphemeral && event.getGuild() != null) {
-                reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(false);
-            } else {
-                reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral);
-            }
-        } else {
-            if(!sendAsEphemeral && event.getGuild() != null) {
-                reply = event.reply((Message) response).setEphemeral(false);
-            } else {
-                reply = event.reply((Message) response).setEphemeral(sendAsEphemeral);
-            }
-        }
-
-        if(!cmd.getButtonHashMap().isEmpty())
-            reply.addActionRow(((ButtonCommand) cmd).addButtons());
-
-        message = reply.complete().retrieveOriginal().complete();
+        message = BotCommand.handleReply(event, cmd);
 
         if(message != null && event.getGuild() != null) {
             ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
@@ -116,9 +89,5 @@ public class CommandsHandler extends ListenerAdapter {
                 ((ButtonCommand) mappingOfCommands.get(cmdName)).runButtonInteraction(event);
             }
         }
-    }
-
-    private MessageEmbed inactiveCommandResponse() {
-        return new EmbedBuilder().setDescription("This command is currently not active").build();
     }
 }

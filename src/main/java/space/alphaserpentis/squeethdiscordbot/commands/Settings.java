@@ -51,7 +51,7 @@ public class Settings extends BotCommand {
     }
 
     @Override
-    public void addCommand(JDA jda) {
+    public void addCommand(@NotNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.STRING, "name", "Name of the command ")
                 .addOption(OptionType.STRING, "value", "Value of the setting to configure")
@@ -61,7 +61,7 @@ public class Settings extends BotCommand {
     }
 
     @Override
-    public void updateCommand(JDA jda) {
+    public void updateCommand(@NotNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.STRING, "name", "Name of the command ")
                 .addOption(OptionType.STRING, "value", "Value of the setting to configure")
