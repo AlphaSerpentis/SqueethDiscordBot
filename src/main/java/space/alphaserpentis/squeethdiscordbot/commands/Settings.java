@@ -6,15 +6,19 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 
+import java.util.Collection;
 import java.util.List;
 
-public class Settings extends BotCommand {
+public class Settings extends ButtonCommand {
 
     public Settings() {
         name = "settings";
@@ -52,20 +56,26 @@ public class Settings extends BotCommand {
 
     @Override
     public void addCommand(@NotNull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description)
-                .addOption(OptionType.STRING, "name", "Name of the command ")
-                .addOption(OptionType.STRING, "value", "Value of the setting to configure")
-                .complete();
+        SubcommandData ephemeral = new SubcommandData("ephemeral", "Set messages to be ephemeral (private) or not (public)")
+                .addOption(OptionType.BOOLEAN, "setting", "Setting to set to");
+        SubcommandData leaderboard = new SubcommandData("leaderboard", "Configure the leaderboard settings")
+                .addOption(OptionType.CHANNEL, "channel", "Channel to post the leaderboard to");
+
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral, leaderboard).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
     public void updateCommand(@NotNull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description)
-                .addOption(OptionType.STRING, "name", "Name of the command ")
-                .addOption(OptionType.STRING, "value", "Value of the setting to configure")
-                .complete();
+        SubcommandData ephemeral = new SubcommandData("ephemeral", "Set messages to be ephemeral (private) or not (public)")
+                .addOption(OptionType.BOOLEAN, "setting", "Setting to set to");
+        SubcommandData leaderboard = new SubcommandData("leaderboard", "Configure the leaderboard settings")
+                .addOption(OptionType.CHANNEL, "channel", "Channel to post the leaderboard to");
+
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral, leaderboard).complete();
+
+        commandId = cmd.getIdLong();
 
         System.out.println("[Settings] Updating command");
     }
@@ -102,5 +112,15 @@ public class Settings extends BotCommand {
         return member.hasPermission(
                 Permission.MANAGE_SERVER
         );
+    }
+
+    @Override
+    public void runButtonInteraction(@NotNull ButtonInteractionEvent event) {
+
+    }
+
+    @Override
+    public Collection<ItemComponent> addButtons() {
+        return null;
     }
 }

@@ -25,7 +25,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("resources", new Resources());
         put("clean", new Clean());
         put("crab", new Crab());
-//        put("position", new Position());
+        put("position", new Position());
     }};
 
     public static long adminUserID;
@@ -73,13 +73,16 @@ public class CommandsHandler extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         BotCommand cmd = mappingOfCommands.get(event.getName());
-        Message message;
 
-        message = BotCommand.handleReply(event, cmd);
+        new Thread(() -> {
+            Message message;
+            message = BotCommand.handleReply(event, cmd);
 
-        if(message != null && event.getGuild() != null) {
-            ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
-        }
+            if(message != null && event.getGuild() != null) {
+                ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
+            }
+        }).start();
+
     }
 
     @Override

@@ -2,6 +2,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +17,7 @@ public class Shutdown extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public Message runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         if(userId == CommandsHandler.adminUserID) {
             Launcher.shutdown();
 

@@ -2,6 +2,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import org.jetbrains.annotations.NotNull;
@@ -20,7 +21,7 @@ public class Stats extends BotCommand {
     }
 
     @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         SqueethData data = LaevitasHandler.latestSqueethData;

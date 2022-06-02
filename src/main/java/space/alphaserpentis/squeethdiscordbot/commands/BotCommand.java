@@ -15,14 +15,14 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Objects;
 
-public abstract class BotCommand {
+public abstract class BotCommand<T> {
 
     protected String name, description;
     protected long commandId;
     protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies;
     protected HashMap<String, Button> buttonHashMap = new HashMap<>();
 
-    abstract public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event);
+    abstract public T runCommand(long userId, @NotNull SlashCommandInteractionEvent event);
 
     abstract public void addCommand(@NotNull JDA jda);
     abstract public void updateCommand(@NotNull JDA jda);
@@ -85,7 +85,6 @@ public abstract class BotCommand {
                     hook.setEphemeral(false);
                 } else {
                     hook.setEphemeral(sendAsEphemeral);
-
                 }
 
                 return hook.sendMessage((String) response).complete();
