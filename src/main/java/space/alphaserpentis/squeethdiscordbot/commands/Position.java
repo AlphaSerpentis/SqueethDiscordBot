@@ -10,8 +10,10 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.abi.datatypes.generated.Uint32;
+import space.alphaserpentis.squeethdiscordbot.data.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
@@ -31,6 +33,7 @@ public class Position extends BotCommand {
     private static final String usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
     private static final String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
     private static final String weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+    private static final String oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1";
     private static final Function getTwap_ethUSD = new Function(
                     "getTwap",
                     Arrays.asList(
@@ -89,11 +92,30 @@ public class Position extends BotCommand {
             eb.setDescription("Missing Ethereum address");
 
         String userAddress = event.getOptions().get(0).getAsString();
-        ArrayList<SimpleTokenTransferResponse> transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, osqth);
+        ArrayList<SimpleTokenTransferResponse> transfers;
         BigInteger unrealizedPNL = BigInteger.ZERO, currentPriceUsd, currentPriceEth;
         HashMap<Integer, BigInteger> oSQTHAtBlock = new HashMap<>();
         ArrayList<BigInteger> oSQTHPrices_USD = new ArrayList<>();
         ArrayList<BigInteger> oSQTHPrices = new ArrayList<>();
+
+        if(userAddress.length() != 42) {
+            eb.setDescription("Invalid Ethereum address");
+            return eb.build();
+        }
+
+        if(PositionsDataHandler.cachedTransfers.containsKey(userAddress)) {
+            int highestBlock = PositionsDataHandler.cachedTransfers.get(userAddress).get(PositionsDataHandler.cachedTransfers.get(userAddress).size() - 1).blockNum;
+            transfers = PositionsDataHandler.cachedTransfers.get(userAddress);
+
+            ArrayList<SimpleTokenTransferResponse> newTransfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, osqth, highestBlock);
+            transfers.addAll(newTransfers);
+            PositionsDataHandler.addNewData(userAddress, newTransfers);
+            System.out.println("Went for the cached data");
+        } else {
+            transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, osqth);
+            PositionsDataHandler.addNewData(userAddress, transfers);
+            System.out.println("Went for the new data");
+        }
 
         for(SimpleTokenTransferResponse transfer : transfers) {
             if(transfer.from.equalsIgnoreCase(userAddress)) { // leaves the account
@@ -107,7 +129,6 @@ public class Position extends BotCommand {
             }
         }
 
-        String oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1";
         try {
             currentPriceEth = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_osqth).get(0).getValue();
             currentPriceUsd = currentPriceEth.multiply((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUSD).get(0).getValue());
@@ -118,11 +139,24 @@ public class Position extends BotCommand {
         DecimalFormat df = new DecimalFormat("#");
 
         for(int block : oSQTHAtBlock.keySet()) {
-            System.out.println("Grabbing data for block " + block);
             BigInteger priceOsqth, priceEth;
             try {
-                priceOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, Long.parseLong(String.valueOf(block))).get(0).getValue();
-                priceEth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUSD, Long.parseLong(String.valueOf(block))).get(0).getValue();
+                PriceData priceData = new PriceData();
+
+                if(PositionsDataHandler.cachedPrices.containsKey((long) block)) {
+                    priceData = PositionsDataHandler.cachedPrices.get((long) block);
+                    priceOsqth = priceData.osqthEth;
+                    priceEth = priceData.ethUsdc;
+                } else {
+                    priceOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, Long.parseLong(String.valueOf(block))).get(0).getValue();
+                    priceEth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUSD, Long.parseLong(String.valueOf(block))).get(0).getValue();
+
+                    priceData.ethUsdc = priceEth;
+                    priceData.osqthEth = priceOsqth;
+
+                    PositionsDataHandler.addNewData((long) block, priceData);
+                }
+
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -139,7 +173,7 @@ public class Position extends BotCommand {
         BigInteger currentValue = oSQTHAtBlock.get(oSQTHAtBlock.keySet().stream().max(Integer::compareTo).get()).multiply(currentPriceUsd).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36)))));
 
         eb.addField("Position Value", "$" + NumberFormat.getInstance().format(currentValue.doubleValue() / Math.pow(10,18)), false);
-        eb.addField("Current PNL", "$" + NumberFormat.getInstance().format(unrealizedPNL.doubleValue() / Math.pow(10,18)), false);
+        eb.addField("Current PNL", "$" + NumberFormat.getInstance().format((currentValue.doubleValue() / Math.pow(10,18)) - (unrealizedPNL.doubleValue() / Math.pow(10,18))), false);
 
         // ratelimitMap.put(userId, Instant.now().getEpochSecond() + 600);
 

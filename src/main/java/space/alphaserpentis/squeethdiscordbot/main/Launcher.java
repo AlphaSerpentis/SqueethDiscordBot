@@ -43,13 +43,14 @@ public class Launcher {
 
         // Initialize the server data and load them
         ServerDataHandler.init(Path.of(args[3]));
+        PositionsDataHandler.init(Path.of(args[4]), Path.of(args[5]));
 
         // Initialize the web3 instance
-        EthereumRPCHandler.web3 = Web3j.build(new HttpService(args[4]));
-        EthereumRPCHandler.url = new URL(args[4]);
+        EthereumRPCHandler.web3 = Web3j.build(new HttpService(args[6]));
+        EthereumRPCHandler.url = new URL(args[6]);
 
         // Verify commands are up-to-date
-        CommandsHandler.checkAndSetSlashCommands(Boolean.parseBoolean(args[5]));
+        CommandsHandler.checkAndSetSlashCommands(Boolean.parseBoolean(args[7]));
 
         // Start the StatusHandler
         new StatusHandler();
@@ -65,13 +66,13 @@ public class Launcher {
 
     /**
      *
-     * @param args Requires 6 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) HTTPS link to Ethereum RPC node,(6) update commands
-     * @throws Exception If 6 arguments aren't passed exactly
+     * @param args Requires 8 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) file path to transfers JSON file, (6) file path to prices JSON file, (7) HTTPS link to Ethereum RPC node, (8) update commands
+     * @throws Exception If 8 arguments aren't passed exactly
      */
     public static void main(String[] args) throws Exception {
 
-        if(args.length != 6)
-            throw new Exception("Invalid arg count; Requires 6 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) HTTPS link to Ethereum RPC node,(6) update commands");
+        if(args.length != 8)
+            throw new Exception("Invalid arg count; Requires 8 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) file path to transfers JSON file, (6) file path to prices JSON file, (7) HTTPS link to Ethereum RPC node, (8) update commands");
         else {
             new Launcher(args);
         }
