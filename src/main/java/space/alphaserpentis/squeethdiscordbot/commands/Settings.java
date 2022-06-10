@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -120,7 +121,7 @@ public class Settings extends ButtonCommand {
     }
 
     @Override
-    public Collection<ItemComponent> addButtons() {
+    public Collection<ItemComponent> addButtons(@NotNull GenericCommandInteractionEvent event) {
         return null;
     }
 }

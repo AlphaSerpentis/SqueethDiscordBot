@@ -26,6 +26,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("clean", new Clean());
         put("crab", new Crab());
         put("position", new Position());
+        put("squiz", new Squiz());
     }};
 
     public static long adminUserID;
@@ -87,10 +88,10 @@ public class CommandsHandler extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
-        for(String cmdName: mappingOfCommands.keySet()) {
-            if(event.getButton().getId().contains(cmdName)) {
-                ((ButtonCommand) mappingOfCommands.get(cmdName)).runButtonInteraction(event);
-            }
-        }
+        new Thread(() -> {
+            BotCommand cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
+
+            ((ButtonCommand) cmd).runButtonInteraction(event);
+        }).start();
     }
 }

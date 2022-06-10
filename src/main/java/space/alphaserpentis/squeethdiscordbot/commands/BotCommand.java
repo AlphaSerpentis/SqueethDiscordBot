@@ -6,21 +6,18 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.Collection;
 
 public abstract class BotCommand<T> {
 
     protected String name, description;
     protected long commandId;
     protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies;
-    protected HashMap<String, Button> buttonHashMap = new HashMap<>();
 
     abstract public T runCommand(long userId, @NotNull SlashCommandInteractionEvent event);
 
@@ -49,14 +46,6 @@ public abstract class BotCommand<T> {
     public boolean isDeferReplies() {
         return deferReplies;
     }
-    @Nullable
-    public Button getButton(String key) {
-        return buttonHashMap.get(key);
-    }
-    @Nullable
-    public HashMap<String, Button> getButtonHashMap() {
-        return buttonHashMap;
-    }
 
     public static Message handleReply(@NotNull SlashCommandInteractionEvent event, BotCommand cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
@@ -64,20 +53,18 @@ public abstract class BotCommand<T> {
         ReplyCallbackAction reply;
 
         if (cmd.isDeferReplies()) {
-            event.deferReply().complete();
             InteractionHook hook = event.getHook();
-            response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
-
             if (!sendAsEphemeral && event.getGuild() != null) {
                 sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
             }
 
             if (cmd.isOnlyEmbed()) {
                 if (!sendAsEphemeral && event.getGuild() != null) {
-                    hook.setEphemeral(false);
+                    event.deferReply(false).complete();
                 } else {
-                    hook.setEphemeral(sendAsEphemeral);
+                    event.deferReply(sendAsEphemeral).complete();
                 }
+                response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
 
                 return hook.sendMessageEmbeds((MessageEmbed) response).complete();
             } else {
@@ -86,6 +73,7 @@ public abstract class BotCommand<T> {
                 } else {
                     hook.setEphemeral(sendAsEphemeral);
                 }
+                response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
 
                 return hook.sendMessage((String) response).complete();
             }
@@ -110,8 +98,12 @@ public abstract class BotCommand<T> {
             }
         }
 
-        if (!Objects.requireNonNull(cmd.getButtonHashMap()).isEmpty())
-            reply.addActionRow(((ButtonCommand) cmd).addButtons());
+        if (cmd instanceof ButtonCommand) {
+            Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
+
+            if(!buttons.isEmpty())
+                reply.addActionRow(buttons);
+        }
 
         return reply.complete().retrieveOriginal().complete();
     }

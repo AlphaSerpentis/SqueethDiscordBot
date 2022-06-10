@@ -3,6 +3,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -134,7 +135,7 @@ public class Resources extends ButtonCommand {
     }
 
     @Override
-    public Collection<ItemComponent> addButtons() {
+    public Collection<ItemComponent> addButtons(@NotNull GenericCommandInteractionEvent event) {
         return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
     }
 

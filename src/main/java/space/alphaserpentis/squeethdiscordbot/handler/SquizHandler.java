@@ -16,6 +16,10 @@ public class SquizHandler {
 
     public static Path squizLeaderboardJson;
     public static Path squizQuestionsJson;
+    /**
+     * Key: serverId
+     * Value: SquizLeaderboard
+     */
     public static HashMap<Long, SquizLeaderboard> squizLeaderboardHashMap = new HashMap<>();
     public static ArrayList<SquizQuestions> squizQuestions = new ArrayList<>();
 

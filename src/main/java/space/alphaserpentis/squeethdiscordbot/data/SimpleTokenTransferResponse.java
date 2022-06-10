@@ -21,4 +21,14 @@ public class SimpleTokenTransferResponse {
         DecimalFormat df = new DecimalFormat("#");
         return new BigInteger(String.valueOf(df.format(value * Math.pow(10,18))));
     }
+
+    @Override
+    public String toString() {
+        return "SimpleTokenTransferResponse{" +
+                "blockNum=" + blockNum +
+                ", from='" + from + '\'' +
+                ", value=" + value +
+                ", bigIntegerValue=" + getBigIntegerValue() +
+                '}';
+    }
 }
