@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.handler;
 
 import com.google.gson.Gson;
@@ -5,6 +7,7 @@ import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
+import org.web3j.ens.EnsResolver;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
@@ -55,32 +58,41 @@ public class EthereumRPCHandler {
         );
     }
 
-    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token) {
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token, long startingBlock) {
         String[] responses = new String[2];
         ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
 
         TokenTransferResponse inbound, outbound;
 
         try {
-            responses[0] = alchemy_getAssetTransfers("", address, token, null);
-            responses[1] = alchemy_getAssetTransfers(address, "", token, null);
+            responses[0] = alchemy_getAssetTransfers("", address, token, null, startingBlock);
+            responses[1] = alchemy_getAssetTransfers(address, "", token, null, startingBlock);
 
             inbound = new Gson().fromJson(responses[0], TokenTransferResponse.class);
             outbound = new Gson().fromJson(responses[1], TokenTransferResponse.class);
 
-            while(inbound.result.pageKey != null) {
-                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey), TokenTransferResponse.class);
+            if(inbound.result.pageKey == null) {
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock), TokenTransferResponse.class);
                 temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
-                inbound = temp;
+            } else {
+                while(inbound.result.pageKey != null) {
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    inbound = temp;
+                }
             }
-            while(outbound.result.pageKey != null) {
-                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey), TokenTransferResponse.class);
+            if(outbound.result.pageKey == null) {
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock), TokenTransferResponse.class);
                 temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
-                outbound = temp;
+            } else {
+                while(outbound.result.pageKey != null) {
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    outbound = temp;
+                }
             }
 
             listOfTransfers.sort(Comparator.comparing(SimpleTokenTransferResponse::getBlockNum));
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -88,8 +100,50 @@ public class EthereumRPCHandler {
         return listOfTransfers;
     }
 
-    public static String alchemy_getAssetTransfers(String fromAddress, String toAddress, String token, @Nullable String pageKey) throws IOException {
-        StringBuffer response = null;
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token) {
+        String[] responses = new String[2];
+        ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
+
+        TokenTransferResponse inbound, outbound;
+
+        try {
+            responses[0] = alchemy_getAssetTransfers("", address, token, null, -1);
+            responses[1] = alchemy_getAssetTransfers(address, "", token, null, -1);
+
+            inbound = new Gson().fromJson(responses[0], TokenTransferResponse.class);
+            outbound = new Gson().fromJson(responses[1], TokenTransferResponse.class);
+
+            if(inbound.result.pageKey == null) {
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1), TokenTransferResponse.class);
+                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+            } else {
+                while(inbound.result.pageKey != null) {
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    inbound = temp;
+                }
+            }
+            if(outbound.result.pageKey == null) {
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1), TokenTransferResponse.class);
+                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+            } else {
+                while(outbound.result.pageKey != null) {
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    outbound = temp;
+                }
+            }
+
+            listOfTransfers.sort(Comparator.comparing(SimpleTokenTransferResponse::getBlockNum));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return listOfTransfers;
+    }
+
+    public static String alchemy_getAssetTransfers(String fromAddress, String toAddress, String token, @Nullable String pageKey, long startingBlock) throws IOException {
+        StringBuilder response = null;
         AlchemyRequest req = new AlchemyRequest();
         Gson gson = new Gson();
 
@@ -102,7 +156,7 @@ public class EthereumRPCHandler {
         if(pageKey != null) {
             req.params[0].pageKey = pageKey;
         }
-        req.params[0].fromBlock = "0xd55bca";
+        req.params[0].fromBlock = startingBlock == -1 ? "0xd55bca" : "0x" + Long.toHexString(startingBlock);
         req.params[0].category = new String[1];
         req.params[0].contractAddresses = new String[1];
         req.params[0].category[0] = "token";
@@ -121,7 +175,7 @@ public class EthereumRPCHandler {
         if(responseCode == HttpURLConnection.HTTP_ACCEPTED || responseCode == HttpURLConnection.HTTP_OK) {
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
             String inputLine;
-            response = new StringBuffer();
+            response = new StringBuilder();
 
             while((inputLine = in.readLine()) != null) {
                 response.append(inputLine);
@@ -138,4 +192,23 @@ public class EthereumRPCHandler {
         return response.toString();
     }
 
+    public static String getENSName(String address) {
+        EnsResolver resolver = new EnsResolver(web3);
+
+        try {
+            return resolver.reverseResolve(address);
+        } catch (Exception e) {
+            return address;
+        }
+    }
+
+    public static String getResolvedAddress(String ens) throws Exception {
+        EnsResolver resolver = new EnsResolver(web3);
+
+        try {
+            return resolver.resolve(ens);
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
+    }
 }
