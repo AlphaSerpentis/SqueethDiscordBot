@@ -1,17 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.main;
 
+import com.google.gson.Gson;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
+import space.alphaserpentis.squeethdiscordbot.data.BotSettings;
 import space.alphaserpentis.squeethdiscordbot.handler.*;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Launcher {
 
@@ -21,12 +27,16 @@ public class Launcher {
     public static JDA api;
 
     public Launcher(String[] args) throws LoginException, InterruptedException, IOException {
-        JDABuilder builder = JDABuilder.createDefault(args[0]);
+        Gson gson = new Gson();
+
+        BotSettings settings = gson.fromJson(Files.newBufferedReader(Paths.get(args[0])), BotSettings.class);
+
+        JDABuilder builder = JDABuilder.createDefault(settings.discordBotKey);
 
         // Set variables
         LaevitasHandler.API_URL = new URL("https://gateway.laevitas.ch/");
-        LaevitasHandler.KEY = args[1];
-        CommandsHandler.adminUserID = Long.parseLong(args[2]);
+        LaevitasHandler.KEY = settings.laevitasKey;
+        CommandsHandler.adminUserID = settings.botAdmin;
 
         // Configure the bot
         builder.disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.CLIENT_STATUS, CacheFlag.EMOTE);
@@ -42,18 +52,21 @@ public class Launcher {
         api.awaitReady();
 
         // Initialize the server data and load them
-        ServerDataHandler.init(Path.of(args[3]));
-        PositionsDataHandler.init(Path.of(args[4]), Path.of(args[5]));
+        ServerDataHandler.init(Path.of(settings.serverData));
+        PositionsDataHandler.init(Path.of(settings.transfersData), Path.of(settings.pricesData));
 
         // Initialize the web3 instance
-        EthereumRPCHandler.web3 = Web3j.build(new HttpService(args[6]));
-        EthereumRPCHandler.url = new URL(args[6]);
+        EthereumRPCHandler.web3 = Web3j.build(new HttpService(String.valueOf(settings.ethereumRPC)));
+        EthereumRPCHandler.url = new URL(settings.ethereumRPC);
 
         // Verify commands are up-to-date
-        CommandsHandler.checkAndSetSlashCommands(Boolean.parseBoolean(args[7]));
+        CommandsHandler.checkAndSetSlashCommands(settings.updateCommandsAtLaunch);
 
         // Start the StatusHandler
         new StatusHandler();
+
+        // Initialize SquizHandler
+        SquizHandler.init(Path.of(settings.squizLeaderboard), Path.of(settings.squizQuestions));
     }
 
     /**
@@ -66,18 +79,14 @@ public class Launcher {
 
     /**
      *
-     * @param args Requires 8 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) file path to transfers JSON file, (6) file path to prices JSON file, (7) HTTPS link to Ethereum RPC node, (8) update commands
-     * @throws Exception If 8 arguments aren't passed exactly
+     * @param args Requires 1 argument: path to the settings.json file
+     * @throws Exception If 1 argument is not provided
      */
     public static void main(String[] args) throws Exception {
-
-        if(args.length != 8)
-            throw new Exception("Invalid arg count; Requires 8 arguments for: (1) bot token, (2) Laevitas API key, (3) bot admin Discord user ID, (4) file path to server JSON file, (5) file path to transfers JSON file, (6) file path to prices JSON file, (7) HTTPS link to Ethereum RPC node, (8) update commands");
+        if(args.length != 1)
+            throw new Exception("Invalid arg count; Requires 1 argument: path to the settings.json file");
         else {
             new Launcher(args);
         }
-
-
     }
-
 }

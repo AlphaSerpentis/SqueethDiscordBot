@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -10,8 +12,8 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,8 +72,9 @@ public class Resources extends ButtonCommand {
         buttonHashMap.put("Next", Button.primary("resources_next", "Next"));
     }
 
+    @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("Educational Resources");
@@ -83,7 +86,7 @@ public class Resources extends ButtonCommand {
     }
 
     @Override
-    public void runButtonInteraction(@NotNull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("Educational Resources");
@@ -123,7 +126,7 @@ public class Resources extends ButtonCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .complete();
 
@@ -131,11 +134,11 @@ public class Resources extends ButtonCommand {
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
     }
 
     @Override
-    public Collection<ItemComponent> addButtons(@NotNull GenericCommandInteractionEvent event) {
+    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
     }
 

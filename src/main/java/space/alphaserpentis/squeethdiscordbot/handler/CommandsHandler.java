@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.handler;
 
 import net.dv8tion.jda.api.JDA;
@@ -6,11 +8,11 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.commands.*;
 import space.alphaserpentis.squeethdiscordbot.data.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 
 public class CommandsHandler extends ListenerAdapter {
@@ -26,7 +28,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("clean", new Clean());
         put("crab", new Crab());
         put("position", new Position());
-        put("squiz", new Squiz());
+//        put("squiz", new Squiz());
     }};
 
     public static long adminUserID;
@@ -72,14 +74,13 @@ public class CommandsHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
-        BotCommand cmd = mappingOfCommands.get(event.getName());
-
+    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         new Thread(() -> {
+            BotCommand cmd = mappingOfCommands.get(event.getName());
             Message message;
             message = BotCommand.handleReply(event, cmd);
 
-            if(message != null && event.getGuild() != null) {
+            if(event.getGuild() != null && !message.isEphemeral()) {
                 ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
             }
         }).start();
@@ -87,7 +88,7 @@ public class CommandsHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
+    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         new Thread(() -> {
             BotCommand cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
 

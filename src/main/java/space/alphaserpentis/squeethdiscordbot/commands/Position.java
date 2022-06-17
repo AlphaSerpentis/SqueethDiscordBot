@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -6,7 +8,6 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.generated.Uint256;
@@ -16,6 +17,7 @@ import space.alphaserpentis.squeethdiscordbot.data.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
 
+import javax.annotation.Nonnull;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -42,7 +44,7 @@ public class Position extends BotCommand {
                             new org.web3j.abi.datatypes.Address(ethUSDPool),
                             new org.web3j.abi.datatypes.Address(weth),
                             new org.web3j.abi.datatypes.Address(usdc),
-                            new Uint32(420),
+                            new Uint32(1),
                             new org.web3j.abi.datatypes.Bool(true)
                     ),
                     List.of(
@@ -57,7 +59,7 @@ public class Position extends BotCommand {
                     new org.web3j.abi.datatypes.Address(ethOSQTHPool),
                     new org.web3j.abi.datatypes.Address(osqth),
                     new org.web3j.abi.datatypes.Address(weth),
-                    new Uint32(420),
+                    new Uint32(1),
                     new org.web3j.abi.datatypes.Bool(true)
             ),
             List.of(
@@ -72,53 +74,61 @@ public class Position extends BotCommand {
         onlyEmbed = true;
         onlyEphemeral = true;
         deferReplies = true;
-//        isActive = false;
     }
 
+    @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         Long rateLimit = ratelimitMap.get(event.getUser().getIdLong());
 
         if(rateLimit != null) {
             if(rateLimit > Instant.now().getEpochSecond()) {
-                eb.setDescription("You are still rate limited");
+                eb.setDescription("You are still rate limited. Expires in " + (rateLimit - Instant.now().getEpochSecond()) + " seconds.");
                 return eb.build();
             } else {
                 ratelimitMap.remove(event.getUser().getIdLong());
             }
+        } else {
+            ratelimitMap.put(userId, Instant.now().getEpochSecond() + 10);
         }
 
         String userAddress = event.getOptions().get(0).getAsString();
         ArrayList<SimpleTokenTransferResponse> transfers;
         BigInteger costBasis = BigInteger.ZERO, currentPriceUsd, currentPriceEth;
         HashMap<Integer, BigInteger> oSQTHAtBlock = new HashMap<>();
-        ArrayList<BigInteger> oSQTHPrices_USD = new ArrayList<>();
-        ArrayList<BigInteger> oSQTHPrices = new ArrayList<>();
 
         // Validate Ethereum address
         if(userAddress.length() != 42 && userAddress.startsWith("0x")) {
             eb.setDescription("Invalid Ethereum address (must be a proper Ethereum address with 0x prefix)");
             return eb.build();
+        } else {
+            try {
+                userAddress = EthereumRPCHandler.getResolvedAddress(userAddress).toLowerCase();
+            } catch (Exception e) {
+                eb.setDescription("Invalid Ethereum address (must be a proper Ethereum address with 0x prefix) OR valid ENS name");
+                return eb.build();
+            }
         }
 
         // Check caches to see if we have the data
         if(PositionsDataHandler.cachedTransfers.containsKey(userAddress)) {
+            if(PositionsDataHandler.cachedTransfers.get(userAddress).size() == 0) {
+                eb.setDescription("You have no positions");
+                return eb.build();
+            }
             int highestBlock = PositionsDataHandler.cachedTransfers.get(userAddress).get(PositionsDataHandler.cachedTransfers.get(userAddress).size() - 1).blockNum;
             transfers = PositionsDataHandler.cachedTransfers.get(userAddress);
 
             ArrayList<SimpleTokenTransferResponse> newTransfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, osqth, highestBlock + 1);
             transfers.addAll(newTransfers);
             PositionsDataHandler.addNewData(userAddress, newTransfers);
-            System.out.println("Went for the cached data");
         } else {
             transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, osqth);
             PositionsDataHandler.addNewData(userAddress, transfers);
-            System.out.println("Went for the new data");
         }
 
-        // TODO: FIX ROUNDING ERROR IN SIMPLETOKENTRANSFERRESPONSE
         for(SimpleTokenTransferResponse transfer : transfers) {
             if(transfer.from.equalsIgnoreCase(userAddress)) { // leaves the account
                 if(oSQTHAtBlock.size() == 0) continue;
@@ -148,8 +158,12 @@ public class Position extends BotCommand {
             }
         }
 
+
         if(oSQTHAtBlock.size() == 0) {
-            eb.setDescription("You have no position");
+            eb.setDescription("You have no positions");
+            return eb.build();
+        } else if(oSQTHAtBlock.get(oSQTHAtBlock.keySet().stream().min(Integer::compareTo).get()).compareTo(BigInteger.TEN.pow(12)) < 0) {
+            eb.setDescription("You have no positions (dust account)");
             return eb.build();
         }
 
@@ -186,27 +200,24 @@ public class Position extends BotCommand {
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            oSQTHPrices.add(priceOsqth);
-            oSQTHPrices_USD.add(priceOsqth.multiply(priceEth));
+
             costBasis = costBasis.add(priceOsqth.multiply(priceEth).multiply(oSQTHAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
         }
 
         BigInteger oSQTHPosition = oSQTHAtBlock.values().stream().reduce(BigInteger.ZERO, BigInteger::add);
         BigInteger currentValue = oSQTHPosition.multiply(currentPriceUsd).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36)))));
 
-        eb.setTitle("Position Viewer for " + userAddress);
+        eb.setTitle("Position Viewer for " + EthereumRPCHandler.getENSName(userAddress));
         eb.setDescription("**Disclaimer**: This command is only for LONGS! It does not take into account your Crab tokens, shorts, or LP positions. PNL does not take into account for Uniswap slippage or gas fees. Use https://squeeth.com/positions to see your positions.");
         eb.addField("Price of oSQTH", "$" + NumberFormat.getInstance().format(currentPriceUsd.divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))).doubleValue() / Math.pow(10,18)), false);
         eb.addField("Position Value", "$" + NumberFormat.getInstance().format(currentValue.doubleValue() / Math.pow(10,18)) + " (" + NumberFormat.getInstance().format(oSQTHPosition.doubleValue() / Math.pow(10,18)) + " oSQTH)", false);
         eb.addField("Unrealized PNL", "$" + NumberFormat.getInstance().format((currentValue.doubleValue() / Math.pow(10,18)) - (costBasis.doubleValue() / Math.pow(10,18))), false);
 
-        // ratelimitMap.put(userId, Instant.now().getEpochSecond() + 600);
-
         return eb.build();
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.STRING, "address", "Your Ethereum address", true)
                 .complete();
@@ -215,7 +226,7 @@ public class Position extends BotCommand {
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.STRING, "address", "Your Ethereum address", true)
                 .complete();

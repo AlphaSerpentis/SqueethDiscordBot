@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -8,9 +10,9 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 
+import javax.annotation.Nonnull;
 import java.util.Collection;
 
 public abstract class BotCommand<T> {
@@ -19,17 +21,20 @@ public abstract class BotCommand<T> {
     protected long commandId;
     protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies;
 
-    abstract public T runCommand(long userId, @NotNull SlashCommandInteractionEvent event);
+    @Nonnull
+    abstract public T runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);
 
-    abstract public void addCommand(@NotNull JDA jda);
-    abstract public void updateCommand(@NotNull JDA jda);
+    abstract public void addCommand(@Nonnull JDA jda);
+    abstract public void updateCommand(@Nonnull JDA jda);
 
     public void setCommandId(long id) {
         commandId = id;
     }
+    @Nonnull
     public String getName() {
         return name;
     }
+    @Nonnull
     public String getDescription() {
         return description;
     }
@@ -47,7 +52,8 @@ public abstract class BotCommand<T> {
         return deferReplies;
     }
 
-    public static Message handleReply(@NotNull SlashCommandInteractionEvent event, BotCommand cmd) {
+    @Nonnull
+    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
         Object response;
         ReplyCallbackAction reply;
@@ -108,6 +114,7 @@ public abstract class BotCommand<T> {
         return reply.complete().retrieveOriginal().complete();
     }
 
+    @Nonnull
     private static MessageEmbed inactiveCommandResponse() {
         return new EmbedBuilder().setDescription("This command is currently not active").build();
     }

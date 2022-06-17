@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -5,9 +7,9 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 
 public class Help extends BotCommand {
@@ -18,8 +20,9 @@ public class Help extends BotCommand {
         onlyEmbed = true;
     }
 
+    @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("List of Commands");
@@ -33,14 +36,14 @@ public class Help extends BotCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
 
     }
 }

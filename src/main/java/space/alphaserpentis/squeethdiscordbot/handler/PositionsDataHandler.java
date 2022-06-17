@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.handler;
 
 import com.google.gson.Gson;
@@ -48,8 +50,7 @@ public class PositionsDataHandler {
         if(cachedTransfers.containsKey(address)) {
             cachedTransfers.get(address).addAll(data);
         } else {
-            ArrayList<SimpleTokenTransferResponse> newList = new ArrayList<>();
-            newList.addAll(data);
+            ArrayList<SimpleTokenTransferResponse> newList = new ArrayList<>(data);
             cachedTransfers.put(address, newList);
         }
 

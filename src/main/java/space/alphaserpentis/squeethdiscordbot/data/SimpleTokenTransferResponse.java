@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.data;
 
 import java.math.BigInteger;
@@ -19,7 +21,9 @@ public class SimpleTokenTransferResponse {
     }
     public BigInteger getBigIntegerValue() {
         DecimalFormat df = new DecimalFormat("#");
-        return new BigInteger(String.valueOf(df.format(value * Math.pow(10,18))));
+        double strippedDouble = Double.parseDouble(String.format("%.8f", value));
+
+        return new BigInteger(df.format(strippedDouble * Math.pow(10,18)));
     }
 
     @Override

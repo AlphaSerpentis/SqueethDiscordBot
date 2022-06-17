@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -5,10 +7,10 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.data.SqueethData;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 import java.text.NumberFormat;
 
@@ -20,14 +22,18 @@ public class Stats extends BotCommand {
         onlyEmbed = true;
     }
 
+    @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         SqueethData data = LaevitasHandler.latestSqueethData;
 
         eb.setThumbnail("https://c.tenor.com/URrZkAPGQjAAAAAC/cat-squish-cat.gif");
         eb.setTitle("Squeeth Statistics");
+        if(LaevitasHandler.isDataStale()) {
+            eb.setDescription("The Squeeth data is stale! Last updated at <t:" + LaevitasHandler.lastSuccessfulPoll + ">");
+        }
         eb.addField("oSQTH Price", "$" + NumberFormat.getInstance().format(data.getoSQTHPrice()), false);
         eb.addField("oSQTH Volume", NumberFormat.getInstance().format(data.getVolumeoSQTH()) + " ($" + NumberFormat.getInstance().format(data.getVolumeUSD()) + ")", false);
         eb.addField("ETH Price", "$" + NumberFormat.getInstance().format(data.getUnderlyingPrice()), false);
@@ -45,14 +51,14 @@ public class Stats extends BotCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
 
     }
 }
