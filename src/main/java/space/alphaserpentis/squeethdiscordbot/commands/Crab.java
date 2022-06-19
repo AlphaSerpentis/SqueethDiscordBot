@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -16,6 +18,7 @@ import org.web3j.abi.datatypes.generated.Uint96;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
@@ -86,10 +89,12 @@ public class Crab extends BotCommand {
         name = "crab";
         description = "Get current statistics on the Crab strategy!";
         onlyEmbed = true;
+        deferReplies = true;
     }
 
+    @Nonnull
     @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         if(lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
@@ -120,7 +125,7 @@ public class Crab extends BotCommand {
 
         eb.setTitle("Crab Statistics");
         eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
-        eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies");
+        eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies" + (LaevitasHandler.isDataStale() ? "\n\n**(Data is stale! Calculations may be off!)**" : ""));
         eb.addField("ETH Collateral", NumberFormat.getInstance().format(ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
         eb.addField("Vault Debt", NumberFormat.getInstance().format(shortoSQTH.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
         eb.addField("Collateral Ratio", NumberFormat.getInstance().format(calculateCollateralRatio()) + "%", false);
@@ -134,14 +139,14 @@ public class Crab extends BotCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.handler;
 
 import com.google.gson.Gson;
@@ -8,27 +10,34 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.Instant;
 
 public class LaevitasHandler {
 
     public static URL API_URL;
     public static String KEY;
     public static SqueethData latestSqueethData = new SqueethData();
+    public static long lastSuccessfulPoll = 0;
 
     public static void timedPoller() {
         new Thread(() -> {
             while(true) {
                 try {
-                    pollForData("analytics/defi/squeeth");
+                    try {
+                        if(pollForData("analytics/defi/squeeth"))
+                            lastSuccessfulPoll = Instant.now().getEpochSecond();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     Thread.sleep(300000);
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }).start();
     }
 
-    public static void pollForData(String append) throws IOException {
+    public static boolean pollForData(String append) throws IOException {
         URL fullURL = new URL(API_URL.toString() + append);
 
         HttpURLConnection connection = (HttpURLConnection) fullURL.openConnection();
@@ -52,7 +61,14 @@ public class LaevitasHandler {
 
         } else {
             System.out.println("[LaevitasData] Connection failed, response code is " + responseCode);
+            return false;
         }
+
+        return true;
+    }
+
+    public static boolean isDataStale() {
+        return Instant.now().getEpochSecond() - lastSuccessfulPoll > 600;
     }
 
     private static void parseData(String data) {

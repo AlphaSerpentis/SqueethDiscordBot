@@ -19,6 +19,10 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
   - Normalization Factor
 - The Greeks
 - Funding Calculator
+- Positions Viewer
+  - Only for longs right now
+  - Shorts are not supported yet
+  - Crab is not supported yet
 - More Commands Soon:tm:
   - Squiz (Squeeth Quiz)
   - Short Vault Stats
@@ -29,17 +33,14 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
 - Java 8+
 - Discord Bot Token
 - Laevitas API Key
+- Ethereum RPC Node (self-hosted or 3rd party)
 - A Computer That Doesn't Explode and Can Run 24/7 (hopefully)
 
-When self-hosting, pass the following arguments to the jar when running:
+When self-hosting, pass the path to the settings json and configure the JSON for your needs.
 
-1. [Discord Bot Token](https://discord.com/developers/applications)
-2. Laevitas API Key
-3. Your Discord User ID (to run bot admin commands)
-4. Path to a JSON file to store server data
-5. True/False (only run true if you updated the bot, then afterwards false)
+Example: `java -jar SqueethDiscordBot.jar settings.json`
 
-Failure to pass these four arguments in the correct order may result in either the bot outright crashing, unexpected behavior, and/or not enough Squeeth memes.
+A sample settings.json can be found [here](./storage/settings_EXAMPLE.json)
 
 # Contact
 

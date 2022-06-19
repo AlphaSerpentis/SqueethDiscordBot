@@ -1,12 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
+
+import javax.annotation.Nonnull;
 
 public class Shutdown extends BotCommand {
 
@@ -15,8 +19,9 @@ public class Shutdown extends BotCommand {
         description = "Shuts down the bot (bot admin only)";
     }
 
+    @Nonnull
     @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public Message runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         if(userId == CommandsHandler.adminUserID) {
             Launcher.shutdown();
 
@@ -27,14 +32,14 @@ public class Shutdown extends BotCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
 
     }
 

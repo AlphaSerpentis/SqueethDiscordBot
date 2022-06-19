@@ -1,12 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 import java.math.BigDecimal;
 
@@ -18,12 +21,16 @@ public class Greeks extends BotCommand {
         onlyEmbed = true;
     }
 
+    @Nonnull
     @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         Double[] greeks = LaevitasHandler.latestSqueethData.getGreeks();
 
         eb.setTitle("Squeethy Greeks");
+        if(LaevitasHandler.isDataStale()) {
+            eb.setDescription("The Squeeth data is stale! Last updated at <t:" + LaevitasHandler.lastSuccessfulPoll + ">");
+        }
         eb.addField("Δ Delta: " + greeks[0].toString(), "For every $1 ETH moves, oSQTH moves by $" + greeks[0], false);
         eb.addField("Γ Gamma: " + new BigDecimal(greeks[1].toString()).toPlainString(), "For every $1 ETH changes, the delta of oSQTH changes by " + new BigDecimal(greeks[1].toString()).toPlainString(), false);
         eb.addField("ν Vega: " + greeks[2].toString(), "For every 100% IV changes, oSQTH changes by $" + greeks[2], false);
@@ -36,14 +43,14 @@ public class Greeks extends BotCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
 
     }
 }

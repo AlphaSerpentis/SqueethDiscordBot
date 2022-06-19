@@ -1,14 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
+import javax.annotation.Nonnull;
 import java.text.NumberFormat;
 import java.util.List;
 
@@ -20,8 +23,9 @@ public class Funding extends BotCommand {
         onlyEmbed = true;
     }
 
+    @Nonnull
     @Override
-    public Object runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
         double amt, funding, thetaCalculated, amtHeld;
@@ -48,7 +52,7 @@ public class Funding extends BotCommand {
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
+    public void addCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
                 .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
@@ -59,7 +63,7 @@ public class Funding extends BotCommand {
     }
 
     @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.editCommandById(getCommandId()).complete();
 
         cmd.editCommand().clearOptions()
