@@ -23,10 +23,14 @@ public class LaevitasHandler {
         new Thread(() -> {
             while(true) {
                 try {
-                    if(pollForData("analytics/defi/squeeth"))
-                        lastSuccessfulPoll = Instant.now().getEpochSecond();
+                    try {
+                        if(pollForData("analytics/defi/squeeth"))
+                            lastSuccessfulPoll = Instant.now().getEpochSecond();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     Thread.sleep(300000);
-                } catch (IOException | InterruptedException e) {
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
