@@ -157,10 +157,8 @@ public class EthereumRPCHandler {
             req.params[0].pageKey = pageKey;
         }
         req.params[0].fromBlock = startingBlock == -1 ? "0xd55bca" : "0x" + Long.toHexString(startingBlock);
-        req.params[0].category = new String[1];
-        req.params[0].contractAddresses = new String[1];
-        req.params[0].category[0] = "token";
-        req.params[0].contractAddresses[0] = token;
+        req.params[0].category = new String[]{"erc20"};
+        req.params[0].contractAddresses = new String[]{token};
 
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("POST");
