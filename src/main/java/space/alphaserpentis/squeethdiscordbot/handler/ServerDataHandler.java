@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
-import space.alphaserpentis.squeethdiscordbot.data.ServerData;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.ServerDataDeserializer;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 

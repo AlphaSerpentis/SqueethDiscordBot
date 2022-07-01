@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import space.alphaserpentis.squeethdiscordbot.data.ServerCache;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 
 import javax.annotation.Nonnull;
 

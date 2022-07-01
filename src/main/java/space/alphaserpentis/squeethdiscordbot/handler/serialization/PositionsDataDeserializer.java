@@ -3,7 +3,7 @@
 package space.alphaserpentis.squeethdiscordbot.handler.serialization;
 
 import com.google.gson.*;
-import space.alphaserpentis.squeethdiscordbot.data.SimpleTokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;

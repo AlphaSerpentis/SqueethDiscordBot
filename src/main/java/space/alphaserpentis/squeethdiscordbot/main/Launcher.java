@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
-import space.alphaserpentis.squeethdiscordbot.data.BotSettings;
+import space.alphaserpentis.squeethdiscordbot.data.server.BotSettings;
 import space.alphaserpentis.squeethdiscordbot.handler.*;
 
 import javax.security.auth.login.LoginException;

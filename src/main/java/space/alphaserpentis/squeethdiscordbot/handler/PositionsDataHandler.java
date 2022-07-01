@@ -5,8 +5,8 @@ package space.alphaserpentis.squeethdiscordbot.handler;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import space.alphaserpentis.squeethdiscordbot.data.PriceData;
-import space.alphaserpentis.squeethdiscordbot.data.SimpleTokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
+import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PositionsDataDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PriceDataDeserializer;
 
@@ -52,6 +52,10 @@ public class PositionsDataHandler {
         } else {
             ArrayList<SimpleTokenTransferResponse> newList = new ArrayList<>(data);
             cachedTransfers.put(address, newList);
+        }
+
+        if(data.isEmpty()) {
+            cachedTransfers.remove(address);
         }
 
         try {

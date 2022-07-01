@@ -5,8 +5,8 @@ package space.alphaserpentis.squeethdiscordbot.handler;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import space.alphaserpentis.squeethdiscordbot.data.SquizLeaderboard;
-import space.alphaserpentis.squeethdiscordbot.data.SquizQuestions;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizLeaderboardDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizQuestionsDeserializer;
 

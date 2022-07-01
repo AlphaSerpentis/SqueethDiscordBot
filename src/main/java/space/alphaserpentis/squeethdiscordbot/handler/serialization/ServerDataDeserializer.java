@@ -3,7 +3,7 @@
 package space.alphaserpentis.squeethdiscordbot.handler.serialization;
 
 import com.google.gson.*;
-import space.alphaserpentis.squeethdiscordbot.data.ServerData;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
