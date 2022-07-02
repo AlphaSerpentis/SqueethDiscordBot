@@ -148,6 +148,7 @@ public class Vault extends BotCommand {
         name = "vault";
         description = "Display info on a certain short vault";
         onlyEmbed = true;
+        onlyEphemeral = true;
         deferReplies = true;
     }
 
