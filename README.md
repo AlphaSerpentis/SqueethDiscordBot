@@ -33,7 +33,7 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
 - Java 8+
 - Discord Bot Token
 - Laevitas API Key
-- Ethereum RPC Node (self-hosted or 3rd party)
+- Ethereum RPC Node (self-hosted or 3rd party, preferably Alchemy)
 - A Computer That Doesn't Explode and Can Run 24/7 (hopefully)
 
 When self-hosting, pass the path to the settings json and configure the JSON for your needs.

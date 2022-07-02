@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.data;
+package space.alphaserpentis.squeethdiscordbot.data.api;
 
 public class SqueethData {
 

@@ -3,7 +3,7 @@
 package space.alphaserpentis.squeethdiscordbot.handler;
 
 import com.google.gson.Gson;
-import space.alphaserpentis.squeethdiscordbot.data.SqueethData;
+import space.alphaserpentis.squeethdiscordbot.data.api.SqueethData;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -12,9 +12,9 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.Transaction;
-import space.alphaserpentis.squeethdiscordbot.data.AlchemyRequest;
-import space.alphaserpentis.squeethdiscordbot.data.SimpleTokenTransferResponse;
-import space.alphaserpentis.squeethdiscordbot.data.TokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.AlchemyRequest;
+import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.TokenTransferResponse;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -58,36 +58,36 @@ public class EthereumRPCHandler {
         );
     }
 
-    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token, long startingBlock) {
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token, long startingBlock, long endingBlock) {
         String[] responses = new String[2];
         ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
 
         TokenTransferResponse inbound, outbound;
 
         try {
-            responses[0] = alchemy_getAssetTransfers("", address, token, null, startingBlock);
-            responses[1] = alchemy_getAssetTransfers(address, "", token, null, startingBlock);
+            responses[0] = alchemy_getAssetTransfers("", address, token, null, startingBlock, endingBlock);
+            responses[1] = alchemy_getAssetTransfers(address, "", token, null, startingBlock, endingBlock);
 
             inbound = new Gson().fromJson(responses[0], TokenTransferResponse.class);
             outbound = new Gson().fromJson(responses[1], TokenTransferResponse.class);
 
             if(inbound.result.pageKey == null) {
-                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
+                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
             } else {
                 while(inbound.result.pageKey != null) {
-                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
                     inbound = temp;
                 }
             }
             if(outbound.result.pageKey == null) {
-                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
+                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
             } else {
                 while(outbound.result.pageKey != null) {
-                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
                     outbound = temp;
                 }
             }
@@ -107,29 +107,29 @@ public class EthereumRPCHandler {
         TokenTransferResponse inbound, outbound;
 
         try {
-            responses[0] = alchemy_getAssetTransfers("", address, token, null, -1);
-            responses[1] = alchemy_getAssetTransfers(address, "", token, null, -1);
+            responses[0] = alchemy_getAssetTransfers("", address, token, null, -1, -1);
+            responses[1] = alchemy_getAssetTransfers(address, "", token, null, -1, -1);
 
             inbound = new Gson().fromJson(responses[0], TokenTransferResponse.class);
             outbound = new Gson().fromJson(responses[1], TokenTransferResponse.class);
 
             if(inbound.result.pageKey == null) {
-                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1, -1), TokenTransferResponse.class);
+                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
             } else {
                 while(inbound.result.pageKey != null) {
-                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1, -1), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
                     inbound = temp;
                 }
             }
             if(outbound.result.pageKey == null) {
-                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1, -1), TokenTransferResponse.class);
+                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
             } else {
                 while(outbound.result.pageKey != null) {
-                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(transfer.getBlockNum(), transfer.from, transfer.value)));
+                    TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1, -1), TokenTransferResponse.class);
+                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
                     outbound = temp;
                 }
             }
@@ -142,7 +142,7 @@ public class EthereumRPCHandler {
         return listOfTransfers;
     }
 
-    public static String alchemy_getAssetTransfers(String fromAddress, String toAddress, String token, @Nullable String pageKey, long startingBlock) throws IOException {
+    public static String alchemy_getAssetTransfers(String fromAddress, String toAddress, String token, @Nullable String pageKey, long startingBlock, long endingBlock) throws IOException {
         StringBuilder response = null;
         AlchemyRequest req = new AlchemyRequest();
         Gson gson = new Gson();
@@ -156,11 +156,12 @@ public class EthereumRPCHandler {
         if(pageKey != null) {
             req.params[0].pageKey = pageKey;
         }
+        if(endingBlock != -1 && endingBlock > startingBlock) {
+            req.params[0].toBlock = "0x" + Long.toHexString(endingBlock);
+        }
         req.params[0].fromBlock = startingBlock == -1 ? "0xd55bca" : "0x" + Long.toHexString(startingBlock);
-        req.params[0].category = new String[1];
-        req.params[0].contractAddresses = new String[1];
-        req.params[0].category[0] = "token";
-        req.params[0].contractAddresses[0] = token;
+        req.params[0].category = new String[]{"erc20"};
+        req.params[0].contractAddresses = new String[]{token};
 
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("POST");
@@ -183,13 +184,29 @@ public class EthereumRPCHandler {
 
             in.close();
 
+        } else if(responseCode == 429) { // rate limit
+            for(int i = 0; i < 3; i++) {
+                try {
+                    Thread.sleep(1500);
+                    String retryResponse = alchemy_getAssetTransfers(fromAddress, toAddress, token, pageKey, startingBlock, endingBlock);
+                    if(!retryResponse.equals("429")) {
+                        return retryResponse;
+                    }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         } else {
             System.out.println("[EthereumRPCHandler] Connection failed, response code is " + responseCode);
         }
 
         //System.out.println(response.toString());
 
-        return response.toString();
+        if(response == null) {
+            return String.valueOf(responseCode);
+        } else {
+            return response.toString();
+        }
     }
 
     public static String getENSName(String address) {

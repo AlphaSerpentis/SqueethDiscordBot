@@ -16,9 +16,9 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
-import space.alphaserpentis.squeethdiscordbot.data.ServerData;
-import space.alphaserpentis.squeethdiscordbot.data.SquizLeaderboard;
-import space.alphaserpentis.squeethdiscordbot.data.SquizQuestions;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
 

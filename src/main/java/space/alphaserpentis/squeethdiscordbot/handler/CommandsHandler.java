@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import space.alphaserpentis.squeethdiscordbot.commands.*;
-import space.alphaserpentis.squeethdiscordbot.data.ServerCache;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
@@ -28,6 +28,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("clean", new Clean());
         put("crab", new Crab());
         put("position", new Position());
+        put("vault", new Vault());
 //        put("squiz", new Squiz());
     }};
 

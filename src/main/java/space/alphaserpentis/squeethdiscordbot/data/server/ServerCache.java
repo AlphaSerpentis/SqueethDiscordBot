@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.data;
+package space.alphaserpentis.squeethdiscordbot.data.server;
 
 import net.dv8tion.jda.api.entities.Message;
 
