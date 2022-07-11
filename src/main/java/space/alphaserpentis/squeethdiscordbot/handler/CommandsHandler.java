@@ -17,7 +17,6 @@ import java.util.*;
 
 public class CommandsHandler extends ListenerAdapter {
     public static final HashMap<String, BotCommand> mappingOfCommands = new HashMap<>() {{
-        put("shutdown", new Shutdown());
         put("about", new About());
         put("greeks", new Greeks());
         put("stats", new Stats());

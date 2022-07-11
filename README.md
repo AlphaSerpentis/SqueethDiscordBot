@@ -19,13 +19,14 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
   - Normalization Factor
 - The Greeks
 - Funding Calculator
+- Crab Stats
 - Positions Viewer
-  - Only for longs right now
+  - Long squeeth and Crab supported
   - Shorts are not supported yet
-  - Crab is not supported yet
+- Short Vault Data
+  - See collateral, debt, collateralization ratio, NFT collateral, and vault greeks
 - More Commands Soon:tm:
   - Squiz (Squeeth Quiz)
-  - Short Vault Stats
   - :eyes:
 
 # Requirements to Self-Host

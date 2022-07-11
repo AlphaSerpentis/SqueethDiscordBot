@@ -28,9 +28,53 @@ import java.util.concurrent.ExecutionException;
 
 public class Vault extends BotCommand {
 
-    private static HashMap<Long, Long> ratelimitMap = new HashMap<>();
-
     private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
+
+    public static class VaultGreeks {
+        private final double fundingPeriod = 17.5/365;
+        private final double ethUsd;
+        private final double osqthUsd;
+        private final double normFactor;
+        private final double impliedVol;
+        private final double osqthHoldings;
+        private final double ethVaultCollateral;
+        public double delta; // every $1 move in eth
+        public double gamma;
+        public double vega; // every 100%
+        public double theta; // daily theta
+
+        public VaultGreeks(
+                double ethUsd,
+                double osqthUsd,
+                double normFactor,
+                double impliedVol,
+                double osqthHoldings,
+                double ethVaultCollateral
+        ) {
+            this.ethUsd = ethUsd;
+            this.osqthUsd = osqthUsd;
+            this.normFactor = normFactor;
+            this.impliedVol = impliedVol;
+            this.osqthHoldings = osqthHoldings;
+            this.ethVaultCollateral = ethVaultCollateral;
+
+            setTheGreeks();
+        }
+
+        public void setTheGreeks() {
+            double deltaPerOsqth, gammaPerOsqth, vegaPerOsqth, thetaPerOsqth;
+
+            deltaPerOsqth = 2*normFactor*ethUsd*Math.exp(Math.pow(impliedVol, 2)*fundingPeriod)/10000;
+            gammaPerOsqth = 2*normFactor*Math.exp(Math.pow(impliedVol, 2)*fundingPeriod)/10000;
+            vegaPerOsqth = 2*impliedVol*fundingPeriod*osqthUsd;
+            thetaPerOsqth = Math.pow(impliedVol, 2)*osqthUsd;
+
+            delta = deltaPerOsqth*osqthHoldings+ethVaultCollateral;
+            gamma = gammaPerOsqth*osqthHoldings;
+            vega = vegaPerOsqth*osqthHoldings;
+            theta = -thetaPerOsqth*osqthHoldings/365;
+        }
+    }
 
     // No hate to the Uniswap team, but holy shit how and why
     public class Uniswapv3FuckYouMath {
@@ -150,6 +194,8 @@ public class Vault extends BotCommand {
         onlyEmbed = true;
         onlyEphemeral = true;
         deferReplies = true;
+        useRatelimits = true;
+        ratelimitLength = 60;
     }
 
     @NotNull
@@ -157,18 +203,9 @@ public class Vault extends BotCommand {
     public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
-        // check for ratelimit
-        Long rateLimit = ratelimitMap.get(event.getUser().getIdLong());
-
-        if(rateLimit != null) {
-            if(rateLimit > Instant.now().getEpochSecond()) {
-                eb.setDescription("You are still rate limited. Expires in " + (rateLimit - Instant.now().getEpochSecond()) + " seconds.");
-                return eb.build();
-            } else {
-                ratelimitMap.remove(event.getUser().getIdLong());
-            }
-        } else {
-            ratelimitMap.put(userId, Instant.now().getEpochSecond() + 60);
+        if(isUserRatelimited(event.getUser().getIdLong())) {
+            eb.setDescription("You are still rate limited. Expires in " + ((long) ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
+            return eb.build();
         }
 
         // web3j stuff
@@ -212,7 +249,9 @@ public class Vault extends BotCommand {
         String address;
         BigInteger nftCollateralId;
         BigInteger collateral;
-        BigInteger nftEthCollateral = BigInteger.ZERO;
+        BigInteger nftEthValue = BigInteger.ZERO;
+        BigInteger nftEthLocked = BigInteger.ZERO;
+        BigInteger nftOsqthLocked = BigInteger.ZERO;
         BigInteger shortAmount;
         BigInteger priceOfEth;
 
@@ -262,7 +301,10 @@ public class Vault extends BotCommand {
                         (BigInteger) uniswapv3NftResponse.get(7).getValue()
                 );
 
-                nftEthCollateral = amounts.amount1.multiply(normFactor).multiply(priceOfEth).divide(new BigInteger(String.valueOf(new DecimalFormat("#").format(Math.pow(10,40))))).add(amounts.amount0);
+                nftEthLocked = amounts.amount0;
+                nftOsqthLocked = amounts.amount1;
+
+                nftEthValue = amounts.amount1.multiply(normFactor).multiply(priceOfEth).divide(new BigInteger(String.valueOf(new DecimalFormat("#").format(Math.pow(10,40))))).add(amounts.amount0);
             }
         } catch (ExecutionException | InterruptedException e) {
             eb.setDescription("An error has occurred. Please try again later. If this continues to persist, reach out to the bot owner.");
@@ -270,16 +312,32 @@ public class Vault extends BotCommand {
             return eb.build();
         }
 
+        VaultGreeks vaultGreeks = new VaultGreeks(
+            priceOfEth.doubleValue() / Math.pow(10,18),
+                LaevitasHandler.latestSqueethData.getoSQTHPrice(),
+                normFactor.doubleValue() / Math.pow(10,18),
+                LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility()/100,
+                -(shortAmount.subtract(nftOsqthLocked).doubleValue() / Math.pow(10,18)),
+                collateral.add(nftEthLocked).doubleValue() / Math.pow(10,18)
+        );
+
         // EmbedBuilder stuff
         NumberFormat instance = NumberFormat.getInstance();
-        double cr = calculateCollateralRatio(shortAmount, collateral.add(nftEthCollateral), priceOfEth, normFactor);
+        double cr = calculateCollateralRatio(shortAmount, collateral.add(nftEthValue), priceOfEth, normFactor);
 
         eb.setTitle("Short Vault Data - Vault " + event.getOptions().get(0).getAsLong());
         eb.addField("Operator", "[" + address + "](https://etherscan.io/address/" + address + ")", false);
         eb.addField("NFT Collateral ID", "[" + nftCollateralId + "](https://etherscan.io/token/0xC36442b4a4522E871399CD717aBDD847Ab11FE88?a=" + nftCollateralId + ")", false);
-        eb.addField("Collateral", instance.format(collateral.doubleValue() / Math.pow(10,18)) + " Ξ " + (nftEthCollateral.compareTo(BigInteger.ZERO) == 0 ? "" : "(+" + instance.format(nftEthCollateral.doubleValue() / Math.pow(10,18)) + " Ξ from NFT collateral)"), false);
+        eb.addField("Collateral", instance.format(collateral.doubleValue() / Math.pow(10,18)) + " Ξ " + (nftEthValue.compareTo(BigInteger.ZERO) == 0 ? "" : "(+" + instance.format(nftEthValue.doubleValue() / Math.pow(10,18)) + " Ξ from NFT collateral)"), false);
         eb.addField("Short Amount", instance.format(shortAmount.doubleValue() / Math.pow(10,18)) + " oSQTH", false);
         eb.addField("Collateral Ratio", instance.format(cr) + "%", false);
+        eb.addField("Δ Delta", "$" + instance.format(vaultGreeks.delta), true);
+        eb.addField("Γ Gamma", "$" + instance.format(vaultGreeks.gamma), true);
+        eb.addBlankField(true);
+        eb.addField("ν Vega", "$" + instance.format(vaultGreeks.vega), true);
+        eb.addField("Θ Theta", "$" + instance.format(vaultGreeks.theta), true);
+        eb.addBlankField(true);
+        eb.addField("Greeks Notice", "*Greeks use some Laevitas data which is polled every 5-minutes*", false);
 
         if(cr < 200) {
             eb.setColor(Color.RED);

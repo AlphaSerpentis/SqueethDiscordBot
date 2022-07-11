@@ -39,6 +39,8 @@ public class SquizHandler {
 
         squizLeaderboardHashMap = gson.fromJson(Files.newBufferedReader(squizLeaderboardJson), new TypeToken<HashMap<Long, SquizLeaderboard>>(){}.getType());
 
+        if(squizLeaderboardHashMap == null) squizLeaderboardHashMap = new HashMap<>();
+
         gson = new GsonBuilder()
                 .registerTypeAdapter(squizQuestions.getClass(), new SquizQuestionsDeserializer())
                 .create();

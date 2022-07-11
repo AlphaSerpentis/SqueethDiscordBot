@@ -27,7 +27,7 @@ public class About extends BotCommand {
         eb.addField("GitHub Repository", "https://github.com/AlphaSerpentis/SqueethDiscordBot", false);
         eb.addField("Opyn Discord", "https://discord.gg/opyn", false);
         eb.addField("Privacy Policy", "https://squeeth.com/privacy-policy", false);
-        eb.addField("Acknowledgements", "Thanks to geckah for the bot name!", false);
+        eb.addField("Acknowledgements", "Thanks to geckah for the bot name!\n\nThanks to Berry and Johns for beta testing features", false);
         eb.setFooter("Developed by Amethyst C. | API Data by Laevitas");
 
         return eb.build();

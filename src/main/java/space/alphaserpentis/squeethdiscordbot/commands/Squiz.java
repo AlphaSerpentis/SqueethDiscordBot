@@ -34,7 +34,8 @@ public class Squiz extends ButtonCommand {
     enum States {
         DEFAULT,
         IN_PROGRESS,
-        COMPLETE
+        COMPLETE,
+        VIEWING_LEADERBOARD
     }
 
     static class SquizSession {
@@ -60,6 +61,8 @@ public class Squiz extends ButtonCommand {
         buttonHashMap.put("B", Button.primary("squiz_answer_b", "B"));
         buttonHashMap.put("C", Button.primary("squiz_answer_c", "C"));
         buttonHashMap.put("D", Button.primary("squiz_answer_d", "D"));
+        buttonHashMap.put("True", Button.primary("squiz_answer_true", "True"));
+        buttonHashMap.put("False", Button.primary("squiz_answer_false", "False"));
         buttonHashMap.put("Leaderboard", Button.primary("squiz_leaderboard", "Leaderboard"));
         buttonHashMap.put("Review", Button.primary("squiz_review", "Review"));
     }
@@ -76,8 +79,9 @@ public class Squiz extends ButtonCommand {
             switch(event.getSubcommandName()) {
                 case "leaderboard" -> {
                     eb.setTitle("Squiz Leaderboard");
-                    SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getId(), new SquizLeaderboard());
+                    SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
                     HashMap<Long, Integer> topFive = leaderboard.getTopFive();
+                    session.currentState = States.VIEWING_LEADERBOARD;
 
                     for(int i = 0; i < 5 && topFive.size() > 0; i++) {
                         eb.addField(String.format("%d. %s", i + 1, event.getJDA().getUserById((String) topFive.keySet().toArray()[i]).getAsMention()), String.format("%d", topFive.values().toArray()[i]), true);
@@ -90,7 +94,7 @@ public class Squiz extends ButtonCommand {
                         return eb.build();
                     }
 
-                    ServerData serverData = ServerDataHandler.serverDataHashMap.getOrDefault(event.getGuild().getId(), new ServerData());
+                    ServerData serverData = ServerDataHandler.serverDataHashMap.getOrDefault(event.getGuild().getIdLong(), new ServerData());
                     serverData.setDoRandomSquizQuestions(event.getOptions().get(0).getAsBoolean());
 
                     try {
@@ -158,31 +162,53 @@ public class Squiz extends ButtonCommand {
             case "squiz_start" -> {
                 int questionNumber = session.currentQuestion;
                 int wrongAnswerCounter = 0;
-                char correctAnswerAtRandom = (char) (Math.random() * 4 + 'A');
 
-                session.correctCurrentAnswer = correctAnswerAtRandom;
                 session.questions = getRandomQuestions();
                 session.currentState = States.IN_PROGRESS;
 
                 eb.addField("Question " + (questionNumber + 1), session.questions.get(questionNumber).question, false);
 
-                for(int i = 0; i < 4; i++) {
-                    if(i == correctAnswerAtRandom - 'A') {
-                        eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(questionNumber).answer, false);
+                if(session.questions.get(questionNumber).wrongAnswers.length == 1) {
+
+                    boolean isTrueCorrect = session.questions.get(questionNumber).answer.equalsIgnoreCase("true");
+
+                    if(isTrueCorrect) {
+                        session.correctCurrentAnswer = 'T';
+                        eb.addField("True", session.questions.get(questionNumber).answer, false);
+                        eb.addField("False", session.questions.get(questionNumber).wrongAnswers[0], false);
                     } else {
-                        eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(questionNumber).wrongAnswers[wrongAnswerCounter++], false);
+                        session.correctCurrentAnswer = 'F';
+                        eb.addField("True", session.questions.get(questionNumber).wrongAnswers[0], false);
+                        eb.addField("False", session.questions.get(questionNumber).answer, false);
                     }
+
+                    buttons = List.of(
+                            buttonHashMap.get("True"),
+                            buttonHashMap.get("False"),
+                            buttonHashMap.get("End")
+                    );
+                } else {
+                    char correctAnswerAtRandom = (char) (Math.random() * 4 + 'A');
+
+                    session.correctCurrentAnswer = correctAnswerAtRandom;
+                    for(int i = 0; i < 4; i++) {
+                        if(i == correctAnswerAtRandom - 'A') {
+                            eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(questionNumber).answer, false);
+                        } else {
+                            eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(questionNumber).wrongAnswers[wrongAnswerCounter++], false);
+                        }
+                    }
+
+                    buttons = List.of(
+                            buttonHashMap.get("A"),
+                            buttonHashMap.get("B"),
+                            buttonHashMap.get("C"),
+                            buttonHashMap.get("D"),
+                            buttonHashMap.get("End")
+                    );
                 }
 
                 session.currentQuestion++;
-
-                buttons = List.of(
-                        buttonHashMap.get("A"),
-                        buttonHashMap.get("B"),
-                        buttonHashMap.get("C"),
-                        buttonHashMap.get("D"),
-                        buttonHashMap.get("End")
-                );
             }
             case "squiz_end" -> {
                 session.currentState = States.COMPLETE;
@@ -192,28 +218,42 @@ public class Squiz extends ButtonCommand {
                 buttons = List.of(buttonHashMap.get("Review"));
             }
             case "squiz_answer_a" -> {
-                if(checkIfCorrectAnswer(session.correctCurrentAnswer, 'A', session)) {
+                if(checkIfCorrectAnswer('A', session.correctCurrentAnswer, session)) {
                     session.currentScore++;
                 }
 
                 buttons = handleNextQuestion(session, eb);
             }
             case "squiz_answer_b" -> {
-                if(checkIfCorrectAnswer(session.correctCurrentAnswer, 'B', session)) {
+                if(checkIfCorrectAnswer('B', session.correctCurrentAnswer, session)) {
                     session.currentScore++;
                 }
 
                 buttons = handleNextQuestion(session, eb);
             }
             case "squiz_answer_c" -> {
-                if(checkIfCorrectAnswer(session.correctCurrentAnswer, 'C', session)) {
+                if(checkIfCorrectAnswer('C', session.correctCurrentAnswer, session)) {
                     session.currentScore++;
                 }
 
                 buttons = handleNextQuestion(session, eb);
             }
             case "squiz_answer_d" -> {
-                if(checkIfCorrectAnswer(session.correctCurrentAnswer, 'D', session)) {
+                if(checkIfCorrectAnswer('D', session.correctCurrentAnswer, session)) {
+                    session.currentScore++;
+                }
+
+                buttons = handleNextQuestion(session, eb);
+            }
+            case "squiz_answer_true" -> {
+                if(checkIfCorrectAnswer('T', session.correctCurrentAnswer, session)) {
+                    session.currentScore++;
+                }
+
+                buttons = handleNextQuestion(session, eb);
+            }
+            case "squiz_answer_false" -> {
+                if(checkIfCorrectAnswer('F', session.correctCurrentAnswer, session)) {
                     session.currentScore++;
                 }
 
@@ -284,28 +324,52 @@ public class Squiz extends ButtonCommand {
         }
 
         int wrongAnswerCounter = 0;
-        char correctAnswerAtRandom = (char) (Math.random() * 4 + 'A');
 
         eb.addField("Question " + (session.currentQuestion + 1), session.questions.get(session.currentQuestion).question, false);
 
+        if(session.questions.get(session.currentQuestion).wrongAnswers.length == 1) {
 
-        for(int i = 0; i < 4; i++) {
-            if(i == correctAnswerAtRandom - 'A') {
-                eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(session.currentQuestion).answer, false);
+            boolean isTrueCorrect = session.questions.get(session.currentQuestion).answer.equalsIgnoreCase("true");
+
+            if(isTrueCorrect) {
+                session.correctCurrentAnswer = 'T';
+                eb.addField("True", session.questions.get(session.currentQuestion).answer, false);
+                eb.addField("False", session.questions.get(session.currentQuestion).wrongAnswers[0], false);
             } else {
-                eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(session.currentQuestion).wrongAnswers[wrongAnswerCounter++], false);
+                session.correctCurrentAnswer = 'F';
+                eb.addField("True", session.questions.get(session.currentQuestion).wrongAnswers[0], false);
+                eb.addField("False", session.questions.get(session.currentQuestion).answer, false);
             }
-        }
 
-        session.correctCurrentAnswer = session.questions.get(session.currentQuestion).answer.charAt(0);
-        session.currentQuestion++;
-        return List.of(
-                buttonHashMap.get("A"),
-                buttonHashMap.get("B"),
-                buttonHashMap.get("C"),
-                buttonHashMap.get("D"),
-                buttonHashMap.get("End")
-        );
+            session.currentQuestion++;
+
+            return List.of(
+                    buttonHashMap.get("True"),
+                    buttonHashMap.get("False"),
+                    buttonHashMap.get("End")
+            );
+        } else {
+            char correctAnswerAtRandom = (char) (Math.random() * 4 + 'A');
+
+            session.correctCurrentAnswer = correctAnswerAtRandom;
+            for(int i = 0; i < 4; i++) {
+                if(i == correctAnswerAtRandom - 'A') {
+                    eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(session.currentQuestion).answer, false);
+                } else {
+                    eb.addField(String.valueOf((char) (i + 'A')), session.questions.get(session.currentQuestion).wrongAnswers[wrongAnswerCounter++], false);
+                }
+            }
+
+            session.currentQuestion++;
+
+            return List.of(
+                    buttonHashMap.get("A"),
+                    buttonHashMap.get("B"),
+                    buttonHashMap.get("C"),
+                    buttonHashMap.get("D"),
+                    buttonHashMap.get("End")
+            );
+        }
     }
 
     private ArrayList<SquizQuestions> getRandomQuestions() {

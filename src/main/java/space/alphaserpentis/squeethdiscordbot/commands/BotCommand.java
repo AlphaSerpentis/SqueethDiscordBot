@@ -13,13 +13,16 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 
 import javax.annotation.Nonnull;
+import java.time.Instant;
 import java.util.Collection;
+import java.util.HashMap;
 
 public abstract class BotCommand<T> {
 
+    protected HashMap<Long, Long> ratelimitMap = new HashMap<>();
     protected String name, description;
-    protected long commandId;
-    protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies;
+    protected long commandId, ratelimitLength;
+    protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies, useRatelimits;
 
     @Nonnull
     abstract public T runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);
@@ -41,6 +44,9 @@ public abstract class BotCommand<T> {
     public long getCommandId() {
         return commandId;
     }
+    public long getRatelimitLength() {
+        return ratelimitLength;
+    }
     public boolean isOnlyEmbed() { return onlyEmbed; }
     public boolean isOnlyEphemeral() {
         return onlyEphemeral || !isActive;
@@ -50,6 +56,18 @@ public abstract class BotCommand<T> {
     }
     public boolean isDeferReplies() {
         return deferReplies;
+    }
+    public boolean isUsingRatelimits() {
+        return useRatelimits;
+    }
+    public boolean isUserRatelimited(long userId) {
+        long ratelimit = ratelimitMap.getOrDefault(userId, 0L);
+
+        if(ratelimit != 0) {
+            return ratelimit > Instant.now().getEpochSecond();
+        } else {
+            return false;
+        }
     }
 
     @Nonnull
@@ -71,6 +89,21 @@ public abstract class BotCommand<T> {
                     event.deferReply(sendAsEphemeral).complete();
                 }
                 response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+
+                if (cmd instanceof ButtonCommand) {
+                    Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
+
+                    if (cmd.isUsingRatelimits()) {
+                        cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
+                    }
+
+                    if(!buttons.isEmpty())
+                        return hook.sendMessageEmbeds((MessageEmbed) response).addActionRow(buttons).complete();
+                }
+
+                if (cmd.isUsingRatelimits()) {
+                    cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
+                }
 
                 return hook.sendMessageEmbeds((MessageEmbed) response).complete();
             } else {
