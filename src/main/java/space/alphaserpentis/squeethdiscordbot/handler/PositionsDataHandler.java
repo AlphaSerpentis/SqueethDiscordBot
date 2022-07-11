@@ -48,7 +48,11 @@ public class PositionsDataHandler {
 
     public static void addNewData(String address, ArrayList<SimpleTokenTransferResponse> data) {
         if(cachedTransfers.containsKey(address)) {
-            cachedTransfers.get(address).addAll(data);
+            for(SimpleTokenTransferResponse transfer: data) {
+                if(!cachedTransfers.get(address).contains(transfer)) {
+                    cachedTransfers.get(address).add(transfer);
+                }
+            }
         } else {
             ArrayList<SimpleTokenTransferResponse> newList = new ArrayList<>(data);
             cachedTransfers.put(address, newList);

@@ -39,7 +39,7 @@ public class Launcher {
         CommandsHandler.adminUserID = settings.botAdmin;
 
         // Configure the bot
-        builder.disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.CLIENT_STATUS, CacheFlag.EMOTE);
+        builder.disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.CLIENT_STATUS, CacheFlag.EMOJI, CacheFlag.STICKER);
         builder.disableIntents(GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MESSAGE_TYPING, GatewayIntent.GUILD_MESSAGE_REACTIONS);
         builder.enableIntents(GatewayIntent.GUILD_MEMBERS);
         builder.addEventListeners(new CommandsHandler());
@@ -67,14 +67,6 @@ public class Launcher {
 
         // Initialize SquizHandler
         SquizHandler.init(Path.of(settings.squizLeaderboard), Path.of(settings.squizQuestions));
-    }
-
-    /**
-     * Shuts down the program
-     */
-    public static void shutdown() {
-        api.shutdown();
-        System.exit(0);
     }
 
     /**

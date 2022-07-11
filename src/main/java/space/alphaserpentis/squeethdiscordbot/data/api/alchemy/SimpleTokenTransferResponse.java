@@ -37,4 +37,18 @@ public class SimpleTokenTransferResponse {
                 ", bigIntegerValue=" + getBigIntegerValue() +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o instanceof SimpleTokenTransferResponse) {
+            return (
+                    blockNum == ((SimpleTokenTransferResponse) o).blockNum
+                    && token.equalsIgnoreCase(((SimpleTokenTransferResponse) o).token)
+                    && from.equalsIgnoreCase(((SimpleTokenTransferResponse) o).from)
+                    && value == ((SimpleTokenTransferResponse) o).value
+            );
+        } else {
+            return false;
+        }
+    }
 }

@@ -96,6 +96,7 @@ public class Crab extends BotCommand {
     @Override
     public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
+        Vault.VaultGreeks vaultGreeks = null;
         if(lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
                 List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab, callVaultsFunc);
@@ -118,20 +119,38 @@ public class Crab extends BotCommand {
                 usdPerCrab = netEth.multiply(priceOfETHinUSD).divide(crabTotalSupply).doubleValue() / Math.pow(10, 18);
 
                 lastRun = Instant.now().getEpochSecond();
+
+                vaultGreeks = new Vault.VaultGreeks(
+                        priceOfETHinUSD.doubleValue() / Math.pow(10,18),
+                        LaevitasHandler.latestSqueethData.getoSQTHPrice(),
+                        normFactor.doubleValue() / Math.pow(10,18),
+                        LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility()/100,
+                        -(shortoSQTH.doubleValue() / Math.pow(10,18)),
+                        ethCollateral.doubleValue() / Math.pow(10,18)
+                );
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
 
+        NumberFormat instance = NumberFormat.getInstance();
+
         eb.setTitle("Crab Statistics");
         eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
         eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies" + (LaevitasHandler.isDataStale() ? "\n\n**(Data is stale! Calculations may be off!)**" : ""));
-        eb.addField("ETH Collateral", NumberFormat.getInstance().format(ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
-        eb.addField("Vault Debt", NumberFormat.getInstance().format(shortoSQTH.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
-        eb.addField("Collateral Ratio", NumberFormat.getInstance().format(calculateCollateralRatio()) + "%", false);
-        eb.addField("Price per Crab Token", "$" + NumberFormat.getInstance().format(usdPerCrab) + " (" + NumberFormat.getInstance().format(ethPerCrab) + " Ξ)", false);
-        eb.addField("Total Supply of Crab", NumberFormat.getInstance().format(crabTotalSupply.divide(BigInteger.valueOf((long) Math.pow(10,18)))), false);
+        eb.addField("ETH Collateral", instance.format(ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
+        eb.addField("Vault Debt", instance.format(shortoSQTH.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
+        eb.addField("Collateral Ratio", instance.format(calculateCollateralRatio()) + "%", false);
+        eb.addField("Price per Crab Token", "$" + instance.format(usdPerCrab) + " (" + instance.format(ethPerCrab) + " Ξ)", false);
+        eb.addField("Total Supply of Crab", instance.format(crabTotalSupply.divide(BigInteger.valueOf((long) Math.pow(10,18)))), false);
         eb.addField("Last Rebalance", "<t:" + lastHedgeTime + ">", false);
+        eb.addField("Δ Delta", "$" + instance.format(vaultGreeks.delta), true);
+        eb.addField("Γ Gamma", "$" + instance.format(vaultGreeks.gamma), true);
+        eb.addBlankField(true);
+        eb.addField("ν Vega", "$" + instance.format(vaultGreeks.vega), true);
+        eb.addField("Θ Theta", "$" + instance.format(vaultGreeks.theta), true);
+        eb.addBlankField(true);
+        eb.addField("Greeks Notice", "*Greeks use some Laevitas data which is polled every 5-minutes*", false);
         eb.setFooter("Last Updated at " + Instant.ofEpochSecond(lastRun).atOffset(ZoneOffset.UTC).toOffsetTime());
         eb.setColor(Color.RED);
 
