@@ -33,6 +33,10 @@ public class Launcher {
 
         JDABuilder builder = JDABuilder.createDefault(settings.discordBotKey);
 
+        // Initialize the web3 instance
+        EthereumRPCHandler.web3 = Web3j.build(new HttpService(String.valueOf(settings.ethereumRPC)));
+        EthereumRPCHandler.url = new URL(settings.ethereumRPC);
+
         // Set variables
         LaevitasHandler.API_URL = new URL("https://gateway.laevitas.ch/");
         LaevitasHandler.KEY = settings.laevitasKey;
@@ -54,10 +58,6 @@ public class Launcher {
         // Initialize the server data and load them
         ServerDataHandler.init(Path.of(settings.serverData));
         PositionsDataHandler.init(Path.of(settings.transfersData), Path.of(settings.pricesData));
-
-        // Initialize the web3 instance
-        EthereumRPCHandler.web3 = Web3j.build(new HttpService(String.valueOf(settings.ethereumRPC)));
-        EthereumRPCHandler.url = new URL(settings.ethereumRPC);
 
         // Verify commands are up-to-date
         CommandsHandler.checkAndSetSlashCommands(settings.updateCommandsAtLaunch);
