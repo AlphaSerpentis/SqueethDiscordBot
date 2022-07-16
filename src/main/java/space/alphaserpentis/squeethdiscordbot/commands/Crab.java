@@ -2,6 +2,8 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.Flowable;
+import io.reactivex.disposables.Disposable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -15,7 +17,6 @@ import org.web3j.abi.datatypes.generated.Uint128;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.abi.datatypes.generated.Uint32;
 import org.web3j.abi.datatypes.generated.Uint96;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Crab extends BotCommand {
 
@@ -99,7 +101,11 @@ public class Crab extends BotCommand {
         onlyEmbed = true;
         deferReplies = true;
 
-        updateLastHedge();
+        try {
+            updateLastHedge();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Nonnull
@@ -178,7 +184,11 @@ public class Crab extends BotCommand {
                     eb.setDescription("View detailed information that happened during the last rebalance!\n\nParticipate in the auctions: https://www.squeethportal.xyz/auction");
 
                     if(lastRebalanceRun + 60 < Instant.now().getEpochSecond()) {
-                        updateLastHedge();
+                        try {
+                            updateLastHedge();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
                         lastRebalanceRun = Instant.now().getEpochSecond();
                     }
 
@@ -231,22 +241,29 @@ public class Crab extends BotCommand {
         commandId = cmd.getIdLong();
     }
 
-    public static void updateLastHedge() {
-        EthFilter filter = new EthFilter(new DefaultBlockParameterNumber(15134805), DefaultBlockParameterName.LATEST, crab)
+    public static void updateLastHedge() throws IOException {
+        EthFilter filter = new EthFilter(new DefaultBlockParameterNumber(15134805), new DefaultBlockParameterNumber(EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber()), crab)
                 .addOptionalTopics("0x4c1a959210172325f5c6678421c3834b04ae8ce57f7a7c0c0bbfbb62bca37e34", "0x878fd3ca52ad322c7535f559ee7c91afc67363073783360ef1b1420589dc6174");
 
-        Log latestLog = EthereumRPCHandler.web3.ethLogFlowable(filter).blockingLatest().iterator().next();
+        Flowable<Log> logFlowable = EthereumRPCHandler.web3.ethLogFlowable(filter);
+        AtomicReference<Log> latestLog = new AtomicReference<>();
 
-        if(lastHedgeBlock == latestLog.getBlockNumber().doubleValue()) {
+        Disposable disposable = logFlowable.subscribe(
+                latestLog::set
+        );
+
+        disposable.dispose();
+
+        if(lastHedgeBlock == latestLog.get().getBlockNumber().doubleValue()) {
             return;
         } else {
-            lastHedgeBlock = (long) latestLog.getBlockNumber().doubleValue();
+            lastHedgeBlock = (long) latestLog.get().getBlockNumber().doubleValue();
         }
 
-        if(latestLog.getTopics().get(0).equalsIgnoreCase("0x4c1a959210172325f5c6678421c3834b04ae8ce57f7a7c0c0bbfbb62bca37e34")) { // Hedge on Uniswap
+        if(latestLog.get().getTopics().get(0).equalsIgnoreCase("0x4c1a959210172325f5c6678421c3834b04ae8ce57f7a7c0c0bbfbb62bca37e34")) { // Hedge on Uniswap
 
             String[] data = new String[4];
-            String trimmedData = latestLog.getData().substring(2);
+            String trimmedData = latestLog.get().getData().substring(2);
 
             for(int i = 0; i < 4; i++) {
                 data[i] = trimmedData.substring(64*i, 64*(i+1));
@@ -258,7 +275,7 @@ public class Crab extends BotCommand {
         } else { // OTC Hedge
 
             String[] data = new String[5];
-            String trimmedData = latestLog.getData().substring(2);
+            String trimmedData = latestLog.get().getData().substring(2);
 
             for(int i = 0; i < 5; i++) {
                 data[i] = trimmedData.substring(64*i, 64*(i+1));
@@ -327,7 +344,6 @@ public class Crab extends BotCommand {
                     -(shortoSQTH.doubleValue() / Math.pow(10,18)),
                     ethCollateral.doubleValue() / Math.pow(10,18)
             );
-
         } catch (ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
