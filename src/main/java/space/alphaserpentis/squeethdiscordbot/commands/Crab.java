@@ -208,7 +208,7 @@ public class Crab extends BotCommand {
                         eb.addField("ν Vega", "$" + instance.format(preVaultGreeksAtHedge.vega) + " → $" + instance.format(postVaultGreeksAtHedge.vega), true);
                         eb.addField("Θ Theta", "$" + instance.format(preVaultGreeksAtHedge.theta) + " → $" + instance.format(postVaultGreeksAtHedge.theta), true);
                         eb.addBlankField(true);
-                        eb.addField("Greeks Notice", "*Greeks shown here go from pre-rebalance → post-rebalance", false);
+                        eb.addField("Greeks Notice", "Greeks shown here go from pre-rebalance → post-rebalance", false);
                         eb.setColor(Color.RED);
                     } catch (IOException e) {
                         eb.setDescription("An unexpected error has occurred. Please try again later.");
