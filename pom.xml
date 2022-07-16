@@ -6,7 +6,7 @@
 
     <groupId>space.alphaserpentis</groupId>
     <artifactId>SqueethDiscordBot</artifactId>
-    <version>1.7</version>
+    <version>1.8</version>
 
     <properties>
         <maven.compiler.source>14</maven.compiler.source>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>core</artifactId>
-            <version>4.9.2</version>
+            <version>4.9.3</version>
         </dependency>
     </dependencies>
 
