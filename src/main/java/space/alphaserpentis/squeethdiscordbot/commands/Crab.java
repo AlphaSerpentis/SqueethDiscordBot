@@ -114,6 +114,8 @@ public class Crab extends BotCommand {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(event.getSubcommandName() != null) {
+            String crabV1Notice = "If you are a depositor in Crab v1, Crab v2 early access is open now!\n\nRead more about it [here](https://twitter.com/opyn_/status/1547331378320121857) and go to https://squeeth.opyn.co/strategies to reserve your spot now!";
+
             switch(event.getSubcommandName()) {
                 case "stats" -> {
                     Vault.VaultGreeks vaultGreeks = lastRunVaultGreeks;
@@ -159,6 +161,7 @@ public class Crab extends BotCommand {
                     eb.setTitle("Crab Statistics");
                     eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
                     eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies" + (LaevitasHandler.isDataStale() ? "\n\n**(Data is stale! Calculations may be off!)**" : ""));
+                    eb.addField("Notice", crabV1Notice, false);
                     eb.addField("ETH Collateral", instance.format(ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
                     eb.addField("Vault Debt", instance.format(shortoSQTH.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
                     eb.addField("Collateral Ratio", instance.format(calculateCollateralRatio()) + "%", false);
@@ -182,6 +185,7 @@ public class Crab extends BotCommand {
                     eb.setTitle("Crab Rebalance Statistics");
                     eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
                     eb.setDescription("View detailed information that happened during the last rebalance!\n\nParticipate in the auctions: https://www.squeethportal.xyz/auction");
+                    eb.addField("Notice", crabV1Notice, false);
 
                     if(lastRebalanceRun + 60 < Instant.now().getEpochSecond()) {
                         try {
