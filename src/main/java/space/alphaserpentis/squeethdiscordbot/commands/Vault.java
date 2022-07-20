@@ -22,7 +22,6 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -31,7 +30,6 @@ public class Vault extends BotCommand {
     private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
 
     public static class VaultGreeks {
-        private final double fundingPeriod = 17.5/365;
         private final double ethUsd;
         private final double osqthUsd;
         private final double normFactor;
@@ -64,9 +62,10 @@ public class Vault extends BotCommand {
         public void setTheGreeks() {
             double deltaPerOsqth, gammaPerOsqth, vegaPerOsqth, thetaPerOsqth;
 
-            deltaPerOsqth = 2*normFactor*ethUsd*Math.exp(Math.pow(impliedVol, 2)*fundingPeriod)/10000;
-            gammaPerOsqth = 2*normFactor*Math.exp(Math.pow(impliedVol, 2)*fundingPeriod)/10000;
-            vegaPerOsqth = 2*impliedVol*fundingPeriod*osqthUsd;
+            double fundingPeriod = 17.5 / 365;
+            deltaPerOsqth = 2*normFactor*ethUsd*Math.exp(Math.pow(impliedVol, 2)* fundingPeriod)/10000;
+            gammaPerOsqth = 2*normFactor*Math.exp(Math.pow(impliedVol, 2)* fundingPeriod)/10000;
+            vegaPerOsqth = 2*impliedVol* fundingPeriod *osqthUsd;
             thetaPerOsqth = Math.pow(impliedVol, 2)*osqthUsd;
 
             delta = deltaPerOsqth*osqthHoldings+ethVaultCollateral;
@@ -82,8 +81,8 @@ public class Vault extends BotCommand {
         private static final String addressTickMathExternal = "0x4d9d7F7aE80d51628Aa56eF37720718C99E6FDfC", addressSqrtPriceMathPartial = "0x9cf8dcbCf115B06d8f577E73Cb9EdFdb27828460";
 
         public class Amount0Amount1 {
-            BigInteger amount0;
-            BigInteger amount1;
+            BigInteger amount0 = BigInteger.ZERO;
+            BigInteger amount1 = BigInteger.ZERO;
         }
 
         public BigInteger getAmount0Delta(
@@ -249,6 +248,9 @@ public class Vault extends BotCommand {
         String address;
         BigInteger nftCollateralId;
         BigInteger collateral;
+        BigInteger nftTickLower = BigInteger.ZERO;
+        BigInteger nftTickUpper = BigInteger.ZERO;
+        BigInteger nftCurrentTick = BigInteger.ZERO;
         BigInteger nftEthValue = BigInteger.ZERO;
         BigInteger nftEthLocked = BigInteger.ZERO;
         BigInteger nftOsqthLocked = BigInteger.ZERO;
@@ -301,6 +303,9 @@ public class Vault extends BotCommand {
                         (BigInteger) uniswapv3NftResponse.get(7).getValue()
                 );
 
+                nftTickLower = (BigInteger) uniswapv3NftResponse.get(5).getValue();
+                nftTickUpper = (BigInteger) uniswapv3NftResponse.get(6).getValue();
+                nftCurrentTick = (BigInteger) tickOfoSQTHPoolResponse.get(0).getValue();
                 nftEthLocked = amounts.amount0;
                 nftOsqthLocked = amounts.amount1;
 
@@ -327,7 +332,26 @@ public class Vault extends BotCommand {
 
         eb.setTitle("Short Vault Data - Vault " + event.getOptions().get(0).getAsLong());
         eb.addField("Operator", "[" + address + "](https://etherscan.io/address/" + address + ")", false);
-        eb.addField("NFT Collateral ID", "[" + nftCollateralId + "](https://etherscan.io/token/0xC36442b4a4522E871399CD717aBDD847Ab11FE88?a=" + nftCollateralId + ")", false);
+        if(nftCollateralId.doubleValue() != 0) {
+            double tickLower = nftTickLower.doubleValue() / Math.pow(10,18), tickUpper = nftTickUpper.doubleValue() / Math.pow(10,18), currentTick = nftCurrentTick.doubleValue() / Math.pow(10,18);
+            double difference = tickUpper - tickLower;
+
+            double ethPercentage, osqthPercentage;
+
+            osqthPercentage = ((tickLower - currentTick) / -(difference)) * 100;
+            ethPercentage = 100 - osqthPercentage;
+
+            if(osqthPercentage > 100) {
+                osqthPercentage = 100;
+                ethPercentage = 0;
+            } else if(ethPercentage > 100) {
+                ethPercentage = 100;
+                osqthPercentage = 0;
+            }
+
+            eb.addField("NFT Collateral ID", "[" + nftCollateralId + "](https://etherscan.io/token/0xC36442b4a4522E871399CD717aBDD847Ab11FE88?a=" + nftCollateralId + ")", false);
+            eb.addField("NFT Collateral Mixture", instance.format(nftEthLocked.doubleValue() / Math.pow(10,18)) + " Ξ (" + instance.format(ethPercentage) + "%) + " + instance.format(nftOsqthLocked.doubleValue() / Math.pow(10,18)) + " oSQTH (" + instance.format(osqthPercentage) + "%)", false);
+        }
         eb.addField("Collateral", instance.format(collateral.doubleValue() / Math.pow(10,18)) + " Ξ " + (nftEthValue.compareTo(BigInteger.ZERO) == 0 ? "" : "(+" + instance.format(nftEthValue.doubleValue() / Math.pow(10,18)) + " Ξ from NFT collateral)"), false);
         eb.addField("Short Amount", instance.format(shortAmount.doubleValue() / Math.pow(10,18)) + " oSQTH", false);
         eb.addField("Collateral Ratio", instance.format(cr) + "%", false);

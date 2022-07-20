@@ -93,7 +93,7 @@ public abstract class BotCommand<T> {
                 if (cmd instanceof ButtonCommand) {
                     Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
 
-                    if (cmd.isUsingRatelimits()) {
+                    if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
                         cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
                     }
 
@@ -101,7 +101,7 @@ public abstract class BotCommand<T> {
                         return hook.sendMessageEmbeds((MessageEmbed) response).addActionRow(buttons).complete();
                 }
 
-                if (cmd.isUsingRatelimits()) {
+                if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
                     cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
                 }
 
