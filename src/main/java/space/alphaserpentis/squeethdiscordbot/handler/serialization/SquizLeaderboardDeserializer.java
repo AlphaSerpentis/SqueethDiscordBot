@@ -15,10 +15,10 @@ public class SquizLeaderboardDeserializer implements JsonDeserializer<Map<Long, 
         Map<Long, SquizLeaderboard> squizLeaderboardMap = new HashMap<>();
 
         Gson gson = new Gson();
-        JsonObject object = jsonElement.getAsJsonObject();
+        JsonObject object = JsonParser.parseString(jsonElement.toString()).getAsJsonObject();
 
         for(Map.Entry<String, JsonElement> entry: object.entrySet()) {
-            squizLeaderboardMap.put(Long.valueOf(entry.getKey()), gson.fromJson(entry.getValue(), new SquizLeaderboard().getClass()));
+            squizLeaderboardMap.put(Long.valueOf(entry.getKey()), gson.fromJson(entry.getValue(), SquizLeaderboard.class));
         }
 
         return squizLeaderboardMap;

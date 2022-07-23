@@ -2,12 +2,15 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.server;
 
+import java.util.ArrayList;
+
 public class ServerData {
 
     private boolean onlyEphemeral = true;
     private boolean doRandomSquizQuestions = false;
-    private long[] randomSquizQuestionsChannels = new long[0];
+    private ArrayList<Long> randomSquizQuestionsChannels = new ArrayList<>();
     private long leaderboardChannelId = 0;
+    private long lastLeaderboardMessage = 0;
 
     public void setOnlyEphemeral(boolean value) {
         onlyEphemeral = value;
@@ -18,8 +21,11 @@ public class ServerData {
     public void setDoRandomSquizQuestions(boolean value) {
         doRandomSquizQuestions = value;
     }
-    public void setRandomSquizQuestionsChannels(long[] value) {
+    public void setRandomSquizQuestionsChannels(ArrayList<Long> value) {
         randomSquizQuestionsChannels = value;
+    }
+    public void setLastLeaderboardMessage(long messageId) {
+        lastLeaderboardMessage = messageId;
     }
 
     public boolean isOnlyEphemeral() {
@@ -31,7 +37,10 @@ public class ServerData {
     public boolean doRandomSquizQuestions() {
         return doRandomSquizQuestions;
     }
-    public long[] getRandomSquizQuestionsChannels() {
+    public ArrayList<Long> getRandomSquizQuestionsChannels() {
         return randomSquizQuestionsChannels;
+    }
+    public long getLastLeaderboardMessage() {
+        return lastLeaderboardMessage;
     }
 }

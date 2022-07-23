@@ -411,7 +411,7 @@ public class Position extends ButtonCommand {
         cachedENSDomains.putIfAbsent(userAddress, EthereumRPCHandler.getENSName(userAddress));
 
         eb.setTitle("Position Viewer for " + cachedENSDomains.get(userAddress));
-        eb = displayPositionPage(eb, 0, posArray);
+        displayPositionPage(eb, 0, posArray);
 
         if(
                 !(posArray[0].transfers.size() != 0 || !posArray[0].isValueDust(posArray[0].currentAmtHeld)) &&
@@ -489,7 +489,7 @@ public class Position extends ButtonCommand {
         return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
     }
 
-    private EmbedBuilder displayPositionPage(EmbedBuilder eb, int page, AbstractPositions[] posArray) {
+    private void displayPositionPage(EmbedBuilder eb, int page, AbstractPositions[] posArray) {
         DecimalFormat df = new DecimalFormat("#");
 
         String priceInUsd = NumberFormat.getInstance().format(posArray[page].currentPriceInUsd.divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))).doubleValue() / Math.pow(10,18));
@@ -500,6 +500,8 @@ public class Position extends ButtonCommand {
         String positionValueInEth = NumberFormat.getInstance().format(posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18));
         String unrealizedPnlInUsd = NumberFormat.getInstance().format((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18)));
         String unrealizedPnlInEth = NumberFormat.getInstance().format((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)));
+        String unrealizedPnlInUsdPercentage = NumberFormat.getInstance().format(((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasis.doubleValue() / Math.pow(10,18)) * 100);
+        String unrealizedPnlInEthPercentage = NumberFormat.getInstance().format(((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)) * 100);
 
         switch(page) {
             case 0 -> { // long squeeth
@@ -512,7 +514,7 @@ public class Position extends ButtonCommand {
                     eb.addField("Price of oSQTH", "$" + priceInUsd, false);
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
-                    eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInEth + " Ξ)", false);
+                    eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                 }
             }
             case 1 -> { // crab
@@ -525,11 +527,10 @@ public class Position extends ButtonCommand {
                     eb.addField("Price of Crab", "$" + priceInUsd, false);
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
-                    eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInEth + " Ξ)", false);
+                    eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                 }
             }
         }
 
-        return eb;
     }
 }

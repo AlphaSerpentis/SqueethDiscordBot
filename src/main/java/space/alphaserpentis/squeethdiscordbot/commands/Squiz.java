@@ -4,56 +4,76 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
+import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class Squiz extends ButtonCommand {
 
     enum States {
         DEFAULT,
+        RANDOM,
         IN_PROGRESS,
         COMPLETE,
         VIEWING_LEADERBOARD
     }
 
-    static class SquizSession {
+    public static class SquizSession {
         public States currentState = States.DEFAULT;
         public int currentQuestion = 0;
         public int currentScore = 0;
         public char correctCurrentAnswer = ' ';
         public ArrayList<SquizQuestions> questions;
         public HashMap<Integer, SquizQuestions> missedQuestions = new HashMap<>();
+
+        @Override
+        public String toString() {
+            return "currentState: " + currentState + "," +
+                    "currentQuestion: " + currentQuestion + "," +
+                    "currentScore: " + currentScore + "," +
+                    "correctCurrentAnswer: " + correctCurrentAnswer + "," +
+                    "questions: " + questions + "," +
+                    "missedQuestions: " + missedQuestions;
+        }
+    }
+
+    public static class RandomSquizSession extends SquizSession {
+        public long serverId;
+        public long userWhoResponded;
+        public Message message;
     }
 
     public static HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
+    public static HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
 
     public Squiz() {
         name = "squiz";
         description = "Squeeth quiz!";
         onlyEmbed = true;
         onlyEphemeral = true;
+        messagesExpire = true;
+        messageExpirationLength = 15;
 
         buttonHashMap.put("Start", Button.primary("squiz_start", "Start"));
         buttonHashMap.put("End", Button.primary("squiz_end", "End"));
@@ -78,92 +98,78 @@ public class Squiz extends ButtonCommand {
         if(event.getSubcommandName() != null) {
             switch(event.getSubcommandName()) {
                 case "leaderboard" -> {
-                    eb.setTitle("Squiz Leaderboard");
-                    SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
-                    HashMap<Long, Integer> topFive = leaderboard.getTopFive();
                     session.currentState = States.VIEWING_LEADERBOARD;
-
-                    for(int i = 0; i < 5 && topFive.size() > 0; i++) {
-                        eb.addField(String.format("%d. %s", i + 1, event.getJDA().getUserById((String) topFive.keySet().toArray()[i]).getAsMention()), String.format("%d", topFive.values().toArray()[i]), true);
-                    }
-                }
-                case "random_questions" -> {
-                    if(!verifyServerPerms(event.getMember())) {
-                        eb.setTitle("Squiz Random Questions");
-                        eb.setDescription("You do not have the required permissions to use this command (`MANAGE_SERVER`).");
-                        return eb.build();
-                    }
-
-                    ServerData serverData = ServerDataHandler.serverDataHashMap.getOrDefault(event.getGuild().getIdLong(), new ServerData());
-                    serverData.setDoRandomSquizQuestions(event.getOptions().get(0).getAsBoolean());
-
-                    try {
-                        ServerDataHandler.updateServerData();
-                        eb.setTitle("Squiz Random Questions");
-                        eb.setDescription("Random questions are toggled " + (serverData.doRandomSquizQuestions() ? "on" : "off") + ".");
-                    } catch (IOException e) {
-                        eb.setTitle("Squiz Random Questions");
-                        eb.setDescription("Failed to toggle random questions. If this persists, please contact AlphaSerpentis#3203 at discord.gg/opyn");
-                        e.printStackTrace();
-                    }
+                    generateLeaderboard(eb, event.getGuild().getIdLong());
                 }
                 case "play" -> {
-                    if(state == States.DEFAULT || state == States.COMPLETE) {
+                    if(state != States.IN_PROGRESS) {
                         eb.setTitle("Squiz!");
                         session.currentState = States.DEFAULT;
                         eb.setDescription("Welcome to the Squeeth quiz!\n\n" +
                                 "The quiz will ask you 10 questions and you will have to answer each question with the correct choice.\n" +
                                 "You can end the quiz by pressing the \"End\" button.");
-                    } else if (state == States.IN_PROGRESS) {
+                    } else {
                         eb.setDescription("You are already in a quiz!");
                     }
                 }
             }
         }
 
+        squizSessionHashMap.putIfAbsent(userId, session);
+
         return eb.build();
     }
 
     @Override
     public void addCommand(@Nonnull JDA jda) {
-        SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions")
-            .addOption(OptionType.CHANNEL, "channel", "The channel to display the leaderboard in", true);
-        SubcommandData randomQuestions = new SubcommandData("random_questions", "Displays a random question from the Squiz question pool")
-                .addOption(OptionType.BOOLEAN, "enable", "Enable random questions", true);
+        SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, randomQuestions, play).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
     public void updateCommand(@Nonnull JDA jda) {
-        SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions")
-            .addOption(OptionType.CHANNEL, "channel", "The channel to display the leaderboard in");
-        SubcommandData randomQuestions = new SubcommandData("random_questions", "Displays a random question from the Squiz question pool")
-                .addOption(OptionType.BOOLEAN, "enable", "Enable random questions", true);
+        SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, randomQuestions, play).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play).complete();
 
         commandId = cmd.getIdLong();
     }
 
     @Override
     public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
-        SquizSession session = squizSessionHashMap.getOrDefault(event.getUser().getIdLong(), new SquizSession());
         Collection<ItemComponent> buttons = null;
         EmbedBuilder eb = new EmbedBuilder();
+        long serverId = event.getGuild().getIdLong();
+        long userId = event.getUser().getIdLong();
+
+        SquizSession session = squizSessionHashMap.get(userId);
 
         eb.setTitle("Squiz!");
+
+        // Check if the event is from an active Squiz
+        if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
+            session = randomSquizSessionsHashMap.get(serverId);
+            if(((RandomSquizSession) session).userWhoResponded == 0) {
+                ((RandomSquizSession) session).userWhoResponded = userId;
+            } else { // if two users respond fast enough
+                return;
+            }
+            eb.setTitle("Random Squiz!");
+        } else {
+            squizSessionHashMap.put(userId, session);
+        }
 
         switch(event.getButton().getId()) {
             case "squiz_start" -> {
                 int questionNumber = session.currentQuestion;
                 int wrongAnswerCounter = 0;
 
-                session.questions = getRandomQuestions();
+                session.questions = getRandomQuestions(10);
                 session.currentState = States.IN_PROGRESS;
 
                 eb.addField("Question " + (questionNumber + 1), session.questions.get(questionNumber).question, false);
@@ -271,19 +277,21 @@ public class Squiz extends ButtonCommand {
                         eb.addField(session.missedQuestions.get(i).question, "Correct answer was: " + session.missedQuestions.get(i).answer, false);
                     }
                 }
+                squizSessionHashMap.remove(userId);
             }
         }
 
-        squizSessionHashMap.put(event.getUser().getIdLong(), session);
-        MessageEditCallbackAction pending = event.editMessageEmbeds(eb.build());
+        MessageEditCallbackAction pending = event.editComponents().setEmbeds(eb.build());
 
-        if(buttons != null) pending.setActionRow(buttons);
-        pending.complete();
+        if(buttons != null)
+            pending.setActionRow(buttons).complete();
+        else
+            pending.complete();
     }
 
     @Override
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
-        SquizSession session = squizSessionHashMap.getOrDefault(event.getUser().getIdLong(), new SquizSession());
+        SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;
 
         if(state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
@@ -303,18 +311,101 @@ public class Squiz extends ButtonCommand {
         }
     }
 
+    public void setRandomSquizQuestionSession(long serverId) {
+        RandomSquizSession session = new RandomSquizSession();
+        session.currentState = States.RANDOM;
+        session.serverId = serverId;
+        session.questions = getRandomQuestions(1);
+
+        randomSquizSessionsHashMap.put(serverId, session);
+    }
+
+    public void sendRandomSquizQuestion(long serverId) {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+        RandomSquizSession session = randomSquizSessionsHashMap.get(serverId);
+        EmbedBuilder eb = new EmbedBuilder();
+
+        TextChannel channelRand = Launcher.api.getTextChannelById(sd.getRandomSquizQuestionsChannels().get((int) (Math.random() * sd.getRandomSquizQuestionsChannels().size())));
+        List<ItemComponent> buttons = handleNextQuestion(session, eb);
+
+        eb.setTitle("Random Squiz!");
+
+        Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
+        session.message = message;
+        ServerCache.addNewMessage(serverId, message);
+    }
+
+    public void updateLeaderboard(long serverId) throws NullPointerException {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+        TextChannel channel = Launcher.api.getTextChannelById(sd.getLeaderboardChannelId());
+        EmbedBuilder eb = new EmbedBuilder();
+
+        if(channel == null) throw new NullPointerException(); // invalid state to try to operate with
+
+        if(sd.getLastLeaderboardMessage() != 0) {
+            // Check if the message is still valid
+            Message message = channel.retrieveMessageById(sd.getLastLeaderboardMessage()).complete();
+
+            // construct the new embed
+            generateLeaderboard(eb, serverId);
+
+            if(message == null) { // create a new leaderboard message
+                message = channel.sendMessageEmbeds(eb.build()).complete();
+                sd.setLastLeaderboardMessage(message.getIdLong());
+            } else { // reuse the message
+                message.editMessageEmbeds(eb.build()).complete();
+            }
+        } else {
+            generateLeaderboard(eb, serverId);
+
+            sd.setLastLeaderboardMessage(
+                    channel.sendMessageEmbeds(eb.build()).complete().getIdLong()
+            );
+        }
+    }
+
     private boolean checkIfCorrectAnswer(char answer, char correctAnswer, SquizSession session) {
         boolean response = answer == correctAnswer;
 
         if(!response) {
             session.missedQuestions.put(session.missedQuestions.size(), session.questions.get(session.currentQuestion - 1));
+        } else {
+            if(session instanceof RandomSquizSession) {
+                Map<Long, SquizLeaderboard> squizLeaderboardHashMap = SquizHandler.squizLeaderboardHashMap;
+
+                SquizLeaderboard serverLeaderboard = squizLeaderboardHashMap.getOrDefault(((RandomSquizSession) session).serverId, new SquizLeaderboard());
+                serverLeaderboard.addPoint(((RandomSquizSession) session).userWhoResponded);
+                squizLeaderboardHashMap.putIfAbsent(((RandomSquizSession) session).serverId, serverLeaderboard);
+                try {
+                    SquizHandler.updateSquizLeaderboard();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
 
         return response;
     }
 
+    @Nullable
     private List<ItemComponent> handleNextQuestion(SquizSession session, EmbedBuilder eb) {
         if(session.currentQuestion == session.questions.size()) {
+            if(session instanceof RandomSquizSession) { // If the session is a random squiz
+                if(session.missedQuestions.size() == 1) {
+                    eb.setDescription("You did not earn a point :slight_frown:\n\n" +
+                            "The correct answer was " + session.missedQuestions.get(0).answer);
+                } else {
+                    eb.setDescription("You earned a point!");
+                    try {
+                        updateLeaderboard(((RandomSquizSession) session).serverId);
+                    } catch(NullPointerException ignored) {
+
+                    }
+                    // TODO: SHOW USER'S CURRENT POSITION IN THE SERVER LEADERBOARD
+                }
+                randomSquizSessionsHashMap.remove(((RandomSquizSession) session).serverId); // Removes the reference
+                return null;
+            }
             session.currentState = States.COMPLETE;
             eb.setDescription("You have ended the quiz.\n\n" +
                     "Your score is " + session.currentScore + ".");
@@ -343,6 +434,13 @@ public class Squiz extends ButtonCommand {
 
             session.currentQuestion++;
 
+            if(session.currentState == States.RANDOM) {
+                return List.of(
+                        buttonHashMap.get("True"),
+                        buttonHashMap.get("False")
+                );
+            }
+
             return List.of(
                     buttonHashMap.get("True"),
                     buttonHashMap.get("False"),
@@ -362,6 +460,15 @@ public class Squiz extends ButtonCommand {
 
             session.currentQuestion++;
 
+            if(session.currentState == States.RANDOM) {
+                return List.of(
+                        buttonHashMap.get("A"),
+                        buttonHashMap.get("B"),
+                        buttonHashMap.get("C"),
+                        buttonHashMap.get("D")
+                );
+            }
+
             return List.of(
                     buttonHashMap.get("A"),
                     buttonHashMap.get("B"),
@@ -372,11 +479,11 @@ public class Squiz extends ButtonCommand {
         }
     }
 
-    private ArrayList<SquizQuestions> getRandomQuestions() {
+    private ArrayList<SquizQuestions> getRandomQuestions(int size) {
         ArrayList<SquizQuestions> questions = new ArrayList<>();
 
         int random = (int) (Math.random() * SquizHandler.squizQuestions.size());
-        while(questions.size() != 10) {
+        while(questions.size() != size) {
             if(!questions.contains(SquizHandler.squizQuestions.get(random))) {
                 questions.add(SquizHandler.squizQuestions.get(random));
             }
@@ -386,9 +493,15 @@ public class Squiz extends ButtonCommand {
         return questions;
     }
 
-    private boolean verifyServerPerms(Member member) {
-        return member.hasPermission(
-                Permission.MANAGE_SERVER
-        );
+    private static void generateLeaderboard(EmbedBuilder eb, long serverId) {
+        eb.setTitle("Squiz Leaderboard");
+        eb.setDescription("Shows the top 5 people on the leaderboard for the server plus where you are currently in the leaderboard");
+        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(serverId, new SquizLeaderboard());
+        ArrayList<Long> topFive = leaderboard.getTopFive();
+        Guild guild = Launcher.api.getGuildById(serverId);
+
+        for(int i = 0; i < 5 && i < topFive.size(); i++) {
+            eb.addField(String.format("%d. %s", i + 1, guild.retrieveMemberById(topFive.get(i)).complete().getUser().getAsTag()), String.format("%d", leaderboard.leaderboard.get(topFive.get(i))), false);
+        }
     }
 }
