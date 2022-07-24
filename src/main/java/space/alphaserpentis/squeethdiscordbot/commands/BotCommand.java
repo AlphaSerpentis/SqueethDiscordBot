@@ -77,7 +77,7 @@ public abstract class BotCommand<T> {
     }
 
     @Nonnull
-    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand cmd) {
+    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand<?> cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
         Object response;
         ReplyCallbackAction reply;
@@ -151,6 +151,21 @@ public abstract class BotCommand<T> {
         }
 
         return reply.complete().retrieveOriginal().complete();
+    }
+
+    protected static void letMessageExpire(@Nonnull BotCommand<?> command, Message message) {
+        if(command.doMessagesExpire()) {
+            new Thread(
+                    () -> {
+                        try {
+                            Thread.sleep(command.getMessageExpirationLength() * 1000);
+                            message.delete().complete();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+            ).start();
+        }
     }
 
     @Nonnull

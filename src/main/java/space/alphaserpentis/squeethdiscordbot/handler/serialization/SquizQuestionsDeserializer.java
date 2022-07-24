@@ -18,7 +18,7 @@ public class SquizQuestionsDeserializer implements JsonDeserializer<ArrayList<Sq
         JsonObject object = jsonElement.getAsJsonObject();
 
         for(Map.Entry<String, JsonElement> entry: object.entrySet()) {
-            squizQuestionsArrayList.add(gson.fromJson(entry.getValue(), new SquizQuestions().getClass()));
+            squizQuestionsArrayList.add(gson.fromJson(entry.getValue(), SquizQuestions.class));
         }
 
         return squizQuestionsArrayList;

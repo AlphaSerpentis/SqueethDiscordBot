@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
@@ -103,6 +104,8 @@ public class Squiz extends ButtonCommand {
                 }
                 case "play" -> {
                     if(state != States.IN_PROGRESS) {
+                        session = new SquizSession(); // dereference to prevent reusing old reference
+                        squizSessionHashMap.put(userId, session);
                         eb.setTitle("Squiz!");
                         session.currentState = States.DEFAULT;
                         eb.setDescription("Welcome to the Squeeth quiz!\n\n" +
@@ -152,14 +155,18 @@ public class Squiz extends ButtonCommand {
         eb.setTitle("Squiz!");
 
         // Check if the event is from an active Squiz
-        if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
-            session = randomSquizSessionsHashMap.get(serverId);
-            if(((RandomSquizSession) session).userWhoResponded == 0) {
-                ((RandomSquizSession) session).userWhoResponded = userId;
-            } else { // if two users respond fast enough
-                return;
+        if(randomSquizSessionsHashMap.get(serverId) != null) {
+            if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
+                session = randomSquizSessionsHashMap.get(serverId);
+                if(((RandomSquizSession) session).userWhoResponded == 0) {
+                    ((RandomSquizSession) session).userWhoResponded = userId;
+                } else { // if two users respond fast enough
+                    return;
+                }
+                eb.setTitle("Random Squiz!");
+            } else {
+                squizSessionHashMap.put(userId, session);
             }
-            eb.setTitle("Random Squiz!");
         } else {
             squizSessionHashMap.put(userId, session);
         }
@@ -266,7 +273,7 @@ public class Squiz extends ButtonCommand {
                 buttons = handleNextQuestion(session, eb);
             }
             case "squiz_leaderboard" -> {
-
+                generateLeaderboard(eb, serverId);
             }
             case "squiz_review" -> {
                 if(session.missedQuestions.size() == 0) {
@@ -289,6 +296,7 @@ public class Squiz extends ButtonCommand {
             pending.complete();
     }
 
+    @Nonnull
     @Override
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
@@ -306,6 +314,8 @@ public class Squiz extends ButtonCommand {
             return List.of(buttonHashMap.get("Review"));
         } else if(event.getSubcommandName().equalsIgnoreCase("play") && state == States.IN_PROGRESS && session.currentQuestion != 0) {
             return List.of(buttonHashMap.get("End"));
+        } else if(state == States.VIEWING_LEADERBOARD) {
+            return Collections.emptyList();
         } else { // Assumes this is DEFAULT
             return List.of(buttonHashMap.get("Start"));
         }
@@ -344,7 +354,12 @@ public class Squiz extends ButtonCommand {
 
         if(sd.getLastLeaderboardMessage() != 0) {
             // Check if the message is still valid
-            Message message = channel.retrieveMessageById(sd.getLastLeaderboardMessage()).complete();
+            Message message = null;
+            try {
+                message = channel.retrieveMessageById(sd.getLastLeaderboardMessage()).complete();
+            } catch(ErrorResponseException ignored) {
+
+            }
 
             // construct the new embed
             generateLeaderboard(eb, serverId);
@@ -398,12 +413,16 @@ public class Squiz extends ButtonCommand {
                     eb.setDescription("You earned a point!");
                     try {
                         updateLeaderboard(((RandomSquizSession) session).serverId);
+                        ServerDataHandler.updateServerData();
                     } catch(NullPointerException ignored) {
 
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
                     // TODO: SHOW USER'S CURRENT POSITION IN THE SERVER LEADERBOARD
                 }
                 randomSquizSessionsHashMap.remove(((RandomSquizSession) session).serverId); // Removes the reference
+                letMessageExpire(this, ((RandomSquizSession) session).message);
                 return null;
             }
             session.currentState = States.COMPLETE;
@@ -479,6 +498,7 @@ public class Squiz extends ButtonCommand {
         }
     }
 
+    @Nonnull
     private ArrayList<SquizQuestions> getRandomQuestions(int size) {
         ArrayList<SquizQuestions> questions = new ArrayList<>();
 

@@ -39,7 +39,7 @@ public class SquizHandler {
 
             while(sd.doRandomSquizQuestions()) {
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep((long) ((sd.getRandomSquizBaseIntervals() + (sd.getRandomSquizBaseIntervals() * Math.random())) * 1000));
 
                     if(sd.doRandomSquizQuestions()) {
                         if(sd.getRandomSquizQuestionsChannels().size() == 0 || sd.getLeaderboardChannelId() == 0) { // invalid state to run random squiz questions

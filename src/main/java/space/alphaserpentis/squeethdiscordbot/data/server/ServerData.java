@@ -9,6 +9,7 @@ public class ServerData {
     private boolean onlyEphemeral = true;
     private boolean doRandomSquizQuestions = false;
     private ArrayList<Long> randomSquizQuestionsChannels = new ArrayList<>();
+    private long randomSquizBaseIntervals = 1800; // default is 30 minutes + random amount
     private long leaderboardChannelId = 0;
     private long lastLeaderboardMessage = 0;
 
@@ -23,6 +24,9 @@ public class ServerData {
     }
     public void setRandomSquizQuestionsChannels(ArrayList<Long> value) {
         randomSquizQuestionsChannels = value;
+    }
+    public void setRandomSquizBaseIntervals(long seconds) {
+        randomSquizBaseIntervals = seconds;
     }
     public void setLastLeaderboardMessage(long messageId) {
         lastLeaderboardMessage = messageId;
@@ -39,6 +43,10 @@ public class ServerData {
     }
     public ArrayList<Long> getRandomSquizQuestionsChannels() {
         return randomSquizQuestionsChannels;
+    }
+
+    public long getRandomSquizBaseIntervals() {
+        return randomSquizBaseIntervals;
     }
     public long getLastLeaderboardMessage() {
         return lastLeaderboardMessage;

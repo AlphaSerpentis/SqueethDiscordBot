@@ -30,7 +30,8 @@ public class Settings extends BotCommand {
             put("leaderboard", "Sets the channel to display a public leaderboard that gets updated. If disabled, the leaderboard will not be updated/posted.");
             put("random_squiz_questions", "Sets whether or not the bot should issue random Squiz questions. If enabled, the bot will post random Squiz questions every so often for everyone to see.");
             put("random_squiz_questions_channel", "Sets the channel(s) to post random Squiz questions to. To remove the channel, input the already-added channel again into the command.");
-        }};
+            put("random_squiz_intervals", "Sets the 'base' interval of how long until the next Squiz question appears");
+    }};
 
     private static final String error = "An error occurred, please try again later. If this persists, please contact AlphaSerpentis#3203 at discord.gg/opyn";
 
@@ -65,6 +66,7 @@ public class Settings extends BotCommand {
                             case "random_questions" -> enableRandomQuestions(event.getGuild().getIdLong(), event.getOptions().get(0).getAsBoolean(), eb);
                             case "add_channel" -> addChannelFromEligibleChannels(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "remove_channel" -> removeChannelFromEligibleChannels(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
+                            case "interval" -> setRandomSquizBaseInterval(event.getGuild().getIdLong(), event.getOptions().get(0).getAsLong(), eb);
                         }
                     }
                 } else {
@@ -92,7 +94,8 @@ public class Settings extends BotCommand {
                         new SubcommandData("leaderboard", "Set the leaderboard channel").addOption(OptionType.CHANNEL, "channel", "The channel for the leaderboard"),
                         new SubcommandData("random_questions", "Setting if random questions are active").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not random questions are actively running"),
                         new SubcommandData("add_channel", "Setting to add the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to add to the list of eligible channels for random questions"),
-                        new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions")
+                        new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
+                        new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
                 );
 
         Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz).complete();
@@ -109,7 +112,8 @@ public class Settings extends BotCommand {
                         new SubcommandData("leaderboard", "Set the leaderboard channel").addOption(OptionType.CHANNEL, "channel", "The channel for the leaderboard"),
                         new SubcommandData("random_questions", "Setting if random questions are active").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not random questions are actively running"),
                         new SubcommandData("add_channel", "Setting to add the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to add to the list of eligible channels for random questions"),
-                        new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions")
+                        new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
+                        new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
                 );
 
         Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz).complete();
@@ -189,6 +193,21 @@ public class Settings extends BotCommand {
             }
         } else {
             eb.setDescription("Channel was not in the list of eligible channels for random questions");
+        }
+    }
+
+    private void setRandomSquizBaseInterval(long serverId, long interval, EmbedBuilder eb) {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+
+        sd.setRandomSquizBaseIntervals(interval);
+
+        try {
+            ServerDataHandler.updateServerData();
+
+            eb.setDescription("For every " + interval + " seconds + (random * " + interval + "), a new Squiz will be sent provided that" +
+                    " there is no active random Squiz");
+        } catch (IOException e) {
+            eb.setDescription(error);
         }
     }
 
