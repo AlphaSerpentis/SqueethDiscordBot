@@ -28,7 +28,7 @@ public class CommandsHandler extends ListenerAdapter {
         put("crab", new Crab());
         put("position", new Position());
         put("vault", new Vault());
-//        put("squiz", new Squiz());
+        put("squiz", new Squiz());
     }};
 
     public static long adminUserID;

@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 import java.text.NumberFormat;
 import java.util.List;
 
-public class Funding extends BotCommand {
+public class Funding extends BotCommand<MessageEmbed> {
 
     public Funding() {
         name = "funding";

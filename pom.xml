@@ -6,7 +6,7 @@
 
     <groupId>space.alphaserpentis</groupId>
     <artifactId>SqueethDiscordBot</artifactId>
-    <version>1.8</version>
+    <version>1.9</version>
 
     <properties>
         <maven.compiler.source>14</maven.compiler.source>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>5.0.0-alpha.13</version>
+            <version>5.0.0-alpha.17</version>
             <exclusions>
                 <exclusion>
                     <groupId>club.minnced</groupId>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.web3j</groupId>
             <artifactId>core</artifactId>
-            <version>4.9.3</version>
+            <version>4.9.4</version>
         </dependency>
     </dependencies>
 
@@ -43,7 +43,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.4.1</version>
                 <executions>
                     <execution>
                         <id>make-assembly</id>

@@ -14,7 +14,7 @@ import javax.annotation.Nonnull;
 import java.awt.*;
 import java.text.NumberFormat;
 
-public class Stats extends BotCommand {
+public class Stats extends BotCommand<MessageEmbed> {
 
     public Stats() {
         name = "stats";

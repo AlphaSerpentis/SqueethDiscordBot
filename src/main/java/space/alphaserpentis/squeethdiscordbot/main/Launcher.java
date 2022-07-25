@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
@@ -43,9 +44,10 @@ public class Launcher {
         CommandsHandler.adminUserID = settings.botAdmin;
 
         // Configure the bot
+        builder.setChunkingFilter(ChunkingFilter.ALL);
         builder.disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.CLIENT_STATUS, CacheFlag.EMOJI, CacheFlag.STICKER);
         builder.disableIntents(GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MESSAGE_TYPING, GatewayIntent.GUILD_MESSAGE_REACTIONS);
-        builder.enableIntents(GatewayIntent.GUILD_MEMBERS);
+        builder.enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES);
         builder.addEventListeners(new CommandsHandler());
         builder.addEventListeners(new ServerDataHandler());
 

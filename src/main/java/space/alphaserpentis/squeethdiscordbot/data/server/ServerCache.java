@@ -29,6 +29,10 @@ public class ServerCache {
     }
 
     public static void removeMessages(Long guildId) {
+        if(cachedMessages.isEmpty()) {
+            return;
+        }
+
         for(Message msg: cachedMessages.get(guildId)) {
             msg.delete().queue();
         }

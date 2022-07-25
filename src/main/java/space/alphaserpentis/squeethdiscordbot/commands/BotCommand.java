@@ -21,8 +21,8 @@ public abstract class BotCommand<T> {
 
     protected HashMap<Long, Long> ratelimitMap = new HashMap<>();
     protected String name, description;
-    protected long commandId, ratelimitLength;
-    protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies, useRatelimits;
+    protected long commandId, ratelimitLength, messageExpirationLength;
+    protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies, useRatelimits, messagesExpire;
 
     @Nonnull
     abstract public T runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);
@@ -47,6 +47,9 @@ public abstract class BotCommand<T> {
     public long getRatelimitLength() {
         return ratelimitLength;
     }
+    public long getMessageExpirationLength() {
+        return messageExpirationLength;
+    }
     public boolean isOnlyEmbed() { return onlyEmbed; }
     public boolean isOnlyEphemeral() {
         return onlyEphemeral || !isActive;
@@ -69,9 +72,12 @@ public abstract class BotCommand<T> {
             return false;
         }
     }
+    public boolean doMessagesExpire() {
+        return messagesExpire;
+    }
 
     @Nonnull
-    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand cmd) {
+    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand<?> cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
         Object response;
         ReplyCallbackAction reply;
@@ -93,7 +99,7 @@ public abstract class BotCommand<T> {
                 if (cmd instanceof ButtonCommand) {
                     Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
 
-                    if (cmd.isUsingRatelimits()) {
+                    if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
                         cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
                     }
 
@@ -101,7 +107,7 @@ public abstract class BotCommand<T> {
                         return hook.sendMessageEmbeds((MessageEmbed) response).addActionRow(buttons).complete();
                 }
 
-                if (cmd.isUsingRatelimits()) {
+                if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
                     cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
                 }
 
@@ -145,6 +151,21 @@ public abstract class BotCommand<T> {
         }
 
         return reply.complete().retrieveOriginal().complete();
+    }
+
+    protected static void letMessageExpire(@Nonnull BotCommand<?> command, Message message) {
+        if(command.doMessagesExpire()) {
+            new Thread(
+                    () -> {
+                        try {
+                            Thread.sleep(command.getMessageExpirationLength() * 1000);
+                            message.delete().complete();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+            ).start();
+        }
     }
 
     @Nonnull

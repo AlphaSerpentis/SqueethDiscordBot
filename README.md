@@ -20,13 +20,16 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
 - The Greeks
 - Funding Calculator
 - Crab Stats
+  - Crab Rebalance Data
 - Positions Viewer
-  - Long squeeth and Crab supported
+  - Long Squeeth and Crab supported
   - Shorts are not supported yet
 - Short Vault Data
   - See collateral, debt, collateralization ratio, NFT collateral, and vault greeks
+- Squiz (Squeeth Quiz)
+  - Servers can randomly make them show up with leaderboard support!
+  - You can play Squiz by yourself to test your Squeeths knowledge
 - More Commands Soon:tm:
-  - Squiz (Squeeth Quiz)
   - :eyes:
 
 # Requirements to Self-Host

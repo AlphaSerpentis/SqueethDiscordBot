@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Crab extends BotCommand {
+public class Crab extends BotCommand<MessageEmbed> {
 
     private static final String crab = "0xf205ad80bb86ac92247638914265887a8baa437d", oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
@@ -58,8 +58,9 @@ public class Crab extends BotCommand {
                     new Uint32(1),
                     new org.web3j.abi.datatypes.Bool(true)
             ),
-            Arrays.asList(
-                    new TypeReference<Uint256>() { }
+            List.of(
+                    new TypeReference<Uint256>() {
+                    }
             )
     );
     private static final Function callUniswapv3PriceCheck_USDC = new Function("getTwap",
@@ -70,25 +71,32 @@ public class Crab extends BotCommand {
                     new Uint32(1),
                     new org.web3j.abi.datatypes.Bool(true)
             ),
-            Arrays.asList(
-                    new TypeReference<Uint256>() { }
+            List.of(
+                    new TypeReference<Uint256>() {
+                    }
             )
     );
     private static final Function callTotalSupply = new Function("totalSupply",
             Collections.emptyList(),
-            Arrays.asList(
-                    new TypeReference<Uint256>() { }
+            List.of(
+                    new TypeReference<Uint256>() {
+                    }
             )
     );
     private static final Function callTimeAtLastHedge = new Function("timeAtLastHedge",
             Collections.emptyList(),
-            Arrays.asList(
-                    new TypeReference<Uint256>() { }
+            List.of(
+                    new TypeReference<Uint256>() {
+                    }
             )
     );
 
     private static long lastRun = 0, lastRebalanceRun = 0;
-    private static BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply, normFactor;
+    private static BigInteger ethCollateral;
+    private static BigInteger shortoSQTH;
+    private static BigInteger priceOfETHinUSD;
+    private static BigInteger crabTotalSupply;
+    private static BigInteger normFactor;
     private static double ethPerCrab, usdPerCrab, rebalanceEth, rebalanceOsqth;
     private static long lastHedgeTime;
     private static long lastHedgeBlock;
@@ -114,6 +122,8 @@ public class Crab extends BotCommand {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(event.getSubcommandName() != null) {
+            String crabV1Notice = "If you are a depositor in Crab v1, Crab v2 early access is open now!\n\nRead more about it [here](https://twitter.com/opyn_/status/1547331378320121857) and go to https://squeeth.opyn.co/strategies to reserve your spot now!";
+
             switch(event.getSubcommandName()) {
                 case "stats" -> {
                     Vault.VaultGreeks vaultGreeks = lastRunVaultGreeks;
@@ -125,7 +135,7 @@ public class Crab extends BotCommand {
 
                             ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                             shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                            priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
+                            BigInteger priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                             priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
                             crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab, callTotalSupply).get(0).getValue();
                             lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab, callTimeAtLastHedge).get(0).getValue()).longValue();
@@ -159,6 +169,7 @@ public class Crab extends BotCommand {
                     eb.setTitle("Crab Statistics");
                     eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
                     eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies" + (LaevitasHandler.isDataStale() ? "\n\n**(Data is stale! Calculations may be off!)**" : ""));
+                    eb.addField("Notice", crabV1Notice, false);
                     eb.addField("ETH Collateral", instance.format(ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
                     eb.addField("Vault Debt", instance.format(shortoSQTH.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
                     eb.addField("Collateral Ratio", instance.format(calculateCollateralRatio()) + "%", false);
@@ -182,6 +193,7 @@ public class Crab extends BotCommand {
                     eb.setTitle("Crab Rebalance Statistics");
                     eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
                     eb.setDescription("View detailed information that happened during the last rebalance!\n\nParticipate in the auctions: https://www.squeethportal.xyz/auction");
+                    eb.addField("Notice", crabV1Notice, false);
 
                     if(lastRebalanceRun + 60 < Instant.now().getEpochSecond()) {
                         try {
@@ -289,8 +301,9 @@ public class Crab extends BotCommand {
         try {
             Function callNormFactor = new Function("getExpectedNormalizationFactor",
                     Collections.emptyList(),
-                    Arrays.asList(
-                            new TypeReference<Uint256>(){}
+                    List.of(
+                            new TypeReference<Uint256>() {
+                            }
                     )
             );
 

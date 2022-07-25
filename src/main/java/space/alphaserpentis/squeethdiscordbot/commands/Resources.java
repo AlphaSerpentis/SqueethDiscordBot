@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-public class Resources extends ButtonCommand {
+public class Resources extends ButtonCommand<MessageEmbed> {
 
     protected static final ArrayList<MessageEmbed.Field> pages = new ArrayList<>() {{
         add(new MessageEmbed.Field("Docs & FAQ", "[Official Squeeth Documentation](https://opyn.gitbook.io/squeeth/resources/squeeth-faq)", false));
