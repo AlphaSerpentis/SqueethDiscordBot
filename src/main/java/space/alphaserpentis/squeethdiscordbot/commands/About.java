@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 
 import javax.annotation.Nonnull;
 
-public class About extends BotCommand {
+public class About extends BotCommand<MessageEmbed> {
 
     public About() {
         name = "about";

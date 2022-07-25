@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
-public class Settings extends BotCommand {
+public class Settings extends BotCommand<MessageEmbed> {
 
     private static final HashMap<String, String> defaultResponses = new HashMap<>() {{
             put("ephemeral", "Sets the server to use ephemeral messages or not. If enabled, messages can only be seen by the user who ran the command, otherwise it is publicly visible to everyone.");

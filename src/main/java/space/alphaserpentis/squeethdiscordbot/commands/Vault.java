@@ -25,7 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class Vault extends BotCommand {
+public class Vault extends BotCommand<MessageEmbed> {
 
     private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
 
@@ -76,11 +76,11 @@ public class Vault extends BotCommand {
     }
 
     // No hate to the Uniswap team, but holy shit how and why
-    public class Uniswapv3FuckYouMath {
+    public static class Uniswapv3FuckYouMath {
 
         private static final String addressTickMathExternal = "0x4d9d7F7aE80d51628Aa56eF37720718C99E6FDfC", addressSqrtPriceMathPartial = "0x9cf8dcbCf115B06d8f577E73Cb9EdFdb27828460";
 
-        public class Amount0Amount1 {
+        public static class Amount0Amount1 {
             BigInteger amount0 = BigInteger.ZERO;
             BigInteger amount1 = BigInteger.ZERO;
         }
@@ -98,8 +98,9 @@ public class Vault extends BotCommand {
                             new Uint128(liquidity),
                             new Bool(roundUp)
                     ),
-                    Arrays.asList(
-                            new TypeReference<Uint256>() { }
+                    List.of(
+                            new TypeReference<Uint256>() {
+                            }
                     )
             );
 
@@ -121,8 +122,9 @@ public class Vault extends BotCommand {
                             new Uint128(liquidity),
                             new Bool(roundUp)
                     ),
-                    Arrays.asList(
-                            new TypeReference<Uint256>() { }
+                    List.of(
+                            new TypeReference<Uint256>() {
+                            }
                     )
             );
 
@@ -175,11 +177,12 @@ public class Vault extends BotCommand {
 
         private BigInteger call_getSqrtRatioAtTick(BigInteger tick) throws ExecutionException, InterruptedException {
             Function getSqrtRatioAtTick = new Function("getSqrtRatioAtTick",
-                    Arrays.asList(
+                    List.of(
                             new Int24(tick)
                     ),
-                    Arrays.asList(
-                            new TypeReference<Uint160>() {}
+                    List.of(
+                            new TypeReference<Uint160>() {
+                            }
                     )
             );
             List<Type> getSqrtRatioAtTickResponse = EthereumRPCHandler.ethCallAtLatestBlock(addressTickMathExternal, getSqrtRatioAtTick);
@@ -203,7 +206,7 @@ public class Vault extends BotCommand {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
-            eb.setDescription("You are still rate limited. Expires in " + ((long) ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
+            eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
             return eb.build();
         }
 
@@ -213,7 +216,7 @@ public class Vault extends BotCommand {
         List<Type> tickOfoSQTHPoolResponse;
         List<Type> uniswapv3NftResponse;
         Function callVaults = new Function("vaults",
-                Arrays.asList(
+                List.of(
                         new Uint256(event.getOptions().get(0).getAsLong())
                 ),
                 Arrays.asList(
@@ -231,8 +234,9 @@ public class Vault extends BotCommand {
                         new Uint32(1),
                         new org.web3j.abi.datatypes.Bool(true)
                 ),
-                Arrays.asList(
-                        new TypeReference<Uint256>() { }
+                List.of(
+                        new TypeReference<Uint256>() {
+                        }
                 )
         );
         Function callUniswapv3Tick = new Function("getTimeWeightedAverageTickSafe",
@@ -240,8 +244,9 @@ public class Vault extends BotCommand {
                         new org.web3j.abi.datatypes.Address("0x82c427AdFDf2d245Ec51D8046b41c4ee87F0d29C"),
                         new Uint32(1)
                 ),
-                Arrays.asList(
-                        new TypeReference<Int24>() { }
+                List.of(
+                        new TypeReference<Int24>() {
+                        }
                 )
         );
 
@@ -273,7 +278,7 @@ public class Vault extends BotCommand {
 
             if(!nftCollateralId.equals(BigInteger.ZERO)) {
                 Function callUniswapv3NftPositions = new Function("positions",
-                        Arrays.asList(
+                        List.of(
                                 new Uint256(nftCollateralId)
                         ),
                         Arrays.asList(

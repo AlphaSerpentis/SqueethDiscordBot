@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 import java.awt.*;
 import java.math.BigDecimal;
 
-public class Greeks extends BotCommand {
+public class Greeks extends BotCommand<MessageEmbed> {
 
     public Greeks() {
         name = "greeks";

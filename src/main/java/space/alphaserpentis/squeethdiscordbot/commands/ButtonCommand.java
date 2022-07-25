@@ -12,7 +12,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 
-public abstract class ButtonCommand extends BotCommand {
+public abstract class ButtonCommand<T> extends BotCommand<T> {
     protected HashMap<String, Button> buttonHashMap = new HashMap<>();
 
     abstract public void runButtonInteraction(@Nonnull ButtonInteractionEvent event);

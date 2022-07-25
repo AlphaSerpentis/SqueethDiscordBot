@@ -13,7 +13,7 @@ import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 
 import javax.annotation.Nonnull;
 
-public class Clean extends BotCommand {
+public class Clean extends BotCommand<MessageEmbed> {
 
     public Clean() {
         name = "clean";

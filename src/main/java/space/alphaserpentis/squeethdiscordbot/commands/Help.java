@@ -12,7 +12,7 @@ import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
 import javax.annotation.Nonnull;
 import java.awt.*;
 
-public class Help extends BotCommand {
+public class Help extends BotCommand<MessageEmbed> {
 
     public Help() {
         name = "help";
@@ -27,7 +27,7 @@ public class Help extends BotCommand {
 
         eb.setTitle("List of Commands");
         eb.setDescription("All of the commands are slash commands (e.g., `/greeks`). You can call these commands in a server that this bot is in or in my DMs!");
-        for(BotCommand cmd: CommandsHandler.mappingOfCommands.values()) {
+        for(BotCommand<?> cmd: CommandsHandler.mappingOfCommands.values()) {
             eb.addField(cmd.getName(), cmd.getDescription(), false);
         }
         eb.setColor(new Color(14, 255, 212, 76));

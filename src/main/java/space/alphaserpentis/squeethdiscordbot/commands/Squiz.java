@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
-public class Squiz extends ButtonCommand {
+public class Squiz extends ButtonCommand<MessageEmbed> {
 
     enum States {
         DEFAULT,
@@ -272,9 +272,7 @@ public class Squiz extends ButtonCommand {
 
                 buttons = handleNextQuestion(session, eb);
             }
-            case "squiz_leaderboard" -> {
-                generateLeaderboard(eb, serverId);
-            }
+            case "squiz_leaderboard" -> generateLeaderboard(eb, serverId);
             case "squiz_review" -> {
                 if(session.missedQuestions.size() == 0) {
                     eb.setDescription("Perfect score! :tada:");
@@ -403,7 +401,7 @@ public class Squiz extends ButtonCommand {
     }
 
     @Nullable
-    private List<ItemComponent> handleNextQuestion(SquizSession session, EmbedBuilder eb) {
+    private List<ItemComponent> handleNextQuestion(@Nonnull SquizSession session, @Nonnull EmbedBuilder eb) {
         if(session.currentQuestion == session.questions.size()) {
             if(session instanceof RandomSquizSession) { // If the session is a random squiz
                 if(session.missedQuestions.size() == 1) {

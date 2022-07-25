@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class Position extends ButtonCommand {
+public class Position extends ButtonCommand<MessageEmbed> {
 
     private static HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static HashMap<String, String> cachedENSDomains = new HashMap<>();
@@ -78,7 +78,7 @@ public class Position extends ButtonCommand {
             )
     );
 
-    public abstract class AbstractPositions {
+    public abstract static class AbstractPositions {
 
         public ArrayList<SimpleTokenTransferResponse> transfers = new ArrayList<>();
         public HashMap<Integer, BigInteger> tokensAtBlock = new HashMap<>();
@@ -97,7 +97,6 @@ public class Position extends ButtonCommand {
 
         /**
          * Obtains the transfers of the given token for userAddress
-         * @return true if transfers are able to be grabbed, false otherwise
          */
         public void getAndSetTransfers(String tokenAddress) {
             // Check caches to see if we have the data
@@ -167,7 +166,7 @@ public class Position extends ButtonCommand {
         }
     }
 
-    public class LongPositions extends AbstractPositions {
+    public static class LongPositions extends AbstractPositions {
 
         public LongPositions(String userAddress) {
             super(userAddress);
@@ -223,7 +222,7 @@ public class Position extends ButtonCommand {
         }
     }
 
-    public class CrabPositions extends AbstractPositions {
+    public static class CrabPositions extends AbstractPositions {
         private static final String crab = "0xf205ad80bb86ac92247638914265887a8baa437d", oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
         private final Function callVaultsFunc = new Function("getVaultDetails",
@@ -243,8 +242,9 @@ public class Position extends ButtonCommand {
                         new Uint32(1),
                         new org.web3j.abi.datatypes.Bool(true)
                 ),
-                Arrays.asList(
-                        new TypeReference<Uint256>() { }
+                List.of(
+                        new TypeReference<Uint256>() {
+                        }
                 )
         );
         private final Function callUniswapv3PriceCheck_USDC = new Function("getTwap",
@@ -255,14 +255,16 @@ public class Position extends ButtonCommand {
                         new Uint32(1),
                         new org.web3j.abi.datatypes.Bool(true)
                 ),
-                Arrays.asList(
-                        new TypeReference<Uint256>() { }
+                List.of(
+                        new TypeReference<Uint256>() {
+                        }
                 )
         );
         private final Function callTotalSupply = new Function("totalSupply",
                 Collections.emptyList(),
-                Arrays.asList(
-                        new TypeReference<Uint256>() { }
+                List.of(
+                        new TypeReference<Uint256>() {
+                        }
                 )
         );
 
@@ -372,7 +374,7 @@ public class Position extends ButtonCommand {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
-            eb.setDescription("You are still rate limited. Expires in " + ((long) ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
+            eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
             return eb.build();
         }
 
