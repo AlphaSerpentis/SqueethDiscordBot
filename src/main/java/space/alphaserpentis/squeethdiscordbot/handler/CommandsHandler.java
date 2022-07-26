@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 public class CommandsHandler extends ListenerAdapter {
-    public static final HashMap<String, BotCommand> mappingOfCommands = new HashMap<>() {{
+    public static final HashMap<String, BotCommand<?>> mappingOfCommands = new HashMap<>() {{
         put("about", new About());
         put("greeks", new Greeks());
         put("stats", new Stats());
@@ -42,7 +42,7 @@ public class CommandsHandler extends ListenerAdapter {
         for (Iterator<Command> it = listOfActiveCommands.iterator(); it.hasNext(); ) {
             Command cmd = it.next();
             if(mappingOfCommands.containsKey(cmd.getName())) {
-                BotCommand botCmd = mappingOfCommands.get(cmd.getName());
+                BotCommand<?> botCmd = mappingOfCommands.get(cmd.getName());
                 botCmd.setCommandId(cmd.getIdLong());
                 if(updateCommands)
                     botCmd.updateCommand(api);
@@ -66,7 +66,7 @@ public class CommandsHandler extends ListenerAdapter {
 
             for(String cmdName: missingCommands) {
                 System.out.println("[CommandsHandler] Adding new slash command: " + cmdName);
-                BotCommand cmd = mappingOfCommands.get(cmdName);
+                BotCommand<?> cmd = mappingOfCommands.get(cmdName);
                 cmd.addCommand(api);
             }
         }
@@ -76,7 +76,7 @@ public class CommandsHandler extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
         new Thread(() -> {
-            BotCommand cmd = mappingOfCommands.get(event.getName());
+            BotCommand<?> cmd = mappingOfCommands.get(event.getName());
             Message message;
             message = BotCommand.handleReply(event, cmd);
 
@@ -90,9 +90,9 @@ public class CommandsHandler extends ListenerAdapter {
     @Override
     public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         new Thread(() -> {
-            BotCommand cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
+            BotCommand<?> cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
 
-            ((ButtonCommand) cmd).runButtonInteraction(event);
+            ((ButtonCommand<?>) cmd).runButtonInteraction(event);
         }).start();
     }
 }

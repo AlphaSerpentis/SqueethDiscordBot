@@ -63,8 +63,9 @@ public class Vault extends BotCommand<MessageEmbed> {
             double deltaPerOsqth, gammaPerOsqth, vegaPerOsqth, thetaPerOsqth;
 
             double fundingPeriod = 17.5 / 365;
-            deltaPerOsqth = 2*normFactor*ethUsd*Math.exp(Math.pow(impliedVol, 2)* fundingPeriod)/10000;
-            gammaPerOsqth = 2*normFactor*Math.exp(Math.pow(impliedVol, 2)* fundingPeriod)/10000;
+            double exp = Math.exp(Math.pow(impliedVol, 2) * fundingPeriod);
+            deltaPerOsqth = 2*normFactor*ethUsd*exp/10000;
+            gammaPerOsqth = 2*normFactor*exp/10000;
             vegaPerOsqth = 2*impliedVol* fundingPeriod *osqthUsd;
             thetaPerOsqth = Math.pow(impliedVol, 2)*osqthUsd;
 

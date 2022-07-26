@@ -77,7 +77,7 @@ public abstract class BotCommand<T> {
     }
 
     @Nonnull
-    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand<?> cmd) {
+    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, @Nonnull BotCommand<?> cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
         Object response;
         ReplyCallbackAction reply;
@@ -97,7 +97,7 @@ public abstract class BotCommand<T> {
                 response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
 
                 if (cmd instanceof ButtonCommand) {
-                    Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
+                    Collection<ItemComponent> buttons = ((ButtonCommand<?>) cmd).addButtons(event);
 
                     if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
                         cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
@@ -144,16 +144,16 @@ public abstract class BotCommand<T> {
         }
 
         if (cmd instanceof ButtonCommand) {
-            Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
+            Collection<ItemComponent> buttons = ((ButtonCommand<?>) cmd).addButtons(event);
 
             if(!buttons.isEmpty())
-                reply.addActionRow(buttons);
+                reply = reply.addActionRow(buttons);
         }
 
         return reply.complete().retrieveOriginal().complete();
     }
 
-    protected static void letMessageExpire(@Nonnull BotCommand<?> command, Message message) {
+    protected static void letMessageExpire(@Nonnull BotCommand<?> command, @Nonnull Message message) {
         if(command.doMessagesExpire()) {
             new Thread(
                     () -> {
