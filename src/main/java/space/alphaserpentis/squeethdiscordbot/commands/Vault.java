@@ -16,6 +16,7 @@ import org.web3j.abi.datatypes.generated.*;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
@@ -87,9 +88,9 @@ public class Vault extends BotCommand<MessageEmbed> {
         }
 
         public BigInteger getAmount0Delta(
-                BigInteger sqrtRatioAX96, // uint160
-                BigInteger sqrtRatioBX96, // uint160
-                BigInteger liquidity, // uint128
+                @Nonnull BigInteger sqrtRatioAX96, // uint160
+                @Nonnull BigInteger sqrtRatioBX96, // uint160
+                @Nonnull BigInteger liquidity, // uint128
                 boolean roundUp
         ) throws ExecutionException, InterruptedException {
             Function callGetAmount0Delta = new Function("getAmount0Delta",
@@ -111,9 +112,9 @@ public class Vault extends BotCommand<MessageEmbed> {
         }
 
         public BigInteger getAmount1Delta(
-                BigInteger sqrtRatioAX96, // uint160
-                BigInteger sqrtRatioBX96, // uint160
-                BigInteger liquidity, // uint128
+                @Nonnull BigInteger sqrtRatioAX96, // uint160
+                @Nonnull BigInteger sqrtRatioBX96, // uint160
+                @Nonnull BigInteger liquidity, // uint128
                 boolean roundUp
         ) throws ExecutionException, InterruptedException {
             Function callGetAmount1Delta = new Function("getAmount1Delta",
@@ -135,10 +136,10 @@ public class Vault extends BotCommand<MessageEmbed> {
         }
 
         public Amount0Amount1 getToken0Token1Balances(
-                BigInteger tickLower,
-                BigInteger tickUpper,
-                BigInteger tick,
-                BigInteger liquidity
+                @Nonnull BigInteger tickLower,
+                @Nonnull BigInteger tickUpper,
+                @Nonnull BigInteger tick,
+                @Nonnull BigInteger liquidity
         ) throws ExecutionException, InterruptedException {
             // Call the library because I am not transposing that voodoo magic to Java
             BigInteger sqrtPriceX96 = call_getSqrtRatioAtTick(tick); // uint160
@@ -176,7 +177,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             return amounts;
         }
 
-        private BigInteger call_getSqrtRatioAtTick(BigInteger tick) throws ExecutionException, InterruptedException {
+        private BigInteger call_getSqrtRatioAtTick(@Nonnull BigInteger tick) throws ExecutionException, InterruptedException {
             Function getSqrtRatioAtTick = new Function("getSqrtRatioAtTick",
                     List.of(
                             new Int24(tick)
@@ -396,7 +397,7 @@ public class Vault extends BotCommand<MessageEmbed> {
         commandId = cmd.getIdLong();
     }
 
-    public double calculateCollateralRatio(BigInteger shortoSQTH, BigInteger ethCollateral, BigInteger priceOfETHinUSD, BigInteger normFactor) {
+    public double calculateCollateralRatio(@Nonnull BigInteger shortoSQTH, @Nonnull BigInteger ethCollateral, @Nonnull BigInteger priceOfETHinUSD, @Nonnull BigInteger normFactor) {
         BigInteger debt = shortoSQTH.multiply(priceOfETHinUSD).multiply(normFactor).divide(BigInteger.valueOf(10000));
         // Divide by 10^36 of debt to get the correctly scaled debt
         return ethCollateral.doubleValue() / (debt.doubleValue() / Math.pow(10,36)) * 100;

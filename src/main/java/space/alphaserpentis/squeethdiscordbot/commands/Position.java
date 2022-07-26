@@ -91,14 +91,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public BigInteger currentValueInEth;
         public BigInteger currentValueInUsd;
 
-        public AbstractPositions(String userAddress) {
+        public AbstractPositions(@Nonnull String userAddress) {
             this.userAddress = userAddress;
         }
 
         /**
          * Obtains the transfers of the given token for userAddress
          */
-        public void getAndSetTransfers(String tokenAddress) {
+        public void getAndSetTransfers(@Nonnull String tokenAddress) {
             // Check caches to see if we have the data
             if(PositionsDataHandler.cachedTransfers.containsKey(userAddress)) {
                 if(PositionsDataHandler.cachedTransfers.get(userAddress).stream().noneMatch(t -> t.token.equalsIgnoreCase(userAddress))) {
@@ -168,7 +168,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
     public static class LongPositions extends AbstractPositions {
 
-        public LongPositions(String userAddress) {
+        public LongPositions(@Nonnull String userAddress) {
             super(userAddress);
         }
 
@@ -268,7 +268,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 )
         );
 
-        public CrabPositions(String userAddress) {
+        public CrabPositions(@Nonnull String userAddress) {
             super(userAddress);
         }
 
@@ -491,7 +491,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
     }
 
-    private void displayPositionPage(EmbedBuilder eb, int page, AbstractPositions[] posArray) {
+    private void displayPositionPage(@Nonnull EmbedBuilder eb, int page, @Nonnull AbstractPositions[] posArray) {
         DecimalFormat df = new DecimalFormat("#");
 
         String priceInUsd = NumberFormat.getInstance().format(posArray[page].currentPriceInUsd.divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))).doubleValue() / Math.pow(10,18));

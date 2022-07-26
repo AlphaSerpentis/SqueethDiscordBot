@@ -10,6 +10,7 @@ import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransf
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PositionsDataDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PriceDataDeserializer;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -26,7 +27,7 @@ public class PositionsDataHandler {
     public static Path cachedTransfersPath;
     public static Path cachedPricesPath;
 
-    public static void init(Path transfersJson, Path pricesJson) throws IOException {
+    public static void init(@Nonnull Path transfersJson, @Nonnull Path pricesJson) throws IOException {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(cachedTransfers.getClass(), new PositionsDataDeserializer())
                 .create();
@@ -46,7 +47,7 @@ public class PositionsDataHandler {
             cachedPrices = new HashMap<>();
     }
 
-    public static void addNewData(String address, ArrayList<SimpleTokenTransferResponse> data) {
+    public static void addNewData(@Nonnull String address, @Nonnull ArrayList<SimpleTokenTransferResponse> data) {
         if(cachedTransfers.containsKey(address)) {
             for(SimpleTokenTransferResponse transfer: data) {
                 if(!cachedTransfers.get(address).contains(transfer)) {
@@ -69,7 +70,7 @@ public class PositionsDataHandler {
         }
     }
 
-    public static void addNewData(Long block, PriceData data) {
+    public static void addNewData(@Nonnull Long block, @Nonnull PriceData data) {
         cachedPrices.put(block, data);
 
         try {
@@ -79,7 +80,7 @@ public class PositionsDataHandler {
         }
     }
 
-    public static void writeDataToFile(Object data, Path path) throws IOException {
+    public static void writeDataToFile(@Nonnull Object data, @Nonnull Path path) throws IOException {
         Writer writer = Files.newBufferedWriter(path);
 
         new Gson().toJson(data, writer);

@@ -121,7 +121,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         commandId = cmd.getIdLong();
     }
 
-    private void setChangeOnlyEphemeral(long serverId, String input, EmbedBuilder eb) {
+    private void setChangeOnlyEphemeral(long serverId, @Nonnull String input, @Nonnull EmbedBuilder eb) {
         ServerDataHandler.serverDataHashMap.get(serverId).setOnlyEphemeral(Boolean.parseBoolean(input));
 
         try {
@@ -133,7 +133,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void setChangeLeaderboard(long serverId, GuildChannelUnion channel, EmbedBuilder eb) {
+    private void setChangeLeaderboard(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
         ServerDataHandler.serverDataHashMap.get(serverId).setLeaderboardChannelId(channel.getIdLong());
 
         try {
@@ -145,7 +145,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void enableRandomQuestions(long serverId, boolean setting, EmbedBuilder eb) {
+    private void enableRandomQuestions(long serverId, boolean setting, @Nonnull EmbedBuilder eb) {
         ServerDataHandler.serverDataHashMap.get(serverId).setDoRandomSquizQuestions(setting);
 
         try {
@@ -163,7 +163,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void addChannelFromEligibleChannels(long serverId, GuildChannelUnion channel, EmbedBuilder eb) {
+    private void addChannelFromEligibleChannels(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.getRandomSquizQuestionsChannels().add(channel.getIdLong());
@@ -178,7 +178,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void removeChannelFromEligibleChannels(long serverId, GuildChannelUnion channel, EmbedBuilder eb) {
+    private void removeChannelFromEligibleChannels(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         boolean result = sd.getRandomSquizQuestionsChannels().remove(channel.getIdLong());
@@ -196,7 +196,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void setRandomSquizBaseInterval(long serverId, long interval, EmbedBuilder eb) {
+    private void setRandomSquizBaseInterval(long serverId, long interval, @Nonnull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.setRandomSquizBaseIntervals(interval);

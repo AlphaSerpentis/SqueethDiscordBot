@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class EthereumRPCHandler {
@@ -36,7 +37,7 @@ public class EthereumRPCHandler {
     public static Web3j web3;
     public static URL url;
 
-    public static List<Type> ethCallAtSpecificBlock(String address, Function function, Long block) throws ExecutionException, InterruptedException {
+    public static List<Type> ethCallAtSpecificBlock(@Nonnull String address, @Nonnull Function function, @Nonnull Long block) throws ExecutionException, InterruptedException {
         return FunctionReturnDecoder.decode(
                 web3.ethCall(Transaction.createEthCallTransaction(
                         zeroAddress,
@@ -47,7 +48,7 @@ public class EthereumRPCHandler {
         );
     }
 
-    public static List<Type> ethCallAtLatestBlock(String address, Function function) throws ExecutionException, InterruptedException {
+    public static List<Type> ethCallAtLatestBlock(@Nonnull String address, @Nonnull Function function) throws ExecutionException, InterruptedException {
         return FunctionReturnDecoder.decode(
                 web3.ethCall(Transaction.createEthCallTransaction(
                         zeroAddress,
@@ -58,7 +59,7 @@ public class EthereumRPCHandler {
         );
     }
 
-    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token, long startingBlock, long endingBlock) {
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(@Nonnull String address, @Nonnull String token, long startingBlock, long endingBlock) {
         String[] responses = new String[2];
         ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
 
@@ -100,7 +101,7 @@ public class EthereumRPCHandler {
         return listOfTransfers;
     }
 
-    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(String address, String token) {
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(@Nonnull String address, @Nonnull String token) {
         String[] responses = new String[2];
         ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
 
@@ -142,7 +143,7 @@ public class EthereumRPCHandler {
         return listOfTransfers;
     }
 
-    public static String alchemy_getAssetTransfers(String fromAddress, String toAddress, String token, @Nullable String pageKey, long startingBlock, long endingBlock) throws IOException {
+    public static String alchemy_getAssetTransfers(@Nonnull String fromAddress, @Nonnull String toAddress, @Nonnull String token, @Nullable String pageKey, long startingBlock, long endingBlock) throws IOException {
         StringBuilder response = null;
         AlchemyRequest req = new AlchemyRequest();
         Gson gson = new Gson();
@@ -209,7 +210,8 @@ public class EthereumRPCHandler {
         }
     }
 
-    public static String getENSName(String address) {
+    @Nonnull
+    public static String getENSName(@Nonnull String address) {
         EnsResolver resolver = new EnsResolver(web3);
 
         try {
@@ -219,7 +221,7 @@ public class EthereumRPCHandler {
         }
     }
 
-    public static String getResolvedAddress(String ens) throws Exception {
+    public static String getResolvedAddress(@Nonnull String ens) throws Exception {
         EnsResolver resolver = new EnsResolver(web3);
 
         try {

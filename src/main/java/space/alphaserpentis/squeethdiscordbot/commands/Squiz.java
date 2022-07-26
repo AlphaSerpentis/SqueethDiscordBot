@@ -377,7 +377,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private boolean checkIfCorrectAnswer(char answer, char correctAnswer, SquizSession session) {
+    private boolean checkIfCorrectAnswer(char answer, char correctAnswer, @Nonnull SquizSession session) {
         boolean response = answer == correctAnswer;
 
         if(!response) {
@@ -511,7 +511,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         return questions;
     }
 
-    private static void generateLeaderboard(EmbedBuilder eb, long serverId) {
+    private static void generateLeaderboard(@Nonnull EmbedBuilder eb, long serverId) {
         eb.setTitle("Squiz Leaderboard");
         eb.setDescription("Shows the top 5 people on the leaderboard for the server plus where you are currently in the leaderboard");
         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(serverId, new SquizLeaderboard());

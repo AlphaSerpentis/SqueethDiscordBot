@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.server.squiz;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +18,7 @@ public class SquizLeaderboard {
         leaderboard.put(userId, leaderboard.getOrDefault(userId, 0) + 1);
     }
 
+    @Nonnull
     public ArrayList<Long> getTopFive() {
         ArrayList<Long> topFive = new ArrayList<>();
 

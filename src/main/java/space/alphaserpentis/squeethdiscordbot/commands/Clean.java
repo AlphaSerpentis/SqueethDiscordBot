@@ -54,7 +54,7 @@ public class Clean extends BotCommand<MessageEmbed> {
 
     }
 
-    private boolean verifyServerPerms(Member member) {
+    private boolean verifyServerPerms(@Nonnull Member member) {
         return member.hasPermission(
                 Permission.MESSAGE_MANAGE
         );
