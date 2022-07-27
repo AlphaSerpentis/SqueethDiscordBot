@@ -406,7 +406,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                             "The correct answer was " + session.missedQuestions.get(0).answer);
                 } else {
                     Guild guild = Launcher.api.getGuildById(((RandomSquizSession) session).serverId);
-                    Member memberWhoAnswered = guild.getMemberById(((RandomSquizSession) session).userWhoResponded);
+                    Member memberWhoAnswered = guild.retrieveMemberById(((RandomSquizSession) session).userWhoResponded).complete();
                     eb.setDescription(memberWhoAnswered.getAsMention() + " earned a point!");
                     try {
                         updateLeaderboard(((RandomSquizSession) session).serverId);
