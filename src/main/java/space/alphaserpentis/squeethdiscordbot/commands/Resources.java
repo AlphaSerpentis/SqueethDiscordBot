@@ -138,6 +138,7 @@ public class Resources extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
+    @Nonnull
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
     }

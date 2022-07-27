@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.api.alchemy;
 
+import javax.annotation.Nonnull;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 
@@ -11,7 +12,7 @@ public class SimpleTokenTransferResponse {
     public String from;
     public double value;
 
-    public SimpleTokenTransferResponse(String token, int blockNum, String from, double value) {
+    public SimpleTokenTransferResponse(@Nonnull String token, int blockNum, @Nonnull String from, double value) {
         this.token = token;
         this.blockNum = blockNum;
         this.from = from;
@@ -21,6 +22,8 @@ public class SimpleTokenTransferResponse {
     public int getBlockNum() {
         return blockNum;
     }
+
+    @Nonnull
     public BigInteger getBigIntegerValue() {
         DecimalFormat df = new DecimalFormat("#");
         double strippedDouble = Double.parseDouble(String.format("%.8f", value));

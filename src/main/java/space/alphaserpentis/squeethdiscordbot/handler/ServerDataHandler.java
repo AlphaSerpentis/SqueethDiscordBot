@@ -9,11 +9,11 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import org.jetbrains.annotations.NotNull;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.ServerDataDeserializer;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -28,7 +28,7 @@ public class ServerDataHandler extends ListenerAdapter {
     public static Path serverJson;
     public static HashMap<Long, ServerData> serverDataHashMap = new HashMap<>();
 
-    public static void init(Path jsonFile) throws IOException {
+    public static void init(@Nonnull Path jsonFile) throws IOException {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(serverDataHashMap.getClass(), new ServerDataDeserializer())
                 .create();
@@ -63,7 +63,7 @@ public class ServerDataHandler extends ListenerAdapter {
         writeToJSON(gson, gson.toJson(serverDataHashMap));
     }
 
-    private static void writeToJSON(Gson gson, String json) throws IOException {
+    private static void writeToJSON(@Nonnull Gson gson, @Nonnull String json) throws IOException {
         Writer writer = Files.newBufferedWriter(Paths.get(String.valueOf(serverJson)));
 
         gson.toJson(json, writer);
@@ -72,7 +72,7 @@ public class ServerDataHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildJoin(@NotNull GuildJoinEvent event) {
+    public void onGuildJoin(@Nonnull  GuildJoinEvent event) {
         serverDataHashMap.put(event.getGuild().getIdLong(), new ServerData());
         try {
             updateServerData();
@@ -83,7 +83,7 @@ public class ServerDataHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildLeave(@NotNull GuildLeaveEvent event) {
+    public void onGuildLeave(@Nonnull  GuildLeaveEvent event) {
         serverDataHashMap.remove(event.getGuild().getIdLong());
         try {
             updateServerData();

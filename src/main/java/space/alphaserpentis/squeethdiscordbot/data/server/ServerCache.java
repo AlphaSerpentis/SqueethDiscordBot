@@ -4,13 +4,14 @@ package space.alphaserpentis.squeethdiscordbot.data.server;
 
 import net.dv8tion.jda.api.entities.Message;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ServerCache {
     public static HashMap<Long, ArrayList<Message>> cachedMessages = new HashMap<>();
 
-    public static void addNewMessage(Long guildId, Message message) {
+    public static void addNewMessage(@Nonnull Long guildId, @Nonnull Message message) {
         ArrayList<Message> messages = cachedMessages.get(guildId);
 
         if(messages == null) {
@@ -28,7 +29,7 @@ public class ServerCache {
         }
     }
 
-    public static void removeMessages(Long guildId) {
+    public static void removeMessages(@Nonnull Long guildId) {
         if(cachedMessages.isEmpty()) {
             return;
         }

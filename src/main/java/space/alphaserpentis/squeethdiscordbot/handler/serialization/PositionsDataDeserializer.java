@@ -19,7 +19,7 @@ public class PositionsDataDeserializer implements JsonDeserializer<Map<String, A
         JsonObject object = jsonElement.getAsJsonObject();
 
         for(Map.Entry<String, JsonElement> entry: object.entrySet()) {
-            positionsDataMap.put(String.valueOf(entry.getKey()), gson.fromJson(entry.getValue(), new ArrayList<SimpleTokenTransferResponse>().getClass()));
+            positionsDataMap.put(String.valueOf(entry.getKey()), gson.fromJson(entry.getValue(), ArrayList.class));
         }
 
         return positionsDataMap;

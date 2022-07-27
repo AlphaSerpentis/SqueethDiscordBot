@@ -77,83 +77,91 @@ public abstract class BotCommand<T> {
     }
 
     @Nonnull
-    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, BotCommand<?> cmd) {
+    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, @Nonnull BotCommand<?> cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
         Object response;
         ReplyCallbackAction reply;
 
         if (cmd.isDeferReplies()) {
             InteractionHook hook = event.getHook();
-            if (!sendAsEphemeral && event.getGuild() != null) {
-                sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
-            }
-
-            if (cmd.isOnlyEmbed()) {
+            try {
                 if (!sendAsEphemeral && event.getGuild() != null) {
-                    event.deferReply(false).complete();
-                } else {
-                    event.deferReply(sendAsEphemeral).complete();
+                    sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
                 }
-                response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
 
-                if (cmd instanceof ButtonCommand) {
-                    Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
+                if (cmd.isOnlyEmbed()) {
+                    if (!sendAsEphemeral && event.getGuild() != null) {
+                        event.deferReply(false).complete();
+                    } else {
+                        event.deferReply(sendAsEphemeral).complete();
+                    }
+                    response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+
+                    if (cmd instanceof ButtonCommand) {
+                        Collection<ItemComponent> buttons = ((ButtonCommand<?>) cmd).addButtons(event);
+
+                        if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
+                            cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
+                        }
+
+                        if(!buttons.isEmpty())
+                            return hook.sendMessageEmbeds((MessageEmbed) response).addActionRow(buttons).complete();
+                    }
 
                     if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
                         cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
                     }
 
-                    if(!buttons.isEmpty())
-                        return hook.sendMessageEmbeds((MessageEmbed) response).addActionRow(buttons).complete();
-                }
+                    return hook.sendMessageEmbeds((MessageEmbed) response).complete();
+                } else {
+                    if (!sendAsEphemeral && event.getGuild() != null) {
+                        hook.setEphemeral(false);
+                    } else {
+                        hook.setEphemeral(sendAsEphemeral);
+                    }
+                    response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
 
-                if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
-                    cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
+                    return hook.sendMessage((String) response).complete();
                 }
+            } catch(Exception e) {
+                return hook.sendMessageEmbeds(handleError(e)).complete();
+            }
+        }
 
-                return hook.sendMessageEmbeds((MessageEmbed) response).complete();
+        try {
+            response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+
+            if (!sendAsEphemeral && event.getGuild() != null)
+                sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
+
+            if (cmd.isOnlyEmbed()) {
+                if (!sendAsEphemeral && event.getGuild() != null) {
+                    reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(false);
+                } else {
+                    reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral);
+                }
             } else {
                 if (!sendAsEphemeral && event.getGuild() != null) {
-                    hook.setEphemeral(false);
+                    reply = event.reply((Message) response).setEphemeral(false);
                 } else {
-                    hook.setEphemeral(sendAsEphemeral);
+                    reply = event.reply((Message) response).setEphemeral(sendAsEphemeral);
                 }
-                response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
-
-                return hook.sendMessage((String) response).complete();
             }
-        }
 
-        response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+            if (cmd instanceof ButtonCommand) {
+                Collection<ItemComponent> buttons = ((ButtonCommand<?>) cmd).addButtons(event);
 
-        if (!sendAsEphemeral && event.getGuild() != null)
-            sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
-
-        if (cmd.isOnlyEmbed()) {
-            if (!sendAsEphemeral && event.getGuild() != null) {
-                reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(false);
-            } else {
-                reply = event.replyEmbeds((MessageEmbed) response).setEphemeral(sendAsEphemeral);
+                if(!buttons.isEmpty())
+                    reply = reply.addActionRow(buttons);
             }
-        } else {
-            if (!sendAsEphemeral && event.getGuild() != null) {
-                reply = event.reply((Message) response).setEphemeral(false);
-            } else {
-                reply = event.reply((Message) response).setEphemeral(sendAsEphemeral);
-            }
+
+            return reply.complete().retrieveOriginal().complete();
+        } catch(Exception e) {
+            return event.replyEmbeds(handleError(e)).setEphemeral(true).complete().retrieveOriginal().complete();
         }
-
-        if (cmd instanceof ButtonCommand) {
-            Collection<ItemComponent> buttons = ((ButtonCommand) cmd).addButtons(event);
-
-            if(!buttons.isEmpty())
-                reply.addActionRow(buttons);
-        }
-
-        return reply.complete().retrieveOriginal().complete();
     }
 
-    protected static void letMessageExpire(@Nonnull BotCommand<?> command, Message message) {
+    protected static void letMessageExpire(@Nonnull BotCommand<?> command, @Nonnull Message message) {
         if(command.doMessagesExpire()) {
             new Thread(
                     () -> {
@@ -166,6 +174,21 @@ public abstract class BotCommand<T> {
                     }
             ).start();
         }
+    }
+
+    @Nonnull
+    private static MessageEmbed handleError(@Nonnull Exception e) {
+        EmbedBuilder eb = new EmbedBuilder();
+
+        eb.setTitle("Command Failed To Execute");
+        eb.setDescription("The command failed to execute due to: " + e.getClass().getSimpleName());
+        if(e.getMessage().length() > 1800) {
+            eb.addField("Error Message", "Error too long...", false);
+        } else {
+            eb.addField("Error Message", e.getMessage(), false);
+        }
+
+        return eb.build();
     }
 
     @Nonnull

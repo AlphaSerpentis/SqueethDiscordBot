@@ -12,6 +12,7 @@ import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizLeaderboardDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizQuestionsDeserializer;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -69,7 +70,7 @@ public class SquizHandler {
         runningRandomSquiz.put(id, t);
     }
 
-    public static void init(Path squizLeaderboardJson, Path squizQuestionsJson) throws IOException {
+    public static void init(@Nonnull Path squizLeaderboardJson, @Nonnull Path squizQuestionsJson) throws IOException {
         SquizHandler.squizLeaderboardJson = squizLeaderboardJson;
         SquizHandler.squizQuestionsJson = squizQuestionsJson;
 
@@ -100,7 +101,7 @@ public class SquizHandler {
         writeToJSON(gson, squizLeaderboardHashMap);
     }
 
-    public static void writeToJSON(Gson gson, Object data) throws IOException {
+    public static void writeToJSON(@Nonnull Gson gson, @Nonnull Object data) throws IOException {
         Path path = Paths.get(squizLeaderboardJson.toString());
         try (Writer writer = Files.newBufferedWriter(path)) {
             gson.toJson(data, writer);
