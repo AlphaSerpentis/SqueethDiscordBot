@@ -4,10 +4,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -408,7 +405,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     eb.setDescription("You did not earn a point :slight_frown:\n\n" +
                             "The correct answer was " + session.missedQuestions.get(0).answer);
                 } else {
-                    eb.setDescription("You earned a point!");
+                    Guild guild = Launcher.api.getGuildById(((RandomSquizSession) session).serverId);
+                    Member memberWhoAnswered = guild.getMemberById(((RandomSquizSession) session).userWhoResponded);
+                    eb.setDescription(memberWhoAnswered.getAsMention() + " earned a point!");
                     try {
                         updateLeaderboard(((RandomSquizSession) session).serverId);
                         ServerDataHandler.updateServerData();
