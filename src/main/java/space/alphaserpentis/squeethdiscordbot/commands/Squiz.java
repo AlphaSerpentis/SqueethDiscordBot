@@ -23,8 +23,8 @@ import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 
 public class Squiz extends ButtonCommand<MessageEmbed> {
@@ -57,8 +57,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     public static class RandomSquizSession extends SquizSession {
+        public Thread expiringThread;
+        public HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
-        public long userWhoResponded;
+        public long timeSent;
         public Message message;
     }
 
@@ -71,7 +73,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         onlyEmbed = true;
         onlyEphemeral = true;
         messagesExpire = true;
-        messageExpirationLength = 15;
+        messageExpirationLength = 60;
 
         buttonHashMap.put("Start", Button.primary("squiz_start", "Start"));
         buttonHashMap.put("End", Button.primary("squiz_end", "End"));
@@ -92,6 +94,11 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         EmbedBuilder eb = new EmbedBuilder();
 
         States state = session.currentState;
+        eb.setTitle("Squiz!");
+
+        if(event.getGuild() == null) {
+            eb.setDescription("Command cannot be used in the DMs currently.");
+        }
 
         if(event.getSubcommandName() != null) {
             switch(event.getSubcommandName()) {
@@ -103,7 +110,6 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     if(state != States.IN_PROGRESS) {
                         session = new SquizSession(); // dereference to prevent reusing old reference
                         squizSessionHashMap.put(userId, session);
-                        eb.setTitle("Squiz!");
                         session.currentState = States.DEFAULT;
                         eb.setDescription("Welcome to the Squeeth quiz!\n\n" +
                                 "The quiz will ask you 10 questions and you will have to answer each question with the correct choice.\n" +
@@ -155,12 +161,25 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         if(randomSquizSessionsHashMap.get(serverId) != null) {
             if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
                 session = randomSquizSessionsHashMap.get(serverId);
-                if(((RandomSquizSession) session).userWhoResponded == 0) {
-                    ((RandomSquizSession) session).userWhoResponded = userId;
-                } else { // if two users respond fast enough
-                    return;
-                }
                 eb.setTitle("Random Squiz!");
+                if (((RandomSquizSession) session).responses.size() >= 4) { // catch this if the bot hasn't finished editing/expiring the message
+                    return;
+                } else if(((RandomSquizSession) session).responses.containsKey(userId)) { // tried to switch responses
+                    eb.setDescription("You cannot change responses!");
+
+                    event.replyEmbeds(eb.build()).setEphemeral(true).complete();
+                } else {
+                    ((RandomSquizSession) session).responses.put(userId, getAnswerChar(event.getButton().getId()));
+
+                    eb.setDescription("You chose " + ((RandomSquizSession) session).responses.get(userId));
+                    event.replyEmbeds(eb.build()).setEphemeral(true).complete();
+                    if(((RandomSquizSession) session).responses.size() == 4) { // if the size is now 4, interrupt the thread
+                        ((RandomSquizSession) session).expiringThread.interrupt();
+                    } else if(((RandomSquizSession) session).expiringThread == null) { // else, check if thread is null to start it
+                        randomSquizExpires((RandomSquizSession) session);
+                    }
+                }
+                return;
             } else {
                 squizSessionHashMap.put(userId, session);
             }
@@ -227,43 +246,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                 buttons = List.of(buttonHashMap.get("Review"));
             }
-            case "squiz_answer_a" -> {
-                if(checkIfCorrectAnswer('A', session.correctCurrentAnswer, session)) {
-                    session.currentScore++;
-                }
-
-                buttons = handleNextQuestion(session, eb);
-            }
-            case "squiz_answer_b" -> {
-                if(checkIfCorrectAnswer('B', session.correctCurrentAnswer, session)) {
-                    session.currentScore++;
-                }
-
-                buttons = handleNextQuestion(session, eb);
-            }
-            case "squiz_answer_c" -> {
-                if(checkIfCorrectAnswer('C', session.correctCurrentAnswer, session)) {
-                    session.currentScore++;
-                }
-
-                buttons = handleNextQuestion(session, eb);
-            }
-            case "squiz_answer_d" -> {
-                if(checkIfCorrectAnswer('D', session.correctCurrentAnswer, session)) {
-                    session.currentScore++;
-                }
-
-                buttons = handleNextQuestion(session, eb);
-            }
-            case "squiz_answer_true" -> {
-                if(checkIfCorrectAnswer('T', session.correctCurrentAnswer, session)) {
-                    session.currentScore++;
-                }
-
-                buttons = handleNextQuestion(session, eb);
-            }
-            case "squiz_answer_false" -> {
-                if(checkIfCorrectAnswer('F', session.correctCurrentAnswer, session)) {
+            case "squiz_answer_a", "squiz_answer_b", "squiz_answer_c", "squiz_answer_d", "squiz_answer_false", "squiz_answer_true" -> {
+                if(checkIfCorrectAnswer(getAnswerChar(event.getButton().getId()), session.correctCurrentAnswer, session)) {
                     session.currentScore++;
                 }
 
@@ -336,6 +320,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         eb.setTitle("Random Squiz!");
 
         Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
+        session.timeSent = Instant.now().getEpochSecond();
         session.message = message;
         ServerCache.addNewMessage(serverId, message);
     }
@@ -374,54 +359,76 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
     }
 
+    public void randomSquizExpires(@Nonnull RandomSquizSession session) {
+        session.expiringThread = new Thread(() -> {
+            try {
+                Thread.sleep(15000);
+            } catch (InterruptedException ignored) { // needs to be interrupted to indicate it hit the 4th response and stop waiting
+
+            } finally {
+                Map<Long, SquizLeaderboard> squizLeaderboardMap = SquizHandler.squizLeaderboardHashMap;
+                SquizLeaderboard leaderboard = squizLeaderboardMap.getOrDefault(session.serverId, new SquizLeaderboard());
+                EmbedBuilder eb = new EmbedBuilder();
+                StringBuilder correctUsers = new StringBuilder();
+                StringBuilder wrongUsers = new StringBuilder();
+
+                // check who got the correct answer
+                for(Long userId: session.responses.keySet()) {
+                    if(checkIfCorrectAnswer(session.responses.get(userId), session.correctCurrentAnswer, session)) {
+                        correctUsers.append(Launcher.api.retrieveUserById(userId).complete().getAsMention()).append(" ");
+                        leaderboard.addPoint(userId);
+                    } else {
+                        wrongUsers.append(Launcher.api.retrieveUserById(userId).complete().getAsMention()).append(" ");
+                    }
+                }
+
+                squizLeaderboardMap.putIfAbsent(session.serverId, leaderboard);
+
+                try {
+                    updateLeaderboard(session.serverId);
+                    SquizHandler.updateSquizLeaderboard();
+                    ServerDataHandler.updateServerData();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    eb.addField("Warning", "Leaderboard not saved to disk!", false);
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                    eb.addField("Warning", "Leaderboard channel isn't set properly!", false);
+                }
+
+                eb.setTitle("Random Squiz!");
+                eb.addField("Question", session.questions.get(0).question, false);
+                eb.addField("Correct Answer", session.questions.get(0).answer, false);
+                if(correctUsers.length() != 0) {
+                    eb.addField("Users Who Got It Correct", correctUsers.toString(), false);
+                }
+                if(wrongUsers.length() != 0) {
+                    eb.addField("Users Who Got It Wrong", wrongUsers.toString(), false);
+                }
+
+                session.message.editMessageComponents().setEmbeds(eb.build()).complete();
+
+                randomSquizSessionsHashMap.remove(session.serverId); // Removes the reference
+                letMessageExpire(this, session.message);
+            }
+        });
+
+        session.expiringThread.start();
+    }
+
     private boolean checkIfCorrectAnswer(char answer, char correctAnswer, @Nonnull SquizSession session) {
         boolean response = answer == correctAnswer;
 
         if(!response) {
             session.missedQuestions.put(session.missedQuestions.size(), session.questions.get(session.currentQuestion - 1));
-        } else {
-            if(session instanceof RandomSquizSession) {
-                Map<Long, SquizLeaderboard> squizLeaderboardHashMap = SquizHandler.squizLeaderboardHashMap;
-
-                SquizLeaderboard serverLeaderboard = squizLeaderboardHashMap.getOrDefault(((RandomSquizSession) session).serverId, new SquizLeaderboard());
-                serverLeaderboard.addPoint(((RandomSquizSession) session).userWhoResponded);
-                squizLeaderboardHashMap.putIfAbsent(((RandomSquizSession) session).serverId, serverLeaderboard);
-                try {
-                    SquizHandler.updateSquizLeaderboard();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         }
 
         return response;
     }
 
-    @Nullable
+    @Nonnull
     private List<ItemComponent> handleNextQuestion(@Nonnull SquizSession session, @Nonnull EmbedBuilder eb) {
         if(session.currentQuestion == session.questions.size()) {
-            if(session instanceof RandomSquizSession) { // If the session is a random squiz
-                if(session.missedQuestions.size() == 1) {
-                    eb.setDescription("You did not earn a point :slight_frown:\n\n" +
-                            "The correct answer was " + session.missedQuestions.get(0).answer);
-                } else {
-                    Guild guild = Launcher.api.getGuildById(((RandomSquizSession) session).serverId);
-                    Member memberWhoAnswered = guild.retrieveMemberById(((RandomSquizSession) session).userWhoResponded).complete();
-                    eb.setDescription(memberWhoAnswered.getAsMention() + " earned a point!");
-                    try {
-                        updateLeaderboard(((RandomSquizSession) session).serverId);
-                        ServerDataHandler.updateServerData();
-                    } catch(NullPointerException ignored) {
-
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    // TODO: SHOW USER'S CURRENT POSITION IN THE SERVER LEADERBOARD
-                }
-                randomSquizSessionsHashMap.remove(((RandomSquizSession) session).serverId); // Removes the reference
-                letMessageExpire(this, ((RandomSquizSession) session).message);
-                return null;
-            }
             session.currentState = States.COMPLETE;
             eb.setDescription("You have ended the quiz.\n\n" +
                     "Your score is " + session.currentScore + ".");
@@ -520,5 +527,29 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         for(int i = 0; i < 5 && i < topFive.size(); i++) {
             eb.addField(String.format("%d. %s", i + 1, guild.retrieveMemberById(topFive.get(i)).complete().getUser().getAsTag()), String.format("%d", leaderboard.leaderboard.get(topFive.get(i))), false);
         }
+    }
+
+    private static char getAnswerChar(@Nonnull String buttonId) {
+        switch(buttonId) {
+            case "squiz_answer_a" -> {
+                return 'A';
+            }
+            case "squiz_answer_b" -> {
+                return 'B';
+            }
+            case "squiz_answer_c" -> {
+                return 'C';
+            }
+            case "squiz_answer_d" -> {
+                return 'D';
+            }
+            case "squiz_answer_true" -> {
+                return 'T';
+            }
+            case "squiz_answer_false" -> {
+                return 'F';
+            }
+        }
+        return 0;
     }
 }
