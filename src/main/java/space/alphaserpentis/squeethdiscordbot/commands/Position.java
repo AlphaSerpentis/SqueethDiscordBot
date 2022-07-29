@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
+import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -354,6 +355,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
         }
     }
 
+    public static class Crabv2Positions extends CrabPositions {
+
+        private static final String crab = "0x3B960E47784150F5a63777201ee2B15253D713e8";
+
+        public Crabv2Positions(@NotNull String userAddress) {
+            super(userAddress);
+        }
+    }
+
     public Position() {
         name = "position";
         description = "Checks your wallet's Squeeth position";
@@ -395,11 +405,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         AbstractPositions[] posArray = new AbstractPositions[]{
                 new LongPositions(userAddress),
-                new CrabPositions(userAddress)
+                new CrabPositions(userAddress),
+                new Crabv2Positions(userAddress)
         };
 
         posArray[0].getAndSetTransfers(osqth);
         posArray[1].getAndSetTransfers(crab);
+        posArray[2].getAndSetTransfers(Crabv2Positions.crab);
 
         for(AbstractPositions pos: posArray) {
             pos.getAndSetPrices();
@@ -417,7 +429,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         if(
                 !(posArray[0].transfers.size() != 0 || !posArray[0].isValueDust(posArray[0].currentAmtHeld)) &&
-                !(posArray[1].transfers.size() != 0 || !posArray[1].isValueDust(posArray[1].currentAmtHeld))
+                !(posArray[1].transfers.size() != 0 || !posArray[1].isValueDust(posArray[1].currentAmtHeld)) &&
+                !(posArray[2].transfers.size() != 0 || !posArray[2].isValueDust(posArray[2].currentAmtHeld))
         ) {
             cachedPositions.remove(event.getUser().getIdLong());
         }
@@ -457,16 +470,16 @@ public class Position extends ButtonCommand<MessageEmbed> {
             case "position_next" -> {
                 displayPositionPage(eb, currentPage, posArray);
                 pending = event.editMessageEmbeds(eb.build());
-                buttons.add(Button.secondary("position_page", currentPage++ + 1 + "/2").asDisabled());
+                buttons.add(Button.secondary("position_page", currentPage++ + 1 + "/3").asDisabled());
             }
             case "position_previous" -> {
                 displayPositionPage(eb, currentPage - 2, posArray);
                 pending = event.editMessageEmbeds(eb.build());
-                buttons.add(Button.secondary("position_page", currentPage-- - 1 + "/2").asDisabled());
+                buttons.add(Button.secondary("position_page", currentPage-- - 1 + "/3").asDisabled());
             }
         }
 
-        if(currentPage == 2) {
+        if(currentPage == 3) {
             buttons.add(0, Button.primary("position_previous", "Previous").asEnabled());
             buttons.add(Button.primary("position_next", "Next").asDisabled());
         } else if(currentPage == 1) {
@@ -521,13 +534,25 @@ public class Position extends ButtonCommand<MessageEmbed> {
             }
             case 1 -> { // crab v1
                 if(posArray[1].transfers.size() == 0 || posArray[1].isValueDust(posArray[1].currentAmtHeld)) {
-                    eb.setDescription("No crab v1 position active (empty or dust)");
+                    eb.setDescription("No Crab v1 position active (empty or dust)");
                 } else {
-                    eb.setDescription("This info is for Crab v1! Crab v2 support will be added soon!");
                     eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
                     eb.setColor(Color.RED);
 //                    eb.addField("Crab Position", "Holding " + NumberFormat.getInstance().format(posArray[1].currentAmtHeld.doubleValue()/Math.pow(10,18)) + " Crab", false);
                     eb.addField("Price of Crab v1", "$" + priceInUsd, false);
+                    eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
+                    eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
+                    eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
+                }
+            }
+            case 2 -> {
+                if(posArray[2].transfers.size() == 0 || posArray[2].isValueDust(posArray[2].currentAmtHeld)) {
+                    eb.setDescription("No Crab v2 position active (empty or dust)");
+                } else {
+                    eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
+                    eb.setColor(Color.RED);
+//                    eb.addField("Crab Position", "Holding " + NumberFormat.getInstance().format(posArray[1].currentAmtHeld.doubleValue()/Math.pow(10,18)) + " Crab", false);
+                    eb.addField("Price of Crab v2", "$" + priceInUsd, false);
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);

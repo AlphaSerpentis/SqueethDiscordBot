@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -130,8 +131,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public void addCommand(@Nonnull JDA jda) {
         SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
+        SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
+        SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -140,8 +143,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public void updateCommand(@Nonnull JDA jda) {
         SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
+        SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
+        SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
 
         commandId = cmd.getIdLong();
     }
