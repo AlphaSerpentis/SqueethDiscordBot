@@ -321,7 +321,6 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         eb.setTitle("Random Squiz!");
 
         Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
-        session.timeSent = Instant.now().getEpochSecond();
         session.message = message;
         ServerCache.addNewMessage(serverId, message);
     }
