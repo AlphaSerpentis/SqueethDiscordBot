@@ -60,7 +60,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public Thread expiringThread;
         public HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
-        public long timeSent;
+        public long timeReacted;
         public Message message;
     }
 
@@ -162,7 +162,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
                 session = randomSquizSessionsHashMap.get(serverId);
                 eb.setTitle("Random Squiz!");
-                if (((RandomSquizSession) session).responses.size() >= 4) { // catch this if the bot hasn't finished editing/expiring the message
+                if (((RandomSquizSession) session).responses.size() >= 4 || Instant.now().getEpochSecond() >= ((RandomSquizSession) session).timeReacted + 15) { // catch this if the bot hasn't finished editing/expiring the message
                     return;
                 } else if(((RandomSquizSession) session).responses.containsKey(userId)) { // tried to switch responses
                     eb.setDescription("You cannot change responses!");
@@ -177,6 +177,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         ((RandomSquizSession) session).expiringThread.interrupt();
                     } else if(((RandomSquizSession) session).expiringThread == null) { // else, check if thread is null to start it
                         randomSquizExpires((RandomSquizSession) session);
+                        ((RandomSquizSession) session).timeReacted = Instant.now().getEpochSecond();
                     }
                 }
                 return;
