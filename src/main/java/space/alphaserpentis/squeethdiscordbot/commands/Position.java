@@ -519,14 +519,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                 }
             }
-            case 1 -> { // crab
+            case 1 -> { // crab v1
                 if(posArray[1].transfers.size() == 0 || posArray[1].isValueDust(posArray[1].currentAmtHeld)) {
-                    eb.setDescription("No crab position active (empty or dust)");
+                    eb.setDescription("No crab v1 position active (empty or dust)");
                 } else {
+                    eb.setDescription("This info is for Crab v1! Crab v2 support will be added soon!");
                     eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
                     eb.setColor(Color.RED);
 //                    eb.addField("Crab Position", "Holding " + NumberFormat.getInstance().format(posArray[1].currentAmtHeld.doubleValue()/Math.pow(10,18)) + " Crab", false);
-                    eb.addField("Price of Crab", "$" + priceInUsd, false);
+                    eb.addField("Price of Crab v1", "$" + priceInUsd, false);
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);

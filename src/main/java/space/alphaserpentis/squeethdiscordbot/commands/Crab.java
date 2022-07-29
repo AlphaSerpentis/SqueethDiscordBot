@@ -122,7 +122,7 @@ public class Crab extends BotCommand<MessageEmbed> {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(event.getSubcommandName() != null) {
-            String crabV1Notice = "If you are a depositor in Crab v1, Crab v2 early access is open now!\n\nRead more about it [here](https://twitter.com/opyn_/status/1547331378320121857) and go to https://squeeth.opyn.co/strategies to reserve your spot now!";
+            String crabV1Notice = "This info is for Crab v1! Crab v2 support will be added soon!";
 
             switch(event.getSubcommandName()) {
                 case "stats" -> {
