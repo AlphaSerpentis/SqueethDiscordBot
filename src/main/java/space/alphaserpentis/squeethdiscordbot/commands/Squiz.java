@@ -60,7 +60,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public Thread expiringThread;
         public HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
-        public long timeReacted;
+        public long timeReacted = 0;
         public Message message;
     }
 
@@ -162,7 +162,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
                 session = randomSquizSessionsHashMap.get(serverId);
                 eb.setTitle("Random Squiz!");
-                if (((RandomSquizSession) session).responses.size() >= 4 || Instant.now().getEpochSecond() >= ((RandomSquizSession) session).timeReacted + 15) { // catch this if the bot hasn't finished editing/expiring the message
+                if (((RandomSquizSession) session).responses.size() >= 4 || (Instant.now().getEpochSecond() >= ((RandomSquizSession) session).timeReacted + 15 && ((RandomSquizSession) session).timeReacted != 0)) { // catch this if the bot hasn't finished editing/expiring the message
                     return;
                 } else if(((RandomSquizSession) session).responses.containsKey(userId)) { // tried to switch responses
                     eb.setDescription("You cannot change responses!");
