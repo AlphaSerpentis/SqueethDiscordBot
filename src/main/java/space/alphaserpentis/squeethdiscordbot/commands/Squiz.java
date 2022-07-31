@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -60,7 +61,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public Thread expiringThread;
         public HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
-        public long timeSent;
+        public long timeReacted = 0;
         public Message message;
     }
 
@@ -130,8 +131,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public void addCommand(@Nonnull JDA jda) {
         SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
+        SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
+        SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -140,8 +143,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public void updateCommand(@Nonnull JDA jda) {
         SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
+        SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
+        SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -162,7 +167,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             if(event.getMessage().getIdLong() == randomSquizSessionsHashMap.get(serverId).message.getIdLong()) {
                 session = randomSquizSessionsHashMap.get(serverId);
                 eb.setTitle("Random Squiz!");
-                if (((RandomSquizSession) session).responses.size() >= 4) { // catch this if the bot hasn't finished editing/expiring the message
+                if (((RandomSquizSession) session).responses.size() >= 4 || (Instant.now().getEpochSecond() >= ((RandomSquizSession) session).timeReacted + 15 && ((RandomSquizSession) session).timeReacted != 0)) { // catch this if the bot hasn't finished editing/expiring the message
                     return;
                 } else if(((RandomSquizSession) session).responses.containsKey(userId)) { // tried to switch responses
                     eb.setDescription("You cannot change responses!");
@@ -177,6 +182,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         ((RandomSquizSession) session).expiringThread.interrupt();
                     } else if(((RandomSquizSession) session).expiringThread == null) { // else, check if thread is null to start it
                         randomSquizExpires((RandomSquizSession) session);
+                        ((RandomSquizSession) session).timeReacted = Instant.now().getEpochSecond();
                     }
                 }
                 return;
@@ -320,7 +326,6 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         eb.setTitle("Random Squiz!");
 
         Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
-        session.timeSent = Instant.now().getEpochSecond();
         session.message = message;
         ServerCache.addNewMessage(serverId, message);
     }
