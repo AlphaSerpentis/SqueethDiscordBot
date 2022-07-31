@@ -13,7 +13,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
-import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -359,7 +358,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         private static final String crab = "0x3B960E47784150F5a63777201ee2B15253D713e8";
 
-        public Crabv2Positions(@NotNull String userAddress) {
+        public Crabv2Positions(@Nonnull String userAddress) {
             super(userAddress);
         }
     }
@@ -374,7 +373,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         ratelimitLength = 60;
 
         buttonHashMap.put("Previous", Button.primary("position_previous", "Previous").asDisabled());
-        buttonHashMap.put("Page", Button.secondary("position_page", "1/2").asDisabled());
+        buttonHashMap.put("Page", Button.secondary("position_page", "1/3").asDisabled());
         buttonHashMap.put("Next", Button.primary("position_next", "Next"));
     }
 
@@ -549,7 +548,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 if(posArray[2].transfers.size() == 0 || posArray[2].isValueDust(posArray[2].currentAmtHeld)) {
                     eb.setDescription("No Crab v2 position active (empty or dust)");
                 } else {
-                    eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
+                    eb.setThumbnail("https://i.imgur.com/SqABJgg.gif");
                     eb.setColor(Color.RED);
 //                    eb.addField("Crab Position", "Holding " + NumberFormat.getInstance().format(posArray[1].currentAmtHeld.doubleValue()/Math.pow(10,18)) + " Crab", false);
                     eb.addField("Price of Crab v2", "$" + priceInUsd, false);
