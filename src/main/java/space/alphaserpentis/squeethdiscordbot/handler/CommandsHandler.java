@@ -70,7 +70,6 @@ public class CommandsHandler extends ListenerAdapter {
                 cmd.addCommand(api);
             }
         }
-
     }
 
     @Override
@@ -84,7 +83,6 @@ public class CommandsHandler extends ListenerAdapter {
                 ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
             }
         }).start();
-
     }
 
     @Override

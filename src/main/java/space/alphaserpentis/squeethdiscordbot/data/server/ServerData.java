@@ -12,6 +12,8 @@ public class ServerData {
     private long randomSquizBaseIntervals = 1800; // default is 30 minutes + random amount
     private long leaderboardChannelId = 0;
     private long lastLeaderboardMessage = 0;
+    private long crabAuctionChannelId = 0;
+    private boolean listenToCrabAuctions = false;
 
     public void setOnlyEphemeral(boolean value) {
         onlyEphemeral = value;
@@ -30,6 +32,12 @@ public class ServerData {
     }
     public void setLastLeaderboardMessage(long messageId) {
         lastLeaderboardMessage = messageId;
+    }
+    public void setCrabAuctionChannelId(long crabAuctionChannelId) {
+        this.crabAuctionChannelId = crabAuctionChannelId;
+    }
+    public void setListenToCrabAuctions(boolean listenToCrabAuctions) {
+        this.listenToCrabAuctions = listenToCrabAuctions;
     }
 
     public boolean isOnlyEphemeral() {
@@ -50,5 +58,11 @@ public class ServerData {
     }
     public long getLastLeaderboardMessage() {
         return lastLeaderboardMessage;
+    }
+    public long getCrabAuctionChannelId() {
+        return crabAuctionChannelId;
+    }
+    public boolean getListenToCrabAuctions() {
+        return listenToCrabAuctions;
     }
 }

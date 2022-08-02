@@ -55,22 +55,30 @@ public class Settings extends BotCommand<MessageEmbed> {
             return eb.build();
         }
 
+        String subcommandGroup = event.getSubcommandGroup();
+        String subcommandName = event.getSubcommandName();
+
         if(verifyServerPerms(event.getMember())) {
             if(optionMappingList.isEmpty()) {
-                eb.addField(event.getSubcommandName(), defaultResponses.get(event.getSubcommandName()), false);
+                eb.addField(subcommandName, defaultResponses.get(event.getSubcommandName()), false);
             } else {
-                if(event.getSubcommandGroup() != null) {
-                    if(event.getSubcommandGroup().equalsIgnoreCase("squiz")) {
-                        switch(event.getSubcommandName()) {
+                if(subcommandGroup != null) {
+                    if(subcommandGroup.equalsIgnoreCase("squiz")) {
+                        switch(subcommandName) {
                             case "leaderboard" -> setChangeLeaderboard(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "random_questions" -> enableRandomQuestions(event.getGuild().getIdLong(), event.getOptions().get(0).getAsBoolean(), eb);
                             case "add_channel" -> addChannelFromEligibleChannels(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "remove_channel" -> removeChannelFromEligibleChannels(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "interval" -> setRandomSquizBaseInterval(event.getGuild().getIdLong(), event.getOptions().get(0).getAsLong(), eb);
                         }
+                    } else if(subcommandGroup.equalsIgnoreCase("crab")) {
+                        switch(subcommandName) {
+                            case "auction_notifications" -> {}
+                            case "auction_channel" -> {}
+                        }
                     }
                 } else {
-                    switch (event.getSubcommandName().toLowerCase()) {
+                    switch(subcommandName.toLowerCase()) {
                         case "ephemeral" -> setChangeOnlyEphemeral(event.getGuild().getIdLong(), optionMappingList.get(0).getAsString(), eb);
                     }
                 }
@@ -97,8 +105,13 @@ public class Settings extends BotCommand<MessageEmbed> {
                         new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
                         new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
                 );
+        SubcommandGroupData crab = new SubcommandGroupData("crab", "Settings related to Crab")
+                .addSubcommands(
+                        new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
+                        new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -115,8 +128,13 @@ public class Settings extends BotCommand<MessageEmbed> {
                         new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
                         new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
                 );
+        SubcommandGroupData crab = new SubcommandGroupData("crab", "Settings related to Crab")
+                .addSubcommands(
+                        new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
+                        new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab).complete();
 
         commandId = cmd.getIdLong();
     }
