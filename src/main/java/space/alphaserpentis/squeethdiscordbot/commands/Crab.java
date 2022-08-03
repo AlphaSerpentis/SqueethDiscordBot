@@ -246,6 +246,7 @@ public class Crab extends BotCommand<MessageEmbed> {
     public static class v2 extends CrabVault {
 
         public static Auction auction;
+        public static long previousNotificationId;
 
         public static class Auction {
 
@@ -346,15 +347,9 @@ public class Crab extends BotCommand<MessageEmbed> {
                     }
                 }
 
-                System.out.println("Next auction at timestamp " + timeThen);
-
                 auctionTime = timeThen;
 
                 return timeThen - timeNow;
-            }
-
-            public void setServersListening(@Nonnull ArrayList<Long> serversList) {
-                serversListening = serversList;
             }
 
             public static void prepareNotification() {
@@ -405,12 +400,17 @@ public class Crab extends BotCommand<MessageEmbed> {
                     case THIRTY_MINUTES -> eb.setTitle(defaultTitle + " (Thirty Minute Notice)");
                     case TEN_MINUTES -> eb.setTitle(defaultTitle + " (Ten Minute Notice)");
                     case ONE_MINUTE -> eb.setTitle(defaultTitle + " (One Minute Notice)");
+                    case AUCTION_ACTIVE -> eb.setTitle("Crab v2 Auction is Live!");
+                    case AUCTION_SETTLING -> eb.setTitle("Crab v2 Auction is Settling!");
+                    case AUCTION_NOT_ACTIVE -> eb.setTitle("Next Crab v2 Auction Date");
                 }
 
                 if(notificationPhase == NotificationPhase.AUCTION_ACTIVE) {
-                    eb.setDescription("Crab Auction is currently active! You can play bids at https://squeethportal.xyz/auction");
+                    eb.setDescription("Crab Auction is currently active! You can place bids at https://squeethportal.xyz/auction");
                 } else if(notificationPhase == NotificationPhase.AUCTION_SETTLING) {
                     eb.setDescription("Crab Auction is currently in the process of settling; rebalance will occur soon!");
+                } else if(notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
+                    eb.setDescription("In <t:" + auctionTime + ":R>, Crab v2 strategy will start an auction! You can check out the current stats at https://squeethporta.xyz/auction");
                 } else {
                     eb.setDescription("At <t:" + auctionTime + ">, Crab v2 strategy will prepare an auction!");
                 }
@@ -418,15 +418,26 @@ public class Crab extends BotCommand<MessageEmbed> {
                 for(Long serverId: serversListening) {
                     ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
                     Guild guild = Launcher.api.getGuildById(serverId);
-                    if(sd.getCrabAuctionChannelId() == 0 || !sd.getListenToCrabAuctions()) { // ineligible to send
+                    if(sd.getCrabAuctionChannelId() == 0 || !sd.getListenToCrabAuctions() || guild == null) { // ineligible to send
                         break;
                     }
 
                     guild.getTextChannelById(sd.getCrabAuctionChannelId()).sendMessageEmbeds(eb.build()).queue(
-                            (response) -> {},
+                            (response) -> {
+                                if(previousNotificationId != 0)
+                                    response.getChannel().asTextChannel().deleteMessageById(previousNotificationId).queue(
+                                            (ignored) -> {},
+                                            Throwable::printStackTrace
+                                    );
+                                previousNotificationId = response.getIdLong();
+                            },
                             Throwable::printStackTrace
                     );
                 }
+            }
+
+            public static long getAuctionTime() {
+                return auctionTime;
             }
         }
 
@@ -656,6 +667,9 @@ public class Crab extends BotCommand<MessageEmbed> {
                     } else {
                         eb.addField("Bought", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
                         eb.addField("Paid", instance.format(crab.rebalancedEth) + " ETH", false);
+                    }
+                    if(crab instanceof v2) {
+                        eb.addField("Upcoming Auction", "<t:" + v2.Auction.getAuctionTime() + ">", false);
                     }
                     eb.addField("Δ Delta", "$" + instance.format(crab.preVaultGreeksAtHedge.delta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.delta), true);
                     eb.addField("Γ Gamma", "$" + instance.format(crab.preVaultGreeksAtHedge.gamma) + " → $" + instance.format(crab.postVaultGreeksAtHedge.gamma), true);

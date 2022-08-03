@@ -41,15 +41,12 @@ public class Launcher {
         // Set variables
         LaevitasHandler.API_URL = new URL("https://gateway.laevitas.ch/");
         LaevitasHandler.KEY = settings.laevitasKey;
-        CommandsHandler.adminUserID = settings.botAdmin;
 
         // Configure the bot
         builder.setChunkingFilter(ChunkingFilter.ALL);
         builder.disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.CLIENT_STATUS, CacheFlag.EMOJI, CacheFlag.STICKER);
         builder.disableIntents(GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MESSAGE_TYPING, GatewayIntent.GUILD_MESSAGE_REACTIONS);
         builder.enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES);
-        builder.addEventListeners(new CommandsHandler());
-        builder.addEventListeners(new ServerDataHandler());
 
         // Build and Set the API
         api = builder.build();
@@ -60,6 +57,11 @@ public class Launcher {
         // Initialize the server data and load them
         ServerDataHandler.init(Path.of(settings.serverData));
         PositionsDataHandler.init(Path.of(settings.transfersData), Path.of(settings.pricesData));
+
+        // Add Event Listeners
+        CommandsHandler.adminUserID = settings.botAdmin;
+        api.addEventListener(new CommandsHandler());
+        api.addEventListener(new ServerDataHandler());
 
         // Verify commands are up-to-date
         CommandsHandler.checkAndSetSlashCommands(settings.updateCommandsAtLaunch);

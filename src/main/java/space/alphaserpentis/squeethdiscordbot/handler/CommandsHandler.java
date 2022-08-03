@@ -16,22 +16,26 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 public class CommandsHandler extends ListenerAdapter {
-    public static final HashMap<String, BotCommand<?>> mappingOfCommands = new HashMap<>() {{
-        put("about", new About());
-        put("greeks", new Greeks());
-        put("stats", new Stats());
-        put("help", new Help());
-        put("funding", new Funding());
-        put("settings", new Settings());
-        put("resources", new Resources());
-        put("clean", new Clean());
-        put("crab", new Crab());
-        put("position", new Position());
-        put("vault", new Vault());
-        put("squiz", new Squiz());
-    }};
+    public static final HashMap<String, BotCommand<?>> mappingOfCommands;
 
     public static long adminUserID;
+
+    static {
+        mappingOfCommands = new HashMap<>() {{
+            put("about", new About());
+            put("greeks", new Greeks());
+            put("stats", new Stats());
+            put("help", new Help());
+            put("funding", new Funding());
+            put("settings", new Settings());
+            put("resources", new Resources());
+            put("clean", new Clean());
+            put("crab", new Crab());
+            put("position", new Position());
+            put("vault", new Vault());
+            put("squiz", new Squiz());
+        }};
+    }
 
     public static void checkAndSetSlashCommands(boolean updateCommands) {
         JDA api = Launcher.api;
