@@ -6,6 +6,7 @@ import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -21,8 +22,11 @@ import org.web3j.abi.datatypes.generated.Uint96;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
+import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -30,12 +34,18 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Arrays;
-import java.util.Collections;
+import java.time.temporal.TemporalAdjuster;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Crab extends BotCommand<MessageEmbed> {
@@ -235,8 +245,205 @@ public class Crab extends BotCommand<MessageEmbed> {
 
     public static class v2 extends CrabVault {
 
+        public static Auction auction;
+        public static long previousNotificationId;
+
+        public static class Auction {
+
+            enum NotificationPhase {
+                AUCTION_NOT_ACTIVE,
+                SIXTY_MINUTES,
+                THIRTY_MINUTES,
+                TEN_MINUTES,
+                ONE_MINUTE,
+                AUCTION_ACTIVE,
+                AUCTION_SETTLING
+            }
+
+            public static ArrayList<Long> serversListening = new ArrayList<>();
+            public static ScheduledExecutorService scheduledExecutor;
+            public static long auctionTime;
+            public static NotificationPhase notificationPhase;
+            public Auction() {
+                // check how long until next auction
+                long timeUntilNextAuction = timeUntilNextAuction();
+
+                scheduledExecutor = Executors.newScheduledThreadPool(1);
+
+                // grab servers
+                for(Long serverId: ServerDataHandler.serverDataHashMap.keySet()) {
+                    ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+                    if(sd.getListenToCrabAuctions()) {
+                        serversListening.add(serverId);
+                    }
+                }
+
+                if(timeUntilNextAuction - 3600 > 0) {
+                    notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+                    scheduledExecutor.schedule(Auction::prepareNotification, (timeUntilNextAuction - 3600), TimeUnit.SECONDS);
+                } else {
+                    prepareNotification();
+                }
+            }
+
+            public static long timeUntilNextAuction() {
+                if(notificationPhase != null) {
+                    if(notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
+                        return -1;
+                    }
+                }
+
+                TimeZone timeZone = TimeZone.getTimeZone("America/Los_Angeles");
+                Calendar calendar = Calendar.getInstance(timeZone);
+                TemporalAdjuster ta;
+                LocalDate today = LocalDate.now(timeZone.toZoneId());
+                LocalDate auctionDay;
+                int day = calendar.get(Calendar.DAY_OF_WEEK);
+                long timeNow = Instant.now().getEpochSecond();
+                long timeThen = 0;
+
+                switch(day) {
+                    case Calendar.SATURDAY, Calendar.SUNDAY -> {
+                        ta = TemporalAdjusters.next(DayOfWeek.MONDAY);
+                        auctionDay = today.with(ta);
+                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                    }
+                    case Calendar.MONDAY -> {
+                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+
+                        if(timeNow >= timeThen) {
+                            ta = TemporalAdjusters.next(DayOfWeek.WEDNESDAY);
+                            auctionDay = today.with(ta);
+                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        }
+                    }
+                    case Calendar.TUESDAY -> {
+                        ta = TemporalAdjusters.next(DayOfWeek.WEDNESDAY);
+                        auctionDay = today.with(ta);
+                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                    }
+                    case Calendar.WEDNESDAY -> {
+                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+
+                        if(timeNow >= timeThen) {
+                            ta = TemporalAdjusters.next(DayOfWeek.FRIDAY);
+                            auctionDay = today.with(ta);
+                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        }
+                    }
+                    case Calendar.THURSDAY -> {
+                        ta = TemporalAdjusters.next(DayOfWeek.FRIDAY);
+                        auctionDay = today.with(ta);
+                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                    }
+                    case Calendar.FRIDAY -> {
+                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+
+                        if(timeNow >= timeThen) {
+                            ta = TemporalAdjusters.next(DayOfWeek.MONDAY);
+                            auctionDay = today.with(ta);
+                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        }
+                    }
+                }
+
+                auctionTime = timeThen;
+
+                return timeThen - timeNow;
+            }
+
+            public static void prepareNotification() {
+                long timeDiff = auctionTime - Instant.now().getEpochSecond();
+                NotificationPhase originalPhase = notificationPhase;
+
+                if(timeDiff <= 3600 && timeDiff > 0) {
+                    if(timeDiff > 1800) {
+                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff - 1800, TimeUnit.SECONDS);
+                        notificationPhase = NotificationPhase.SIXTY_MINUTES;
+                    } else if(timeDiff > 600) {
+                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff - 600, TimeUnit.SECONDS);
+                        notificationPhase = NotificationPhase.THIRTY_MINUTES;
+                    } else if(timeDiff > 60) {
+                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff - 60, TimeUnit.SECONDS);
+                        notificationPhase = NotificationPhase.TEN_MINUTES;
+                    } else {
+                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff, TimeUnit.SECONDS);
+                        notificationPhase = NotificationPhase.ONE_MINUTE;
+                    }
+                } else if(timeDiff <= 0 && notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // out-of-date auction time
+                    timeUntilNextAuction();
+                    prepareNotification(); // check again
+                    return;
+                } else if(timeDiff <= 0 && timeDiff > -600) {
+                    scheduledExecutor.schedule(Auction::prepareNotification, timeDiff + 600, TimeUnit.SECONDS);
+                    notificationPhase = NotificationPhase.AUCTION_ACTIVE;
+                } else if(timeDiff <= -600 && timeDiff > -1200) {
+                    scheduledExecutor.schedule(Auction::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
+                    notificationPhase = NotificationPhase.AUCTION_SETTLING;
+                } else {
+                    notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+                    scheduledExecutor.schedule(Auction::prepareNotification, timeUntilNextAuction(), TimeUnit.SECONDS);
+                }
+
+                if(originalPhase != null || notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // Skips notifying if the bot started up during auction
+                    notifyAboutAuction();
+                }
+            }
+
+            public static void notifyAboutAuction() {
+                EmbedBuilder eb = new EmbedBuilder();
+                String defaultTitle = "Crab v2 Auction Upcoming!";
+                eb.addField("Notice", "The strategy may or may not rebalance in-between the scheduled auctions or rebalance at all", false);
+
+                switch(notificationPhase) {
+                    case SIXTY_MINUTES -> eb.setTitle(defaultTitle + " (One Hour Notice)");
+                    case THIRTY_MINUTES -> eb.setTitle(defaultTitle + " (Thirty Minute Notice)");
+                    case TEN_MINUTES -> eb.setTitle(defaultTitle + " (Ten Minute Notice)");
+                    case ONE_MINUTE -> eb.setTitle(defaultTitle + " (One Minute Notice)");
+                    case AUCTION_ACTIVE -> eb.setTitle("Crab v2 Auction is Live!");
+                    case AUCTION_SETTLING -> eb.setTitle("Crab v2 Auction is Settling!");
+                    case AUCTION_NOT_ACTIVE -> eb.setTitle("Next Crab v2 Auction Date");
+                }
+
+                if(notificationPhase == NotificationPhase.AUCTION_ACTIVE) {
+                    eb.setDescription("Crab Auction is currently active! You can place bids at https://squeethportal.xyz/auction");
+                } else if(notificationPhase == NotificationPhase.AUCTION_SETTLING) {
+                    eb.setDescription("Crab Auction is currently in the process of settling; rebalance will occur soon!");
+                } else if(notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
+                    eb.setDescription("In <t:" + auctionTime + ":R>, Crab v2 strategy will start an auction! You can check out the current stats at https://squeethporta.xyz/auction");
+                } else {
+                    eb.setDescription("At <t:" + auctionTime + ">, Crab v2 strategy will prepare an auction!");
+                }
+
+                for(Long serverId: serversListening) {
+                    ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+                    Guild guild = Launcher.api.getGuildById(serverId);
+                    if(sd.getCrabAuctionChannelId() == 0 || !sd.getListenToCrabAuctions() || guild == null) { // ineligible to send
+                        break;
+                    }
+
+                    guild.getTextChannelById(sd.getCrabAuctionChannelId()).sendMessageEmbeds(eb.build()).queue(
+                            (response) -> {
+                                if(previousNotificationId != 0)
+                                    response.getChannel().asTextChannel().deleteMessageById(previousNotificationId).queue(
+                                            (ignored) -> {},
+                                            Throwable::printStackTrace
+                                    );
+                                previousNotificationId = response.getIdLong();
+                            },
+                            Throwable::printStackTrace
+                    );
+                }
+            }
+
+            public static long getAuctionTime() {
+                return auctionTime;
+            }
+        }
+
         public v2() {
             super("0x3B960E47784150F5a63777201ee2B15253D713e8");
+            auction = new Auction();
         }
 
         @Override
@@ -460,6 +667,9 @@ public class Crab extends BotCommand<MessageEmbed> {
                     } else {
                         eb.addField("Bought", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
                         eb.addField("Paid", instance.format(crab.rebalancedEth) + " ETH", false);
+                    }
+                    if(crab instanceof v2) {
+                        eb.addField("Upcoming Auction", "<t:" + v2.Auction.getAuctionTime() + ">", false);
                     }
                     eb.addField("Δ Delta", "$" + instance.format(crab.preVaultGreeksAtHedge.delta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.delta), true);
                     eb.addField("Γ Gamma", "$" + instance.format(crab.preVaultGreeksAtHedge.gamma) + " → $" + instance.format(crab.postVaultGreeksAtHedge.gamma), true);

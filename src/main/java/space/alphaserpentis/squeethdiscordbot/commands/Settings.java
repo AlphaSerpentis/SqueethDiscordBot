@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -17,9 +18,11 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
+import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -55,22 +58,30 @@ public class Settings extends BotCommand<MessageEmbed> {
             return eb.build();
         }
 
+        String subcommandGroup = event.getSubcommandGroup();
+        String subcommandName = event.getSubcommandName();
+
         if(verifyServerPerms(event.getMember())) {
             if(optionMappingList.isEmpty()) {
-                eb.addField(event.getSubcommandName(), defaultResponses.get(event.getSubcommandName()), false);
+                eb.addField(subcommandName, defaultResponses.get(event.getSubcommandName()), false);
             } else {
-                if(event.getSubcommandGroup() != null) {
-                    if(event.getSubcommandGroup().equalsIgnoreCase("squiz")) {
-                        switch(event.getSubcommandName()) {
+                if(subcommandGroup != null) {
+                    if(subcommandGroup.equalsIgnoreCase("squiz")) {
+                        switch(subcommandName) {
                             case "leaderboard" -> setChangeLeaderboard(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "random_questions" -> enableRandomQuestions(event.getGuild().getIdLong(), event.getOptions().get(0).getAsBoolean(), eb);
                             case "add_channel" -> addChannelFromEligibleChannels(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "remove_channel" -> removeChannelFromEligibleChannels(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
                             case "interval" -> setRandomSquizBaseInterval(event.getGuild().getIdLong(), event.getOptions().get(0).getAsLong(), eb);
                         }
+                    } else if(subcommandGroup.equalsIgnoreCase("crab")) {
+                        switch(subcommandName) {
+                            case "auction_notifications" -> setAuctionNotifications(event.getGuild().getIdLong(), event.getOptions().get(0).getAsBoolean(), eb);
+                            case "auction_channel" -> setAuctionChannel(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
+                        }
                     }
                 } else {
-                    switch (event.getSubcommandName().toLowerCase()) {
+                    switch(subcommandName.toLowerCase()) {
                         case "ephemeral" -> setChangeOnlyEphemeral(event.getGuild().getIdLong(), optionMappingList.get(0).getAsString(), eb);
                     }
                 }
@@ -97,8 +108,13 @@ public class Settings extends BotCommand<MessageEmbed> {
                         new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
                         new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
                 );
+        SubcommandGroupData crab = new SubcommandGroupData("crab", "Settings related to Crab")
+                .addSubcommands(
+                        new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
+                        new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -115,8 +131,13 @@ public class Settings extends BotCommand<MessageEmbed> {
                         new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
                         new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
                 );
+        SubcommandGroupData crab = new SubcommandGroupData("crab", "Settings related to Crab")
+                .addSubcommands(
+                        new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
+                        new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -139,7 +160,9 @@ public class Settings extends BotCommand<MessageEmbed> {
         try {
             ServerDataHandler.updateServerData();
 
-            eb.setDescription("Setting your server's leaderboard channel to **" + channel.getName() + "**");
+            eb.setDescription("Setting your server's leaderboard channel to " + channel.getAsMention());
+            if(!canBotSendMessages(channel))
+                eb.addField("Warning", "Bot does not have permissions to send messages in " + channel.getAsMention() + "!", false);
         } catch(Exception e) {
             eb.setDescription(error);
         }
@@ -173,6 +196,8 @@ public class Settings extends BotCommand<MessageEmbed> {
 
             eb.setDescription("Added " + channel.getAsMention() + " to the list of eligible channels for random questions.");
             if(sd.doRandomSquizQuestions()) SquizHandler.startThreadForServerSquiz(serverId);
+            if(!canBotSendMessages(channel))
+                eb.addField("Warning", "Bot does not have permissions to send messages in " + channel.getAsMention() + "!", false);
         } catch(Exception e) {
             eb.setDescription(error);
         }
@@ -211,9 +236,66 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
+    private void setAuctionNotifications(long serverId, boolean setting, @Nonnull EmbedBuilder eb) {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+
+        sd.setListenToCrabAuctions(setting);
+
+         try {
+             ServerDataHandler.updateServerData();
+             TextChannel channel = Launcher.api.getGuildById(serverId).getTextChannelById(sd.getCrabAuctionChannelId());
+
+             eb.setDescription(setting ? "You are now listening to auction notifications" : "You are no longer listening to auction notifications");
+             if(sd.getCrabAuctionChannelId() == 0 || channel == null) {
+                 eb.addField("Warning", "Channel is not set for auction notifications!", false);
+             } else if(!canBotSendMessages(channel)) {
+                    eb.addField("Warning", "Bot is unable to talk in " + channel.getAsMention(), false);
+             }
+
+             ArrayList<Long> serverIds = Crab.v2.Auction.serversListening;
+
+             if(setting) {
+                 if(!serverIds.contains(serverId)) serverIds.add(serverId);
+             } else {
+                 serverIds.remove(serverId);
+             }
+         } catch(IOException e) {
+             eb.setDescription(error);
+         }
+    }
+
+    private void setAuctionChannel(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+
+        sd.setCrabAuctionChannelId(channel.getIdLong());
+
+        try {
+            ServerDataHandler.updateServerData();
+
+            eb.setDescription("Crab Auction notifications will be shown in " + channel.getAsMention());
+
+            if(!canBotSendMessages(channel))
+                eb.addField("Warning", "Bot does not have permissions to send messages in " + channel.getAsMention() + "!", false);
+            if(sd.getListenToCrabAuctions()) {
+                ArrayList<Long> serverIds = Crab.v2.Auction.serversListening;
+
+                if(!serverIds.contains(serverId)) serverIds.add(serverId);
+            }
+        } catch(IOException e) {
+            eb.setDescription(error);
+        }
+    }
+
     private boolean verifyServerPerms(Member member) {
         return member.hasPermission(
                 Permission.MANAGE_SERVER
         );
+    }
+
+    private boolean canBotSendMessages(@Nonnull GuildChannelUnion channel) {
+        return channel.asTextChannel().canTalk();
+    }
+    private boolean canBotSendMessages(@Nonnull TextChannel channel) {
+        return channel.canTalk();
     }
 }
