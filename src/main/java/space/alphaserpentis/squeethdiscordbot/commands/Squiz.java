@@ -413,6 +413,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                 session.message.editMessageComponents().setEmbeds(eb.build()).complete();
 
+                SquizHandler.scheduleServer(session.serverId);
                 randomSquizSessionsHashMap.remove(session.serverId); // Removes the reference
                 letMessageExpire(this, session.message);
             }
