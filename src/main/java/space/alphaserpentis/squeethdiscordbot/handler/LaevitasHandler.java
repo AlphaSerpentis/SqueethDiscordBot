@@ -12,6 +12,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class LaevitasHandler {
 
@@ -19,23 +22,17 @@ public class LaevitasHandler {
     public static String KEY;
     public static SqueethData latestSqueethData = new SqueethData();
     public static long lastSuccessfulPoll = 0;
+    public static ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
 
     public static void timedPoller() {
-        new Thread(() -> {
-            while(true) {
-                try {
-                    try {
-                        if(pollForData("analytics/defi/squeeth"))
-                            lastSuccessfulPoll = Instant.now().getEpochSecond();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    Thread.sleep(300000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        scheduledExecutor.scheduleAtFixedRate(() -> {
+            try {
+                if(pollForData("analytics/defi/squeeth"))
+                    lastSuccessfulPoll = Instant.now().getEpochSecond();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        }).start();
+        }, 0, 5, TimeUnit.MINUTES);
     }
 
     public static boolean pollForData(@Nonnull String append) throws IOException {

@@ -6,12 +6,17 @@ import net.dv8tion.jda.api.entities.Activity;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import java.text.NumberFormat;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class StatusHandler {
 
     private int statusIndex;
+    private final ScheduledExecutorService scheduledExecutor;
 
     public StatusHandler() {
+        scheduledExecutor = new ScheduledThreadPoolExecutor(1);
         runStatusRotation();
     }
 
@@ -20,16 +25,7 @@ public class StatusHandler {
      */
     public void runStatusRotation() {
         LaevitasHandler.timedPoller();
-        new Thread(() -> {
-            while(true) {
-                try {
-                    updateStatus();
-                    Thread.sleep(15000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
+        scheduledExecutor.scheduleAtFixedRate(this::updateStatus, 0, 15, TimeUnit.SECONDS);
     }
 
     /**

@@ -169,7 +169,8 @@ public class Settings extends BotCommand<MessageEmbed> {
     }
 
     private void enableRandomQuestions(long serverId, boolean setting, @Nonnull EmbedBuilder eb) {
-        ServerDataHandler.serverDataHashMap.get(serverId).setDoRandomSquizQuestions(setting);
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+        sd.setDoRandomSquizQuestions(setting);
 
         try {
             ServerDataHandler.updateServerData();
@@ -177,7 +178,11 @@ public class Settings extends BotCommand<MessageEmbed> {
             eb.setDescription("Random questions are toggled " + (setting ? "on" : "off") + ".");
 
             if(setting) {
-                SquizHandler.startThreadForServerSquiz(serverId);
+                if(SquizHandler.isServerValidForRandomSquiz(serverId)) {
+                    SquizHandler.scheduleServer(serverId);
+                } else {
+                    eb.addField("Warning", "Random Squiz settings might be misconfigured! Make sure Sqreeks has sufficient permissions to send messages!", false);
+                }
             }
         } catch (IOException e) {
             eb.setTitle("Squiz Random Questions");
@@ -193,11 +198,14 @@ public class Settings extends BotCommand<MessageEmbed> {
 
         try {
             ServerDataHandler.updateServerData();
-
             eb.setDescription("Added " + channel.getAsMention() + " to the list of eligible channels for random questions.");
-            if(sd.doRandomSquizQuestions()) SquizHandler.startThreadForServerSquiz(serverId);
-            if(!canBotSendMessages(channel))
-                eb.addField("Warning", "Bot does not have permissions to send messages in " + channel.getAsMention() + "!", false);
+
+            if(SquizHandler.isServerValidForRandomSquiz(serverId)) {
+                if(sd.doRandomSquizQuestions())
+                    SquizHandler.scheduleServer(serverId);
+            } else {
+                eb.addField("Warning", "Random Squiz settings might be misconfigured! Make sure Sqreeks has sufficient permissions to send messages!", false);
+            }
         } catch(Exception e) {
             eb.setDescription(error);
         }
@@ -231,6 +239,8 @@ public class Settings extends BotCommand<MessageEmbed> {
 
             eb.setDescription("For every " + interval + " seconds + (random * " + interval + "), a new Squiz will be sent provided that" +
                     " there is no active random Squiz");
+
+            SquizHandler.restartServerSquiz(serverId);
         } catch (IOException e) {
             eb.setDescription(error);
         }
