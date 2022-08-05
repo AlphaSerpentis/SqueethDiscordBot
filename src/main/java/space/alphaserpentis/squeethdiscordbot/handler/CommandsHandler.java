@@ -14,11 +14,14 @@ import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class CommandsHandler extends ListenerAdapter {
     public static final HashMap<String, BotCommand<?>> mappingOfCommands;
 
     public static long adminUserID;
+    public static ExecutorService executor = Executors.newCachedThreadPool();
 
     static {
         mappingOfCommands = new HashMap<>() {{
@@ -78,7 +81,7 @@ public class CommandsHandler extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
-        new Thread(() -> {
+        executor.submit(() -> {
             BotCommand<?> cmd = mappingOfCommands.get(event.getName());
             Message message;
             message = BotCommand.handleReply(event, cmd);
@@ -86,15 +89,15 @@ public class CommandsHandler extends ListenerAdapter {
             if(event.getGuild() != null && !message.isEphemeral()) {
                 ServerCache.addNewMessage(event.getGuild().getIdLong(), message);
             }
-        }).start();
+        });
     }
 
     @Override
     public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
-        new Thread(() -> {
+        executor.submit(() -> {
             BotCommand<?> cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
 
             ((ButtonCommand<?>) cmd).runButtonInteraction(event);
-        }).start();
+        });
     }
 }
