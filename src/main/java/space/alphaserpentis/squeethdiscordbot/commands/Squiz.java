@@ -105,7 +105,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             switch(event.getSubcommandName()) {
                 case "leaderboard" -> {
                     session.currentState = States.VIEWING_LEADERBOARD;
-                    generateLeaderboard(eb, event.getGuild().getIdLong());
+                    generateLeaderboard(eb, event.getGuild().getIdLong(), event.getUser().getIdLong());
                 }
                 case "play" -> {
                     if(state != States.IN_PROGRESS) {
@@ -259,7 +259,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                 buttons = handleNextQuestion(session, eb);
             }
-            case "squiz_leaderboard" -> generateLeaderboard(eb, serverId);
+            case "squiz_leaderboard" -> generateLeaderboard(eb, serverId, userId);
             case "squiz_review" -> {
                 if(session.missedQuestions.size() == 0) {
                     eb.setDescription("Perfect score! :tada:");
@@ -532,6 +532,37 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
         for(int i = 0; i < 5 && i < topFive.size(); i++) {
             eb.addField(String.format("%d. %s", i + 1, guild.retrieveMemberById(topFive.get(i)).complete().getUser().getAsTag()), String.format("%d", leaderboard.leaderboard.get(topFive.get(i))), false);
+        }
+    }
+
+    private static void generateLeaderboard(@Nonnull EmbedBuilder eb, long serverId, long userId) {
+        eb.setTitle("Squiz Leaderboard");
+        eb.setDescription("Shows the top 5 people on the leaderboard for the server plus where you are currently in the leaderboard");
+        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(serverId, new SquizLeaderboard());
+        ArrayList<Long> topFive = leaderboard.getTopFive();
+        Guild guild = Launcher.api.getGuildById(serverId);
+
+        if(topFive.contains(userId)) {
+            for(int i = 0; i < 5 && i < topFive.size(); i++) {
+                eb.addField(String.format("%d. %s", i + 1, guild.retrieveMemberById(topFive.get(i)).complete().getUser().getAsTag()), String.format("%d", leaderboard.leaderboard.get(topFive.get(i))), false);
+            }
+        } else {
+            for(int i = 0; i < 5 && i < topFive.size(); i++) {
+                eb.addField(String.format("%d. %s", i + 1, guild.retrieveMemberById(topFive.get(i)).complete().getUser().getAsTag()), String.format("%d", leaderboard.leaderboard.get(topFive.get(i))), false);
+            }
+            if(topFive.size() == 5 && leaderboard.getPositionOfUser(userId) != -1) {
+                eb.addField("...", "...", false);
+                eb.addField(
+                        String.format(
+                                "%d. %s",
+                                leaderboard.getPositionOfUser(userId),
+                                guild.retrieveMemberById(userId).complete().getUser().getAsTag()
+                        ),
+                        String.format(
+                                "%d",
+                                leaderboard.leaderboard.get(userId)
+                        ), false);
+            }
         }
     }
 
