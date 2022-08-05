@@ -410,7 +410,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 } else if(notificationPhase == NotificationPhase.AUCTION_SETTLING) {
                     eb.setDescription("Crab Auction is currently in the process of settling; rebalance will occur soon!");
                 } else if(notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
-                    eb.setDescription("In <t:" + auctionTime + ":R>, Crab v2 strategy will start an auction! You can check out the current stats at https://squeethporta.xyz/auction");
+                    eb.setDescription("In <t:" + auctionTime + ":R>, Crab v2 strategy will start an auction! You can check out the current stats at https://squeethportal.xyz/auction");
                 } else {
                     eb.setDescription("At <t:" + auctionTime + ">, Crab v2 strategy will prepare an auction!");
                 }
