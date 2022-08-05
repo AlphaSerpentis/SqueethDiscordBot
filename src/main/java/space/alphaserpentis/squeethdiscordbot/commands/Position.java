@@ -45,7 +45,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
     private static final String ethOSQTHPool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c";
     private static final String usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
     private static final String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
-    private static final String crab = "0xf205ad80bb86ac92247638914265887a8baa437d";
     private static final String weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
     private static final String oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1";
     private static final Function getTwap_ethUSD = new Function(
@@ -223,7 +222,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public static class CrabPositions extends AbstractPositions {
-        private static final String crab = "0xf205ad80bb86ac92247638914265887a8baa437d", oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+        private static final String oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+        private final String crab;
+        private final boolean isV2;
 
         private final Function callVaultsFunc = new Function("getVaultDetails",
                 Collections.emptyList(),
@@ -268,8 +269,10 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 )
         );
 
-        public CrabPositions(@Nonnull String userAddress) {
+        public CrabPositions(@Nonnull String userAddress, @Nonnull String crabAddress, boolean isV2) {
             super(userAddress);
+            crab = crabAddress;
+            this.isV2 = isV2;
         }
 
         @Override
@@ -308,8 +311,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                     if(PositionsDataHandler.cachedPrices.containsKey((long) block)) {
                         priceData = PositionsDataHandler.cachedPrices.get((long) block);
-                        if(priceData.crabEth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
-                            fetchPriceAtThisBlock = true;
+                        if(!isV2) {
+                            if(priceData.crabEth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
+                                fetchPriceAtThisBlock = true;
+                            }
+                        } else {
+                            if(priceData.crabV2Eth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
+                                fetchPriceAtThisBlock = true;
+                            }
                         }
                     } else {
                         fetchPriceAtThisBlock = true;
@@ -332,7 +341,11 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                         priceCrabEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
                         priceData.osqthEth = priceOfoSQTH;
-                        priceData.crabEth = priceCrabEth;
+                        if(!isV2) {
+                            priceData.crabEth = priceCrabEth;
+                        } else {
+                            priceData.crabV2Eth = priceCrabEth;
+                        }
                         priceData.ethUsdc = priceOfETHinUSD;
 
                         PositionsDataHandler.addNewData((long) block, priceData);
@@ -351,15 +364,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
             DecimalFormat df = new DecimalFormat("#");
             currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18)))));
             currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36)))));
-        }
-    }
-
-    public static class Crabv2Positions extends CrabPositions {
-
-        private static final String crab = "0x3B960E47784150F5a63777201ee2B15253D713e8";
-
-        public Crabv2Positions(@Nonnull String userAddress) {
-            super(userAddress);
         }
     }
 
@@ -404,13 +408,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         AbstractPositions[] posArray = new AbstractPositions[]{
                 new LongPositions(userAddress),
-                new CrabPositions(userAddress),
-                new Crabv2Positions(userAddress)
+                new CrabPositions(userAddress, "0xf205ad80bb86ac92247638914265887a8baa437d", false), // v1
+                new CrabPositions(userAddress, "0x3b960e47784150f5a63777201ee2b15253d713e8", true) // v2
         };
 
         posArray[0].getAndSetTransfers(osqth);
-        posArray[1].getAndSetTransfers(crab);
-        posArray[2].getAndSetTransfers(Crabv2Positions.crab);
+        posArray[1].getAndSetTransfers(((CrabPositions) posArray[1]).crab);
+        posArray[2].getAndSetTransfers(((CrabPositions) posArray[2]).crab);
 
         for(AbstractPositions pos: posArray) {
             pos.getAndSetPrices();
