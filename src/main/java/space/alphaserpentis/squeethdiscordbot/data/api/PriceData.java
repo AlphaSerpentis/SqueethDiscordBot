@@ -8,4 +8,5 @@ public class PriceData {
     public BigInteger ethUsdc = BigInteger.ZERO;
     public BigInteger osqthEth = BigInteger.ZERO;
     public BigInteger crabEth = BigInteger.ZERO;
+    public BigInteger crabV2Eth = BigInteger.ZERO;
 }
