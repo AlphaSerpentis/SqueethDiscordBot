@@ -58,6 +58,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     public static class RandomSquizSession extends SquizSession {
+        public static HashMap<Long, Integer> consecutiveAnswers = new HashMap<>();
         public Thread expiringThread;
         public HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
@@ -168,6 +169,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 session = randomSquizSessionsHashMap.get(serverId);
                 eb.setTitle("Random Squiz!");
                 if (((RandomSquizSession) session).responses.size() >= 4 || (Instant.now().getEpochSecond() >= ((RandomSquizSession) session).timeReacted + 15 && ((RandomSquizSession) session).timeReacted != 0)) { // catch this if the bot hasn't finished editing/expiring the message
+                    eb.setDescription("Too late! Either four others have answered or 15 seconds has passed since the first answer!");
+
+                    event.replyEmbeds(eb.build()).setEphemeral(true).complete();
                     return;
                 } else if(((RandomSquizSession) session).responses.containsKey(userId)) { // tried to switch responses
                     eb.setDescription("You cannot change responses!");
@@ -374,20 +378,41 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 Map<Long, SquizLeaderboard> squizLeaderboardMap = SquizHandler.squizLeaderboardHashMap;
                 SquizLeaderboard leaderboard = squizLeaderboardMap.getOrDefault(session.serverId, new SquizLeaderboard());
                 EmbedBuilder eb = new EmbedBuilder();
+                EmbedBuilder touchGrass = new EmbedBuilder();
                 StringBuilder correctUsers = new StringBuilder();
                 StringBuilder wrongUsers = new StringBuilder();
+                StringBuilder usersWhoNeedToTouchGrass = new StringBuilder();
+                JDA api = Launcher.api;
+
+                RandomSquizSession.consecutiveAnswers.keySet().removeIf(
+                        id -> (!session.responses.containsKey(id))
+                );
 
                 // check who got the correct answer
                 for(Long userId: session.responses.keySet()) {
+                    Integer consecutiveCounter = RandomSquizSession.consecutiveAnswers.getOrDefault(userId, 0);
+
                     if(checkIfCorrectAnswer(session.responses.get(userId), session.correctCurrentAnswer, session)) {
-                        correctUsers.append(Launcher.api.retrieveUserById(userId).complete().getAsMention()).append(" ");
+                        correctUsers.append(api.retrieveUserById(userId).complete().getAsMention()).append(" ");
                         leaderboard.addPoint(userId);
                     } else {
-                        wrongUsers.append(Launcher.api.retrieveUserById(userId).complete().getAsMention()).append(" ");
+                        wrongUsers.append(api.retrieveUserById(userId).complete().getAsMention()).append(" ");
+                    }
+                    RandomSquizSession.consecutiveAnswers.put(userId, ++consecutiveCounter);
+                    if(RandomSquizSession.consecutiveAnswers.get(userId) >= 5) {
+                        usersWhoNeedToTouchGrass.append(api.retrieveUserById(userId).complete().getAsMention()).append(" ");
                     }
                 }
 
                 squizLeaderboardMap.putIfAbsent(session.serverId, leaderboard);
+
+                if(usersWhoNeedToTouchGrass.length() != 0) {
+                    touchGrass.setTitle("Please Touch Grass");
+                    touchGrass.setDescription(usersWhoNeedToTouchGrass + " have played Squiz at least 5 times consecutively.\n\nYou should definitely drink water, rest, and touch grass");
+                    session.message.getChannel().asTextChannel().sendMessageEmbeds(touchGrass.build()).queue(
+                            (response) -> letMessageExpire(this, response), Throwable::printStackTrace
+                    );
+                }
 
                 try {
                     updateLeaderboard(session.serverId);
