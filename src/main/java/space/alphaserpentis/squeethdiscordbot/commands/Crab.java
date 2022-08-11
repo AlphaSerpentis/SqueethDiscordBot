@@ -382,7 +382,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                     notificationPhase = NotificationPhase.AUCTION_SETTLING;
                 } else {
                     notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
-                    scheduledExecutor.schedule(Auction::prepareNotification, timeUntilNextAuction(), TimeUnit.SECONDS);
+                    scheduledExecutor.schedule(Auction::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
                 }
 
                 if(originalPhase != null || notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // Skips notifying if the bot started up during auction
