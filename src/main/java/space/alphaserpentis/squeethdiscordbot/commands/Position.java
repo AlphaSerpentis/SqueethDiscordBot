@@ -351,8 +351,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         PositionsDataHandler.addNewData((long) block, priceData);
                     }
 
-                    costBasisInEth = costBasisInEth.add(priceData.crabEth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
-                    costBasis = costBasis.add(priceData.crabEth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
+                    if(isV2) {
+                        costBasisInEth = costBasisInEth.add(priceData.crabV2Eth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
+                        costBasis = costBasis.add(priceData.crabV2Eth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
+                    } else {
+                        costBasisInEth = costBasisInEth.add(priceData.crabEth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
+                        costBasis = costBasis.add(priceData.crabEth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
+                    }
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }

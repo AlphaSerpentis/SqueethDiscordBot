@@ -80,6 +80,26 @@ public class PositionsDataHandler {
         }
     }
 
+    public static void clearTransfers() throws IOException {
+        cachedTransfers.clear();
+
+        Writer writer = Files.newBufferedWriter(cachedTransfersPath);
+
+        writer.write("");
+
+        writer.close();
+    }
+
+    public static void clearPrices() throws IOException {
+        cachedPrices.clear();
+
+        Writer writer = Files.newBufferedWriter(cachedPricesPath);
+
+        writer.write("");
+
+        writer.close();
+    }
+
     public static void writeDataToFile(@Nonnull Object data, @Nonnull Path path) throws IOException {
         Writer writer = Files.newBufferedWriter(path);
 
