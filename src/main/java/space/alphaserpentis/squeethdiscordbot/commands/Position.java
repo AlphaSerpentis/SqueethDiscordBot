@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class Position<T> extends ButtonCommand<MessageEmbed> {
+public class Position extends ButtonCommand<MessageEmbed> {
 
     private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
@@ -142,7 +142,7 @@ public class Position<T> extends ButtonCommand<MessageEmbed> {
             }
 
             if(tokensAtBlock.isEmpty()) { // if empty, indicates no transactions or ended up being empty as of current
-                PositionsDataHandler.removeData(userAddress);
+                PositionsDataHandler.removeData(userAddress, tokenAddress);
             } else {
                 PositionsDataHandler.addNewData(userAddress, transfers);
             }

@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PositionsDataHandler {
 
@@ -76,13 +77,18 @@ public class PositionsDataHandler {
         }
     }
 
-    public static void removeData(@Nonnull String address) {
-        cachedTransfers.remove(address);
+    public static void removeData(@Nonnull String address, @Nonnull String tokenAddress) {
+        ArrayList<SimpleTokenTransferResponse> originalList = cachedTransfers.get(address);
+        ArrayList<SimpleTokenTransferResponse> filteredList = (ArrayList<SimpleTokenTransferResponse>) originalList.stream().filter(t -> !t.token.equalsIgnoreCase(tokenAddress)).collect(Collectors.toList());
 
-        try {
-            writeDataToFile(cachedTransfers, cachedTransfersPath);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if(!originalList.equals(filteredList)) {
+            cachedTransfers.put(address, filteredList);
+
+            try {
+                writeDataToFile(cachedTransfers, cachedTransfersPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
