@@ -37,20 +37,20 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class Position extends ButtonCommand<MessageEmbed> {
+public class Position<T> extends ButtonCommand<MessageEmbed> {
 
-    private static HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
-    private static HashMap<String, String> cachedENSDomains = new HashMap<>();
-    private static final String ethUSDPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8";
-    private static final String ethOSQTHPool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c";
+    private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
+    private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
+    private static final String ethUsdPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8";
+    private static final String ethOsqthPool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c";
     private static final String usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
     private static final String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
     private static final String weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
     private static final String oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1";
-    private static final Function getTwap_ethUSD = new Function(
+    private static final Function getTwap_ethUsd = new Function(
                     "getTwap",
                     Arrays.asList(
-                            new org.web3j.abi.datatypes.Address(ethUSDPool),
+                            new org.web3j.abi.datatypes.Address(ethUsdPool),
                             new org.web3j.abi.datatypes.Address(weth),
                             new org.web3j.abi.datatypes.Address(usdc),
                             new Uint32(1),
@@ -65,7 +65,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     private static final Function getTwap_osqth = new Function(
             "getTwap",
             Arrays.asList(
-                    new org.web3j.abi.datatypes.Address(ethOSQTHPool),
+                    new org.web3j.abi.datatypes.Address(ethOsqthPool),
                     new org.web3j.abi.datatypes.Address(osqth),
                     new org.web3j.abi.datatypes.Address(weth),
                     new Uint32(1),
@@ -99,28 +99,17 @@ public class Position extends ButtonCommand<MessageEmbed> {
          */
         public void getAndSetTransfers(@Nonnull String tokenAddress) {
             // Check caches to see if we have the data
-            if(PositionsDataHandler.cachedTransfers.containsKey(userAddress)) {
-                if(PositionsDataHandler.cachedTransfers.get(userAddress).stream().noneMatch(t -> t.token.equalsIgnoreCase(userAddress))) {
+            if(PositionsDataHandler.cachedTransfers.containsKey(userAddress)) { // cache does contain address
+                if(PositionsDataHandler.cachedTransfers.get(userAddress).stream().noneMatch(t -> t.token.equalsIgnoreCase(tokenAddress))) { // cache doesn't have the specific token we need
                     transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, tokenAddress);
-                    PositionsDataHandler.addNewData(userAddress, transfers);
                 } else {
-                    transfers = (ArrayList<SimpleTokenTransferResponse>) PositionsDataHandler.cachedTransfers.get(userAddress).stream().filter(t -> t.token.equalsIgnoreCase(userAddress)).collect(Collectors.toList());
+                    transfers = (ArrayList<SimpleTokenTransferResponse>) PositionsDataHandler.cachedTransfers.get(userAddress).stream().filter(t -> t.token.equalsIgnoreCase(tokenAddress)).collect(Collectors.toList());
                     int highestBlock = transfers.get(transfers.size() - 1).blockNum;
-
-                    for(SimpleTokenTransferResponse transfer: transfers) {
-                        if(!transfer.token.equalsIgnoreCase(tokenAddress)) {
-                            transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, tokenAddress, -1, highestBlock);
-                            break;
-                        }
-                    }
-
                     ArrayList<SimpleTokenTransferResponse> newTransfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, tokenAddress, highestBlock + 1, -1);
                     transfers.addAll(newTransfers);
-                    PositionsDataHandler.addNewData(userAddress, transfers);
                 }
             } else {
                 transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, tokenAddress);
-                PositionsDataHandler.addNewData(userAddress, transfers);
             }
 
             for(SimpleTokenTransferResponse transfer : transfers) {
@@ -130,14 +119,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     int lowestBlock = tokensAtBlock.keySet().stream().min(Integer::compareTo).get();
                     BigInteger val = tokensAtBlock.get(lowestBlock).subtract(transfer.getBigIntegerValue());
 
-                    while(val.compareTo(BigInteger.ZERO) < 0) { // if the value is negative, we need to remove the block and subtract the remainder to the next lowest block
+                    while(val.compareTo(BigInteger.ZERO) < 0) { // if the value is negative, we need to remove the block and subtract the next lowest block's value and repeat until the lowest block is no longer negative
                         tokensAtBlock.remove(lowestBlock);
                         if(tokensAtBlock.size() == 0) break;
 
                         lowestBlock = tokensAtBlock.keySet().stream().min(Integer::compareTo).get();
                         val = tokensAtBlock.get(lowestBlock).subtract(val.abs());
 
-                        if(val.compareTo(BigInteger.ZERO) > 0) {
+                        if(val.compareTo(BigInteger.ZERO) > 0) { // value is no longer negative, therefore it is registered in the mapping
                             tokensAtBlock.put(lowestBlock, val);
                         }
                     }
@@ -150,6 +139,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 } else { // enters the account
                     tokensAtBlock.put(transfer.getBlockNum(), transfer.getBigIntegerValue());
                 }
+            }
+
+            if(tokensAtBlock.isEmpty()) { // if empty, indicates no transactions or ended up being empty as of current
+                PositionsDataHandler.removeData(userAddress);
+            } else {
+                PositionsDataHandler.addNewData(userAddress, transfers);
             }
         }
         public void calculatePnl() {
@@ -175,7 +170,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void getAndSetPrices() {
             try {
                 currentPriceInEth = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_osqth).get(0).getValue();
-                currentPriceInUsd = currentPriceInEth.multiply((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUSD).get(0).getValue());
+                currentPriceInUsd = currentPriceInEth.multiply((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd).get(0).getValue());
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -196,7 +191,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         priceEth = priceData.ethUsdc;
                     } else {
                         priceOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, Long.parseLong(String.valueOf(block))).get(0).getValue();
-                        priceEth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUSD, Long.parseLong(String.valueOf(block))).get(0).getValue();
+                        priceEth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, Long.parseLong(String.valueOf(block))).get(0).getValue();
 
                         priceData.ethUsdc = priceEth;
                         priceData.osqthEth = priceOsqth;
@@ -222,7 +217,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public static class CrabPositions extends AbstractPositions {
-        private static final String oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
         private final String crab;
         private final boolean isV2;
 
@@ -237,8 +231,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
         );
         private final Function callUniswapv3PriceCheck = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(pool),
-                        new org.web3j.abi.datatypes.Address(oSQTH),
+                        new org.web3j.abi.datatypes.Address(ethOsqthPool),
+                        new org.web3j.abi.datatypes.Address(osqth),
                         new org.web3j.abi.datatypes.Address(weth),
                         new Uint32(1),
                         new org.web3j.abi.datatypes.Bool(true)
@@ -250,7 +244,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         );
         private final Function callUniswapv3PriceCheck_USDC = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethusdcPool),
+                        new org.web3j.abi.datatypes.Address(ethUsdPool),
                         new org.web3j.abi.datatypes.Address(weth),
                         new org.web3j.abi.datatypes.Address(usdc),
                         new Uint32(1),
@@ -498,9 +492,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
             buttons.add(Button.primary("position_next", "Next").asEnabled());
         }
 
-        pending.setActionRow(buttons);
-
-        pending.complete();
+        pending.setActionRow(buttons).complete();
     }
 
     @Override

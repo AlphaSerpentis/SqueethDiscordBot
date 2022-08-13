@@ -59,10 +59,6 @@ public class PositionsDataHandler {
             cachedTransfers.put(address, newList);
         }
 
-        if(data.isEmpty()) {
-            cachedTransfers.remove(address);
-        }
-
         try {
             writeDataToFile(cachedTransfers, cachedTransfersPath);
         } catch (IOException e) {
@@ -72,6 +68,26 @@ public class PositionsDataHandler {
 
     public static void addNewData(@Nonnull Long block, @Nonnull PriceData data) {
         cachedPrices.put(block, data);
+
+        try {
+            writeDataToFile(cachedPrices, cachedPricesPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void removeData(@Nonnull String address) {
+        cachedTransfers.remove(address);
+
+        try {
+            writeDataToFile(cachedTransfers, cachedTransfersPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void removeData(long timestamp) {
+        cachedPrices.remove(timestamp);
 
         try {
             writeDataToFile(cachedPrices, cachedPricesPath);
