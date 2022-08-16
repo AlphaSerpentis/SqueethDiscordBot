@@ -15,7 +15,11 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
+import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
+import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
+import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
@@ -25,6 +29,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static com.fasterxml.jackson.databind.type.LogicalType.Map;
 
 public class Settings extends BotCommand<MessageEmbed> {
 
@@ -62,7 +69,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         String subcommandName = event.getSubcommandName();
 
         if(verifyServerPerms(event.getMember())) {
-            if(optionMappingList.isEmpty()) {
+            if(optionMappingList.isEmpty() && subcommandGroup == null) {
                 eb.addField(subcommandName, defaultResponses.get(event.getSubcommandName()), false);
             } else {
                 if(subcommandGroup != null) {
@@ -78,6 +85,14 @@ public class Settings extends BotCommand<MessageEmbed> {
                         switch(subcommandName) {
                             case "auction_notifications" -> setAuctionNotifications(event.getGuild().getIdLong(), event.getOptions().get(0).getAsBoolean(), eb);
                             case "auction_channel" -> setAuctionChannel(event.getGuild().getIdLong(), event.getOptions().get(0).getAsChannel(), eb);
+                        }
+                    } else if(subcommandGroup.equalsIgnoreCase("bot")) {
+                        if(verifyBotPerms(event.getUser().getIdLong())) {
+                            switch(subcommandName) {
+                                case "clear_cache" -> clearCache(eb);
+                            }
+                        } else {
+                            eb.setDescription("You are not the bot owner.");
                         }
                     }
                 } else {
@@ -113,8 +128,12 @@ public class Settings extends BotCommand<MessageEmbed> {
                         new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
                         new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
                 );
+        SubcommandGroupData bot = new SubcommandGroupData("bot", "Settings for the bot owner")
+                .addSubcommands(
+                        new SubcommandData("clear_cache", "Clears the cache")
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab, bot).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -136,8 +155,12 @@ public class Settings extends BotCommand<MessageEmbed> {
                         new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
                         new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
                 );
+        SubcommandGroupData bot = new SubcommandGroupData("bot", "Settings for the bot owner")
+                .addSubcommands(
+                        new SubcommandData("clear_cache", "Clears the cache")
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab, bot).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -296,10 +319,25 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
+    private void clearCache(@Nonnull EmbedBuilder eb) {
+        try {
+            PositionsDataHandler.clearPrices();
+            PositionsDataHandler.clearTransfers();
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        eb.setDescription("Successfully cleared cache");
+    }
+
     private boolean verifyServerPerms(Member member) {
         return member.hasPermission(
                 Permission.MANAGE_SERVER
         );
+    }
+
+    private boolean verifyBotPerms(long userId) {
+        return userId == CommandsHandler.adminUserID;
     }
 
     private boolean canBotSendMessages(@Nonnull GuildChannelUnion channel) {

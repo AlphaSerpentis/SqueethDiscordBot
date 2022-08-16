@@ -50,10 +50,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class Crab extends BotCommand<MessageEmbed> {
 
-    private static final String oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+    private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5", oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
     public static abstract class CrabVault {
-        public final Function callVaultsFunc = new Function("getVaultDetails",
+        public static final Function callVaultsFunc = new Function("getVaultDetails",
                 Collections.emptyList(),
                 Arrays.asList(
                         new TypeReference<Address>() { },
@@ -62,7 +62,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                         new TypeReference<Uint128>() { }
                 )
         );
-        public final Function callUniswapv3TwapOsqth = new Function("getTwap",
+        public static final Function callUniswapv3TwapOsqth = new Function("getTwap",
                 Arrays.asList(
                         new org.web3j.abi.datatypes.Address(pool),
                         new org.web3j.abi.datatypes.Address(oSQTH),
@@ -75,7 +75,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                         }
                 )
         );
-        public final Function callUniswapv3TwapEth = new Function("getTwap",
+        public static final Function callUniswapv3TwapEth = new Function("getTwap",
                 Arrays.asList(
                         new org.web3j.abi.datatypes.Address(ethusdcPool),
                         new org.web3j.abi.datatypes.Address(weth),
@@ -88,14 +88,21 @@ public class Crab extends BotCommand<MessageEmbed> {
                         }
                 )
         );
-        public final Function callTotalSupply = new Function("totalSupply",
+        public static final Function callTotalSupply = new Function("totalSupply",
                 Collections.emptyList(),
                 List.of(
                         new TypeReference<Uint256>() {
                         }
                 )
         );
-        public final Function callTimeAtLastHedge = new Function("timeAtLastHedge",
+        public static final Function callTimeAtLastHedge = new Function("timeAtLastHedge",
+                Collections.emptyList(),
+                List.of(
+                        new TypeReference<Uint256>() {
+                        }
+                )
+        );
+        public static final Function callNormFactor = new Function("getExpectedNormalizationFactor",
                 Collections.emptyList(),
                 List.of(
                         new TypeReference<Uint256>() {
@@ -179,14 +186,6 @@ public class Crab extends BotCommand<MessageEmbed> {
             }
 
             try {
-                Function callNormFactor = new Function("getExpectedNormalizationFactor",
-                        Collections.emptyList(),
-                        List.of(
-                                new TypeReference<Uint256>() {
-                                }
-                        )
-                );
-
                 List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, callVaultsFunc, lastHedgeBlock - 1);
                 List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, lastHedgeBlock - 1);
                 List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, lastHedgeBlock - 1);
@@ -198,7 +197,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                 priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock("0x64187ae08781b09368e6253f9e94951243a493d5", callNormFactor, lastHedgeBlock - 1).get(0).getValue();
+                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock - 1).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -223,7 +222,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                 priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock("0x64187ae08781b09368e6253f9e94951243a493d5", callNormFactor, lastHedgeBlock).get(0).getValue();
+                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -264,26 +263,29 @@ public class Crab extends BotCommand<MessageEmbed> {
             public static ScheduledExecutorService scheduledExecutor;
             public static long auctionTime;
             public static NotificationPhase notificationPhase;
-            public Auction() {
-                // check how long until next auction
-                long timeUntilNextAuction = timeUntilNextAuction();
 
+            public Auction() {
                 scheduledExecutor = Executors.newScheduledThreadPool(1);
 
-                // grab servers
-                for(Long serverId: ServerDataHandler.serverDataHashMap.keySet()) {
-                    ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
-                    if(sd.getListenToCrabAuctions()) {
-                        serversListening.add(serverId);
-                    }
-                }
+                scheduledExecutor.schedule(() -> {
+                    // check how long until next auction
+                    long timeUntilNextAuction = timeUntilNextAuction();
 
-                if(timeUntilNextAuction - 3600 > 0) {
-                    notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
-                    scheduledExecutor.schedule(Auction::prepareNotification, (timeUntilNextAuction - 3600), TimeUnit.SECONDS);
-                } else {
-                    prepareNotification();
-                }
+                    // grab servers
+                    for(Long serverId: ServerDataHandler.serverDataHashMap.keySet()) {
+                        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+                        if(sd.getListenToCrabAuctions()) {
+                            serversListening.add(serverId);
+                        }
+                    }
+
+                    if(timeUntilNextAuction - 3600 > 0) {
+                        notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+                        scheduledExecutor.schedule(Auction::prepareNotification, (timeUntilNextAuction - 3600), TimeUnit.SECONDS);
+                    } else {
+                        prepareNotification();
+                    }
+                }, 1, TimeUnit.SECONDS);
             }
 
             public static long timeUntilNextAuction() {
@@ -382,7 +384,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                     notificationPhase = NotificationPhase.AUCTION_SETTLING;
                 } else {
                     notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
-                    scheduledExecutor.schedule(Auction::prepareNotification, timeUntilNextAuction(), TimeUnit.SECONDS);
+                    scheduledExecutor.schedule(Auction::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
                 }
 
                 if(originalPhase != null || notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // Skips notifying if the bot started up during auction
@@ -392,7 +394,11 @@ public class Crab extends BotCommand<MessageEmbed> {
 
             public static void notifyAboutAuction() {
                 EmbedBuilder eb = new EmbedBuilder();
-                String defaultTitle = "Crab v2 Auction Upcoming!";
+                NumberFormat format = NumberFormat.getInstance();
+                double[] sizeOfAuction = estimateSizeOfAuction();
+                String defaultTitle = "Crab Feeding Time (Crab Auction) Upcoming!";
+                String approxSizeOfAuction = null;
+
                 eb.addField("Notice", "The strategy may or may not rebalance in-between the scheduled auctions or rebalance at all", false);
 
                 switch(notificationPhase) {
@@ -400,17 +406,25 @@ public class Crab extends BotCommand<MessageEmbed> {
                     case THIRTY_MINUTES -> eb.setTitle(defaultTitle + " (Thirty Minute Notice)");
                     case TEN_MINUTES -> eb.setTitle(defaultTitle + " (Ten Minute Notice)");
                     case ONE_MINUTE -> eb.setTitle(defaultTitle + " (One Minute Notice)");
-                    case AUCTION_ACTIVE -> eb.setTitle("Crab v2 Auction is Live!");
-                    case AUCTION_SETTLING -> eb.setTitle("Crab v2 Auction is Settling!");
-                    case AUCTION_NOT_ACTIVE -> eb.setTitle("Next Crab v2 Auction Date");
+                    case AUCTION_ACTIVE -> eb.setTitle("Crab Feeding Time (Crab Auction) is Live!");
+                    case AUCTION_SETTLING -> eb.setTitle("Crab Feeding Time (Crab Auction) is Settling!");
+                    case AUCTION_NOT_ACTIVE -> eb.setTitle("Next Crab Feeding Time (Crab Auction) Date");
+                }
+
+                if(notificationPhase != NotificationPhase.AUCTION_ACTIVE && notificationPhase != NotificationPhase.AUCTION_SETTLING && notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
+                    if(sizeOfAuction[0] < 0) { // Buying oSQTH, Selling ETH
+                        approxSizeOfAuction = "Approximately, Crab is buying " + format.format(sizeOfAuction[1]) + " oSQTH for " + format.format(-1 * sizeOfAuction[0]) + " ETH";
+                    } else { // Selling oSQTH, Buying ETH
+                        approxSizeOfAuction = "Approximately, Crab is selling " + format.format(-1 * sizeOfAuction[1]) + " oSQTH for " + format.format(sizeOfAuction[0]) + " ETH";
+                    }
                 }
 
                 if(notificationPhase == NotificationPhase.AUCTION_ACTIVE) {
-                    eb.setDescription("Crab Auction is currently active! You can place bids at https://squeethportal.xyz/auction");
+                    eb.setDescription("Crab Feeding Time is currently active! Users can place bids at https://squeethportal.xyz/auction");
                 } else if(notificationPhase == NotificationPhase.AUCTION_SETTLING) {
-                    eb.setDescription("Crab Auction is currently in the process of settling; rebalance will occur soon!");
+                    eb.setDescription("Crab Feeding Time is currently in the process of settling; rebalance will occur soon!");
                 } else if(notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
-                    eb.setDescription("In <t:" + auctionTime + ":R>, Crab v2 strategy will start an auction! You can check out the current stats at https://squeethportal.xyz/auction");
+                    eb.setDescription("In <t:" + auctionTime + ":R>, Crab v2 strategy will start an auction! Users can check out the current stats at https://squeethportal.xyz/auction\n\n" + approxSizeOfAuction);
                 } else {
                     eb.setDescription("At <t:" + auctionTime + ">, Crab v2 strategy will prepare an auction!");
                 }
@@ -434,6 +448,54 @@ public class Crab extends BotCommand<MessageEmbed> {
                             Throwable::printStackTrace
                     );
                 }
+            }
+
+            public static double[] estimateSizeOfAuction() {
+                double[] sizes = new double[2];
+
+                // Get info
+                BigInteger ethUsd, osqthEth, osqthUsd, normFactor, osqthHoldings, ethVaultCollateral;
+                BigInteger currentBlock;
+                try {
+                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                double impliedVol;
+
+                try {
+                    List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, callVaultsFunc, currentBlock.longValue());
+                    List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, currentBlock.longValue());
+                    List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, currentBlock.longValue());
+                    List<Type> normFactorResult = EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, currentBlock.longValue());
+
+                    ethVaultCollateral = (BigInteger) vaultDetails.get(2).getValue();
+                    osqthHoldings = (BigInteger) vaultDetails.get(3).getValue();
+                    osqthEth = (BigInteger) osqthEthPrice.get(0).getValue();
+                    ethUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
+                    normFactor = (BigInteger) normFactorResult.get(0).getValue();
+
+                    osqthUsd = osqthEth.multiply(ethUsd).divide(BigInteger.valueOf((long) Math.pow(10,18)));
+                    impliedVol = Math.sqrt(Math.log(osqthEth.doubleValue() / Math.pow(10,18) * 10000/(normFactor.doubleValue() / Math.pow(10,18) * (ethUsd.doubleValue() / Math.pow(10,18))))/(17.5/365));
+
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                // Calculate delta
+                double delta = new Vault.VaultGreeks(
+                        ethUsd.doubleValue() / Math.pow(10,18),
+                        osqthUsd.doubleValue() / Math.pow(10,18),
+                        normFactor.doubleValue() / Math.pow(10,18),
+                        impliedVol,
+                        -osqthHoldings.doubleValue() / Math.pow(10,18),
+                        ethVaultCollateral.doubleValue() / Math.pow(10,18)
+                ).delta;
+
+                sizes[0] = delta;
+                sizes[1] = -delta/(osqthEth.doubleValue() / Math.pow(10,18));
+
+                return sizes;
             }
 
             public static long getAuctionTime() {
@@ -478,14 +540,6 @@ public class Crab extends BotCommand<MessageEmbed> {
             rebalancedEth = ((BigInteger) FunctionReturnDecoder.decodeIndexedValue(data[3], new TypeReference<Uint256>() {}).getValue()).doubleValue() / Math.pow(10,18) * rebalancedOsqth;
 
             try {
-                Function callNormFactor = new Function("getExpectedNormalizationFactor",
-                        Collections.emptyList(),
-                        List.of(
-                                new TypeReference<Uint256>() {
-                                }
-                        )
-                );
-
                 List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, callVaultsFunc, lastHedgeBlock - 1);
                 List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, lastHedgeBlock - 1);
                 List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, lastHedgeBlock - 1);
@@ -497,7 +551,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                 priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock("0x64187ae08781b09368e6253f9e94951243a493d5", callNormFactor, lastHedgeBlock - 1).get(0).getValue();
+                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock - 1).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -522,7 +576,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                 priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock("0x64187ae08781b09368e6253f9e94951243a493d5", callNormFactor, lastHedgeBlock).get(0).getValue();
+                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -585,16 +639,16 @@ public class Crab extends BotCommand<MessageEmbed> {
                 Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
                 if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
                     try {
-                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, crab.callVaultsFunc);
-                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, crab.callUniswapv3TwapOsqth);
-                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, crab.callUniswapv3TwapEth);
+                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callVaultsFunc);
+                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapOsqth);
+                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapEth);
 
                         crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                         crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
                         BigInteger priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                         crab.priceOfEthInUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
-                        crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, crab.callTotalSupply).get(0).getValue();
-                        crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, crab.callTimeAtLastHedge).get(0).getValue()).longValue();
+                        crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTotalSupply).get(0).getValue();
+                        crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
                         DecimalFormat df = new DecimalFormat("#");
 
                         crab.normFactor = new BigInteger(String.valueOf(df.format(LaevitasHandler.latestSqueethData.getNormalizationFactor() * (long) Math.pow(10,18))));
