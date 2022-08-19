@@ -46,9 +46,12 @@ public class Settings extends BotCommand<MessageEmbed> {
     private static final String error = "An error occurred, please try again later. If this persists, please contact AlphaSerpentis#3203 at discord.gg/opyn";
 
     public Settings() {
-        name = "settings";
-        description = "Configure the server settings";
-        onlyEmbed = true;
+        super(new BotCommandOptions(
+           "settings",
+           "Configure the server settings",
+           true,
+           false
+        ));
     }
 
     @Nonnull

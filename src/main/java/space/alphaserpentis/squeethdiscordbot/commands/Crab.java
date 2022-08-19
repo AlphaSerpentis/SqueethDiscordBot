@@ -599,10 +599,18 @@ public class Crab extends BotCommand<MessageEmbed> {
     private static CrabVault crabV1, crabV2;
 
     public Crab() {
-        name = "crab";
-        description = "Get current statistics on the Crab strategy!";
-        onlyEmbed = true;
-        deferReplies = true;
+        super(new BotCommandOptions(
+           "crab",
+           "Get current statistics on the Crab strategy!",
+           0,
+           0,
+           true,
+           false,
+           true,
+           true,
+           false,
+           false
+        ));
 
         try {
             crabV1 = new v1();

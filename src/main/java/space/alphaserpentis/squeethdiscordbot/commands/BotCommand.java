@@ -19,10 +19,114 @@ import java.util.HashMap;
 
 public abstract class BotCommand<T> {
 
-    protected HashMap<Long, Long> ratelimitMap = new HashMap<>();
-    protected String name, description;
-    protected long commandId, ratelimitLength, messageExpirationLength;
-    protected boolean onlyEmbed, onlyEphemeral, isActive = true, deferReplies, useRatelimits, messagesExpire;
+    public static class BotCommandOptions {
+        protected final String name;
+        protected final String description;
+        protected final long ratelimitLength;
+        protected final long messageExpirationLength;
+        protected final boolean onlyEmbed;
+        protected final boolean onlyEphemeral;
+        protected final boolean isActive;
+        protected final boolean deferReplies;
+        protected final boolean useRatelimits;
+        protected final boolean messagesExpire;
+        protected long defaultRatelimitLength = 0;
+        protected long defaultMessageExpirationLength = 0;
+        protected boolean defaultOnlyEmbed = false;
+        protected boolean defaultOnlyEphemeral = false;
+        protected boolean defaultIsActive = true;
+        protected boolean defaultDeferReplies = false;
+        protected boolean defaultUseRatelimits = false;
+        protected boolean defaultMessagesExpire = false;
+
+        public BotCommandOptions(
+                @Nonnull String name,
+                @Nonnull String description
+        ) {
+            this.name = name;
+            this.description = description;
+            ratelimitLength = defaultRatelimitLength;
+            messageExpirationLength = defaultMessageExpirationLength;
+            onlyEmbed = defaultOnlyEmbed;
+            onlyEphemeral = defaultOnlyEphemeral;
+            isActive = defaultIsActive;
+            deferReplies = defaultDeferReplies;
+            useRatelimits = defaultUseRatelimits;
+            messagesExpire = defaultMessagesExpire;
+        }
+
+        public BotCommandOptions(
+                @Nonnull String name,
+                @Nonnull String description,
+                boolean onlyEmbed,
+                boolean onlyEphemeral
+        ) {
+            this.name = name;
+            this.description = description;
+            this.onlyEmbed = onlyEmbed;
+            this.onlyEphemeral = onlyEphemeral;
+            ratelimitLength = defaultRatelimitLength;
+            messageExpirationLength = defaultMessageExpirationLength;
+            isActive = defaultIsActive;
+            deferReplies = defaultDeferReplies;
+            useRatelimits = defaultUseRatelimits;
+            messagesExpire = defaultMessagesExpire;
+        }
+
+        public BotCommandOptions(
+                @Nonnull String name,
+                @Nonnull String description,
+                long ratelimitLength,
+                long messageExpirationLength,
+                boolean onlyEmbed,
+                boolean onlyEphemeral,
+                boolean isActive,
+                boolean deferReplies,
+                boolean useRatelimits,
+                boolean messagesExpire
+        ) {
+            this.name = name;
+            this.description = description;
+            this.ratelimitLength = ratelimitLength;
+            this.messageExpirationLength = messageExpirationLength;
+            this.onlyEmbed = onlyEmbed;
+            this.onlyEphemeral = onlyEphemeral;
+            this.isActive = isActive;
+            this.deferReplies = deferReplies;
+            this.useRatelimits = useRatelimits;
+            this.messagesExpire = messagesExpire;
+        }
+    }
+
+    protected final HashMap<Long, Long> ratelimitMap = new HashMap<>();
+    protected final String name;
+    protected final String description;
+    protected final long ratelimitLength;
+    protected final long messageExpirationLength;
+    protected final boolean onlyEmbed;
+    protected final boolean onlyEphemeral;
+    protected final boolean isActive;
+    protected final boolean deferReplies;
+    protected final boolean useRatelimits;
+    protected final boolean messagesExpire;
+    protected long commandId;
+
+    public BotCommand() {
+        throw new RuntimeException("Unsupported constructor");
+    }
+
+    public BotCommand(@Nonnull BotCommandOptions options) {
+        name = options.name;
+        description = options.description;
+        ratelimitLength = options.ratelimitLength;
+        messageExpirationLength = options.messageExpirationLength;
+        onlyEmbed = options.onlyEmbed;
+        onlyEphemeral = options.onlyEphemeral;
+        isActive = options.isActive;
+        deferReplies = options.defaultDeferReplies;
+        useRatelimits = options.useRatelimits;
+        messagesExpire = options.messagesExpire;
+    }
 
     @Nonnull
     abstract public T runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);

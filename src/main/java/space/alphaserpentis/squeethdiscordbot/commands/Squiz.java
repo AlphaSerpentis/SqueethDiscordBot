@@ -4,6 +4,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -35,7 +36,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         RANDOM,
         IN_PROGRESS,
         COMPLETE,
-        VIEWING_LEADERBOARD
+        VIEWING_LEADERBOARD,
+        GETTING_PLAYERS
     }
 
     public static class SquizSession {
@@ -70,12 +72,18 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public static HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
 
     public Squiz() {
-        name = "squiz";
-        description = "Squeeth quiz!";
-        onlyEmbed = true;
-        onlyEphemeral = true;
-        messagesExpire = true;
-        messageExpirationLength = 60;
+        super(new BotCommandOptions(
+            "squiz",
+            "Squeeth quiz!",
+            0,
+            60,
+            true,
+            true,
+            true,
+            false,
+            false,
+            true
+        ));
 
         buttonHashMap.put("Start", Button.primary("squiz_start", "Start"));
         buttonHashMap.put("End", Button.primary("squiz_end", "End"));
@@ -87,6 +95,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         buttonHashMap.put("False", Button.primary("squiz_answer_false", "False"));
         buttonHashMap.put("Leaderboard", Button.primary("squiz_leaderboard", "Leaderboard"));
         buttonHashMap.put("Review", Button.primary("squiz_review", "Review"));
+        buttonHashMap.put("Previous", Button.primary("squiz_previous", "Previous"));
+        buttonHashMap.put("1/?", Button.secondary("squiz_page", "1/?").asDisabled());
+        buttonHashMap.put("Next", Button.primary("squiz_next", "Next"));
     }
 
     @Nonnull
@@ -120,6 +131,72 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         eb.setDescription("You are already in a quiz!");
                     }
                 }
+                case "add_point" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
+
+                        leaderboard.addPoint(event.getUser().getIdLong());
+
+                        SquizHandler.squizLeaderboardHashMap.putIfAbsent(event.getGuild().getIdLong(), leaderboard);
+
+                        eb.setDescription("Added one point to " + event.getOptions().get(0).getAsUser().getAsMention());
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                    return eb.build();
+                }
+                case "remove_point" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
+
+                        leaderboard.removePoint(event.getUser().getIdLong());
+
+                        SquizHandler.squizLeaderboardHashMap.putIfAbsent(event.getGuild().getIdLong(), leaderboard);
+
+                        eb.setDescription("Removed one point to " + event.getOptions().get(0).getAsUser().getAsMention());
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                    return eb.build();
+                }
+                case "get_players" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        StringBuilder users = new StringBuilder("```\n");
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.get(event.getGuild().getIdLong());
+                        ArrayList<String> pages;
+
+                        if(leaderboard == null) {
+                            eb.setDescription("No players have played the Squiz yet");
+                            return eb.build();
+                        } else {
+                            String backupString;
+                            pages = new ArrayList<>();
+                            for(long playerId: leaderboard.leaderboard.keySet()) {
+                                backupString = users.toString();
+                                users.append(Launcher.api.retrieveUserById(playerId).complete().getAsMention()).append("\n");
+                                if(users.length() > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
+                                    pages.add(backupString + "\n```");
+                                    users = new StringBuilder("```\n");
+                                }
+                            }
+                            users.append("\n```");
+                            pages.add(users.toString());
+                        }
+
+                        eb.setDescription(pages.get(0));
+                        session.currentState = States.GETTING_PLAYERS;
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                }
+                case "clear_leaderboard" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                    return eb.build();
+                }
             }
         }
 
@@ -134,8 +211,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
+        SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -146,8 +225,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
+        SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -613,5 +694,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             }
         }
         return 0;
+    }
+
+    private static boolean verifyManageServerPerms(@Nonnull Member member) {
+        return member.hasPermission(Permission.MANAGE_SERVER);
     }
 }

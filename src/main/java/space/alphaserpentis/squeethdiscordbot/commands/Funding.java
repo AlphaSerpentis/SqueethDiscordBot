@@ -18,9 +18,12 @@ import java.util.List;
 public class Funding extends BotCommand<MessageEmbed> {
 
     public Funding() {
-        name = "funding";
-        description = "Calculates the estimated amount of funding you would pay (or receive)";
-        onlyEmbed = true;
+        super(new BotCommandOptions(
+           "funding",
+           "Calculates the estimated amount of funding you would pay (or receive)",
+           true,
+           false
+        ));
     }
 
     @Nonnull

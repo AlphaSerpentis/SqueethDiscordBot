@@ -16,9 +16,12 @@ import java.math.BigDecimal;
 public class Greeks extends BotCommand<MessageEmbed> {
 
     public Greeks() {
-        name = "greeks";
-        description = "Display the Greeks for the Squeeth!";
-        onlyEmbed = true;
+        super(new BotCommandOptions(
+                "greeks",
+                "Display the Greeks for the Squeeth!",
+                true,
+                false
+        ));
     }
 
     @Nonnull

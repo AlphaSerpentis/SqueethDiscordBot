@@ -193,13 +193,18 @@ public class Vault extends BotCommand<MessageEmbed> {
     }
 
     public Vault() {
-        name = "vault";
-        description = "Display info on a certain short vault";
-        onlyEmbed = true;
-        onlyEphemeral = true;
-        deferReplies = true;
-        useRatelimits = true;
-        ratelimitLength = 60;
+        super(new BotCommandOptions(
+            "vault",
+            "Display info on a certain short vault",
+            60,
+            0,
+            true,
+            true,
+            true,
+            true,
+            true,
+            false
+        ));
     }
 
     @NotNull

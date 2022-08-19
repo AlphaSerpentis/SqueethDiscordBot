@@ -12,9 +12,12 @@ import javax.annotation.Nonnull;
 public class About extends BotCommand<MessageEmbed> {
 
     public About() {
-        name = "about";
-        description = "Description of the bot";
-        onlyEmbed = true;
+        super(new BotCommandOptions(
+            "about",
+            "Description of the bot",
+            true,
+            false
+        ));
     }
 
     @Nonnull

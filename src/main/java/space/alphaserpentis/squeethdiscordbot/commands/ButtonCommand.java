@@ -15,13 +15,21 @@ import java.util.HashMap;
 public abstract class ButtonCommand<T> extends BotCommand<T> {
     protected final HashMap<String, Button> buttonHashMap = new HashMap<>();
 
+    public ButtonCommand() {
+        super();
+    }
+
+    public ButtonCommand(@Nonnull BotCommandOptions options) {
+        super(options);
+    }
+
     abstract public void runButtonInteraction(@Nonnull ButtonInteractionEvent event);
     abstract public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event);
     @Nullable
     public Button getButton(String key) {
         return buttonHashMap.get(key);
     }
-    @Nullable
+    @Nonnull
     public HashMap<String, Button> getButtonHashMap() {
         return buttonHashMap;
     }

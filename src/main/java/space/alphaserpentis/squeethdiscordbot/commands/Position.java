@@ -367,13 +367,18 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public Position() {
-        name = "position";
-        description = "Checks your wallet's Squeeth position";
-        onlyEmbed = true;
-        onlyEphemeral = true;
-        deferReplies = true;
-        useRatelimits = true;
-        ratelimitLength = 60;
+        super(new BotCommandOptions(
+            "position",
+            "Checks your wallet's long Squeeth and Crab v1/v2 positions",
+            60,
+            0,
+            true,
+            true,
+            true,
+            true,
+            true,
+            false
+        ));
 
         buttonHashMap.put("Previous", Button.primary("position_previous", "Previous").asDisabled());
         buttonHashMap.put("Page", Button.secondary("position_page", "1/3").asDisabled());
