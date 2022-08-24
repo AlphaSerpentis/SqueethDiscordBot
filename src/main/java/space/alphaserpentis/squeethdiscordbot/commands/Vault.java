@@ -26,9 +26,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class Vault extends BotCommand<MessageEmbed> {
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.controller;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.ethUsdcPool;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.usdc;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.weth;
 
-    private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
+public class Vault extends BotCommand<MessageEmbed> {
 
     public static class VaultGreeks {
         private final double ethUsd;
@@ -87,6 +91,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             BigInteger amount1 = BigInteger.ZERO;
         }
 
+        @SuppressWarnings("rawtypes")
         public BigInteger getAmount0Delta(
                 @Nonnull BigInteger sqrtRatioAX96, // uint160
                 @Nonnull BigInteger sqrtRatioBX96, // uint160
@@ -111,6 +116,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             return (BigInteger) response.get(0).getValue();
         }
 
+        @SuppressWarnings("rawtypes")
         public BigInteger getAmount1Delta(
                 @Nonnull BigInteger sqrtRatioAX96, // uint160
                 @Nonnull BigInteger sqrtRatioBX96, // uint160
@@ -177,6 +183,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             return amounts;
         }
 
+        @SuppressWarnings("rawtypes")
         private BigInteger call_getSqrtRatioAtTick(@Nonnull BigInteger tick) throws ExecutionException, InterruptedException {
             Function getSqrtRatioAtTick = new Function("getSqrtRatioAtTick",
                     List.of(
@@ -208,6 +215,7 @@ public class Vault extends BotCommand<MessageEmbed> {
     }
 
     @NotNull
+    @SuppressWarnings("rawtypes")
     @Override
     public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
@@ -235,9 +243,9 @@ public class Vault extends BotCommand<MessageEmbed> {
         );
         Function callUniswapv3PriceCheck = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address("0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"),
-                        new org.web3j.abi.datatypes.Address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
-                        new org.web3j.abi.datatypes.Address("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
+                        new org.web3j.abi.datatypes.Address(weth),
+                        new org.web3j.abi.datatypes.Address(usdc),
                         new Uint32(1),
                         new org.web3j.abi.datatypes.Bool(true)
                 ),
@@ -273,8 +281,8 @@ public class Vault extends BotCommand<MessageEmbed> {
 
         try {
             vaultsResponse = EthereumRPCHandler.ethCallAtLatestBlock(controller, callVaults);
-            priceOfEthResponse = EthereumRPCHandler.ethCallAtLatestBlock("0x65d66c76447ccb45daf1e8044e918fa786a483a1", callUniswapv3PriceCheck);
-            tickOfoSQTHPoolResponse = EthereumRPCHandler.ethCallAtLatestBlock("0x65d66c76447ccb45daf1e8044e918fa786a483a1", callUniswapv3Tick);
+            priceOfEthResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck);
+            tickOfoSQTHPoolResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3Tick);
             Uniswapv3FuckYouMath univ3 = new Uniswapv3FuckYouMath();
 
             address = (String) vaultsResponse.get(0).getValue();

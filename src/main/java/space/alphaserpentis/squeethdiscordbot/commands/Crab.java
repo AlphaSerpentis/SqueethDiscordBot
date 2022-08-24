@@ -48,9 +48,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Crab extends BotCommand<MessageEmbed> {
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
 
-    private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5", oSQTH = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", pool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", ethusdcPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1", usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+public class Crab extends BotCommand<MessageEmbed> {
 
     public static abstract class CrabVault {
         public static final Function callVaultsFunc = new Function("getVaultDetails",
@@ -64,8 +66,8 @@ public class Crab extends BotCommand<MessageEmbed> {
         );
         public static final Function callUniswapv3TwapOsqth = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(pool),
-                        new org.web3j.abi.datatypes.Address(oSQTH),
+                        new org.web3j.abi.datatypes.Address(osqthEthPool),
+                        new org.web3j.abi.datatypes.Address(osqth),
                         new org.web3j.abi.datatypes.Address(weth),
                         new Uint32(1),
                         new org.web3j.abi.datatypes.Bool(true)
@@ -77,7 +79,7 @@ public class Crab extends BotCommand<MessageEmbed> {
         );
         public static final Function callUniswapv3TwapEth = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethusdcPool),
+                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
                         new org.web3j.abi.datatypes.Address(weth),
                         new org.web3j.abi.datatypes.Address(usdc),
                         new Uint32(1),
@@ -139,6 +141,7 @@ public class Crab extends BotCommand<MessageEmbed> {
             super("0xf205ad80bb86ac92247638914265887a8baa437d");
         }
 
+        @SuppressWarnings("rawtypes")
         @Override
         public void updateLastHedge() throws IOException {
             EthFilter filter = new EthFilter(new DefaultBlockParameterNumber(15134805), new DefaultBlockParameterNumber(EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber()), address)
@@ -450,6 +453,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 }
             }
 
+            @SuppressWarnings("rawtypes")
             public static double[] estimateSizeOfAuction() {
                 double[] sizes = new double[2];
 
@@ -508,6 +512,7 @@ public class Crab extends BotCommand<MessageEmbed> {
             auction = new Auction();
         }
 
+        @SuppressWarnings("rawtypes")
         @Override
         public void updateLastHedge() throws IOException {
             EthFilter filter = new EthFilter(new DefaultBlockParameterNumber(15134805), new DefaultBlockParameterNumber(EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber()), address)
@@ -623,6 +628,7 @@ public class Crab extends BotCommand<MessageEmbed> {
     }
 
     @Nonnull
+    @SuppressWarnings("rawtypes")
     @Override
     public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();

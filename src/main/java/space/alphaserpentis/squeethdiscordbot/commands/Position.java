@@ -37,21 +37,18 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
+
 public class Position extends ButtonCommand<MessageEmbed> {
 
     private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
-    private static final String ethUsdPool = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8";
-    private static final String ethOsqthPool = "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c";
-    private static final String usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
-    private static final String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
-    private static final String weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-    private static final String oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1";
-    private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
     private static final Function getTwap_ethUsd = new Function(
                     "getTwap",
                     Arrays.asList(
-                            new org.web3j.abi.datatypes.Address(ethUsdPool),
+                            new org.web3j.abi.datatypes.Address(ethUsdcPool),
                             new org.web3j.abi.datatypes.Address(weth),
                             new org.web3j.abi.datatypes.Address(usdc),
                             new Uint32(1),
@@ -66,7 +63,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     private static final Function getTwap_osqth = new Function(
             "getTwap",
             Arrays.asList(
-                    new org.web3j.abi.datatypes.Address(ethOsqthPool),
+                    new org.web3j.abi.datatypes.Address(osqthEthPool),
                     new org.web3j.abi.datatypes.Address(osqth),
                     new org.web3j.abi.datatypes.Address(weth),
                     new Uint32(1),
@@ -274,7 +271,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         );
         private final Function callUniswapv3PriceCheck = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethOsqthPool),
+                        new org.web3j.abi.datatypes.Address(osqthEthPool),
                         new org.web3j.abi.datatypes.Address(osqth),
                         new org.web3j.abi.datatypes.Address(weth),
                         new Uint32(1),
@@ -287,7 +284,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         );
         private final Function callUniswapv3PriceCheck_USDC = new Function("getTwap",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethUsdPool),
+                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
                         new org.web3j.abi.datatypes.Address(weth),
                         new org.web3j.abi.datatypes.Address(usdc),
                         new Uint32(1),
@@ -312,6 +309,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
             this.isV2 = isV2;
         }
 
+        @SuppressWarnings("rawtypes")
         @Override
         public void getAndSetPrices() {
             try {
@@ -336,6 +334,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
             }
         }
 
+        @SuppressWarnings("rawtypes")
         @Override
         public void calculateCostBasis() {
             DecimalFormat df = new DecimalFormat("#");
