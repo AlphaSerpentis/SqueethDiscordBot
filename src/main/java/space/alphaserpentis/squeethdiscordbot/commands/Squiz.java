@@ -37,7 +37,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         IN_PROGRESS,
         COMPLETE,
         VIEWING_LEADERBOARD,
-        GETTING_PLAYERS
+        GETTING_PLAYERS,
+        PENDING_CONFIRMATION
     }
 
     public static class SquizSession {
@@ -68,6 +69,11 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public Message message;
     }
 
+    public static class ViewingPlayersSession extends SquizSession {
+        public ArrayList<String> pages;
+        public int currentPage = 0;
+    }
+
     public static HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
     public static HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
 
@@ -86,7 +92,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         ));
 
         buttonHashMap.put("Start", Button.primary("squiz_start", "Start"));
-        buttonHashMap.put("End", Button.primary("squiz_end", "End"));
+        buttonHashMap.put("End", Button.danger("squiz_end", "End"));
         buttonHashMap.put("A", Button.primary("squiz_answer_a", "A"));
         buttonHashMap.put("B", Button.primary("squiz_answer_b", "B"));
         buttonHashMap.put("C", Button.primary("squiz_answer_c", "C"));
@@ -95,9 +101,11 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         buttonHashMap.put("False", Button.primary("squiz_answer_false", "False"));
         buttonHashMap.put("Leaderboard", Button.primary("squiz_leaderboard", "Leaderboard"));
         buttonHashMap.put("Review", Button.primary("squiz_review", "Review"));
-        buttonHashMap.put("Previous", Button.primary("squiz_previous", "Previous"));
+        buttonHashMap.put("Previous", Button.primary("squiz_previous", "Previous").asDisabled());
         buttonHashMap.put("1/?", Button.secondary("squiz_page", "1/?").asDisabled());
         buttonHashMap.put("Next", Button.primary("squiz_next", "Next"));
+        buttonHashMap.put("Confirm", Button.danger("squiz_confirm", "Confirm"));
+        buttonHashMap.put("Cancel", Button.primary("squiz_cancel", "Cancel"));
     }
 
     @Nonnull
@@ -161,7 +169,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 }
                 case "get_players" -> {
                     if(verifyManageServerPerms(event.getMember())) {
-                        StringBuilder users = new StringBuilder("```\n");
+                        session = new ViewingPlayersSession();
+                        StringBuilder users = new StringBuilder("\n");
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.get(event.getGuild().getIdLong());
                         ArrayList<String> pages;
 
@@ -175,23 +184,24 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                                 backupString = users.toString();
                                 users.append(Launcher.api.retrieveUserById(playerId).complete().getAsMention()).append("\n");
                                 if(users.length() > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
-                                    pages.add(backupString + "\n```");
-                                    users = new StringBuilder("```\n");
+                                    pages.add(backupString + "\n");
+                                    users = new StringBuilder("\n");
                                 }
                             }
-                            users.append("\n```");
+                            users.append("\n");
                             pages.add(users.toString());
                         }
 
                         eb.setDescription(pages.get(0));
                         session.currentState = States.GETTING_PLAYERS;
+                        ((ViewingPlayersSession) session).pages = pages;
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
                 }
                 case "clear_leaderboard" -> {
                     if(verifyManageServerPerms(event.getMember())) {
-
+                        eb.setDescription("**Are you sure you want to clear the leaderboard?**\n\n**THIS IS IRREVERSIBLE**");
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
@@ -356,6 +366,47 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 }
                 squizSessionHashMap.remove(userId);
             }
+            case "squiz_next" -> {
+                buttons = new ArrayList<>();
+                ViewingPlayersSession viewingSession = (ViewingPlayersSession) session;
+
+                viewingSession.currentPage = viewingSession.currentPage + 1;
+                eb.setDescription(viewingSession.pages.get(viewingSession.currentPage));
+
+                if(viewingSession.pages.size() >= viewingSession.currentPage + 1) {
+                    buttons.add(Button.primary("squiz_next", "Next").asDisabled());
+                } else {
+                    buttons.add(Button.primary("squiz_next", "Next").asDisabled());
+                }
+
+                buttons.add(Button.primary("squiz_previous", "Previous").asEnabled());
+                buttons.add(Button.secondary("squiz_page", viewingSession.currentPage + 1 + "/" + viewingSession.pages.size()).asDisabled());
+            }
+            case "squiz_previous" -> {
+                buttons = new ArrayList<>();
+                ViewingPlayersSession viewingSession = (ViewingPlayersSession) session;
+
+                viewingSession.currentPage = viewingSession.currentPage - 1;
+                eb.setDescription(viewingSession.pages.get(viewingSession.currentPage));
+
+                buttons.add(Button.primary("squiz_next", "Next").asEnabled());
+
+                if(viewingSession.currentPage == 0) {
+                    buttons.add(Button.primary("squiz_previous", "Previous").asDisabled());
+                } else {
+                    buttons.add(Button.primary("squiz_previous", "Previous").asEnabled());
+                }
+
+                buttons.add(Button.secondary("squiz_page", viewingSession.currentPage + 1 + "/" + viewingSession.pages.size()).asDisabled());
+            }
+            case "squiz_confirm" -> {
+                squizSessionHashMap.remove(userId);
+                eb.setDescription("Leaderboard cleared");
+            }
+            case "squiz_cancel" -> {
+                squizSessionHashMap.remove(userId);
+                eb.setDescription("Leaderboard not cleared");
+            }
         }
 
         MessageEditCallbackAction pending = event.editComponents().setEmbeds(eb.build());
@@ -372,7 +423,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;
 
-        if(state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
+        if (state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
             return List.of(
                     buttonHashMap.get("A"),
                     buttonHashMap.get("B"),
@@ -380,12 +431,27 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     buttonHashMap.get("D"),
                     buttonHashMap.get("End")
             );
-        } else if(state == States.COMPLETE) {
+        } else if (state == States.COMPLETE) {
             return List.of(buttonHashMap.get("Review"));
-        } else if(event.getSubcommandName().equalsIgnoreCase("play") && state == States.IN_PROGRESS && session.currentQuestion != 0) {
+        } else if (event.getSubcommandName().equalsIgnoreCase("play") && state == States.IN_PROGRESS && session.currentQuestion != 0) {
             return List.of(buttonHashMap.get("End"));
-        } else if(state == States.VIEWING_LEADERBOARD) {
+        } else if (state == States.VIEWING_LEADERBOARD) {
             return Collections.emptyList();
+        } else if (state == States.GETTING_PLAYERS) {
+            if(((ViewingPlayersSession) session).pages.size() > 1) {
+                return List.of(
+                        buttonHashMap.get("Previous"),
+                        buttonHashMap.get("1/?").withLabel("1/" + ((ViewingPlayersSession) session).pages.size()),
+                        buttonHashMap.get("Next")
+                );
+            } else {
+                return Collections.emptyList();
+            }
+        } else if(state == States.PENDING_CONFIRMATION) {
+            return List.of(
+                    buttonHashMap.get("Confirm"),
+                    buttonHashMap.get("Cancel")
+            );
         } else { // Assumes this is DEFAULT
             return List.of(buttonHashMap.get("Start"));
         }

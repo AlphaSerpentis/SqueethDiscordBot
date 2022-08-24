@@ -6,7 +6,7 @@
 
     <groupId>space.alphaserpentis</groupId>
     <artifactId>SqueethDiscordBot</artifactId>
-    <version>1.12.9-test.1</version>
+    <version>1.12.9-test.2</version>
 
     <properties>
         <maven.compiler.source>14</maven.compiler.source>

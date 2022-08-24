@@ -9,4 +9,5 @@ public class PriceData {
     public BigInteger osqthEth = BigInteger.ZERO;
     public BigInteger crabEth = BigInteger.ZERO;
     public BigInteger crabV2Eth = BigInteger.ZERO;
+    public BigInteger normFactor = BigInteger.ZERO;
 }

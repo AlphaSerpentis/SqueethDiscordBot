@@ -47,6 +47,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     private static final String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
     private static final String weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
     private static final String oracle = "0x65d66c76447ccb45daf1e8044e918fa786a483a1";
+    private static final String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
     private static final Function getTwap_ethUsd = new Function(
                     "getTwap",
                     Arrays.asList(
@@ -161,6 +162,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public static class LongPositions extends AbstractPositions {
+        public static final Function getExpectedNormFactor = new Function("getExpectedNormalizationFactor",
+                List.of(),
+                List.of(
+                        new TypeReference<Uint256>() {}
+                )
+        );
+
+        public double earliestNormFactor = 0;
+        public double estimatedFunding = 0;
 
         public LongPositions(@Nonnull String userAddress) {
             super(userAddress);
@@ -195,9 +205,21 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                         priceData.ethUsdc = priceEth;
                         priceData.osqthEth = priceOsqth;
-
-                        PositionsDataHandler.addNewData((long) block, priceData);
                     }
+
+                    if(earliestNormFactor == 0) {
+                        if(priceData.normFactor.equals(BigInteger.ZERO)) {
+                            priceData.normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                                    controller,
+                                    getExpectedNormFactor,
+                                    (long) block
+                            ).get(0).getValue();
+                        }
+
+                        earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
+                    }
+
+                    PositionsDataHandler.addNewData((long) block, priceData);
 
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
@@ -205,6 +227,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                 costBasisInEth = costBasisInEth.add(priceOsqth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
                 costBasis = costBasis.add(priceOsqth.multiply(priceEth).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
+                estimatedFunding = calculateEstimatedFunding(earliestNormFactor, costBasis.doubleValue() / Math.pow(10,18));
             }
         }
 
@@ -213,6 +236,26 @@ public class Position extends ButtonCommand<MessageEmbed> {
             DecimalFormat df = new DecimalFormat("#");
             currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18)))));
             currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36)))));
+        }
+
+        /**
+         * Calculates the estimated funding provided norm factors from start to end and USD size
+         * @param normFactorStart norm factor at the start
+         * @param size USD size of the position affected
+         * @return estimated funding
+         */
+        public double calculateEstimatedFunding(double normFactorStart, double size) {
+            double normFactorEnd;
+            try {
+                normFactorEnd = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
+                    controller,
+                    getExpectedNormFactor
+                ).get(0).getValue()).doubleValue() / Math.pow(10,18);
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            double normFactorDiff = normFactorEnd/normFactorStart - 1;
+            return normFactorDiff * size * -1;
         }
     }
 
@@ -511,17 +554,18 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
     private void displayPositionPage(@Nonnull EmbedBuilder eb, int page, @Nonnull AbstractPositions[] posArray) {
         DecimalFormat df = new DecimalFormat("#");
+        NumberFormat nf = NumberFormat.getInstance();
 
-        String priceInUsd = NumberFormat.getInstance().format(posArray[page].currentPriceInUsd.divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))).doubleValue() / Math.pow(10,18));
-        String positionHeld = NumberFormat.getInstance().format(posArray[page].currentAmtHeld.doubleValue() / Math.pow(10,18));
-        String costBasisInUsd = NumberFormat.getInstance().format(posArray[page].costBasis.doubleValue() / Math.pow(10,18));
-        String costBasisInEth = NumberFormat.getInstance().format(posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18));
-        String positionValueInUsd = NumberFormat.getInstance().format(posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18));
-        String positionValueInEth = NumberFormat.getInstance().format(posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18));
-        String unrealizedPnlInUsd = NumberFormat.getInstance().format((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18)));
-        String unrealizedPnlInEth = NumberFormat.getInstance().format((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)));
-        String unrealizedPnlInUsdPercentage = NumberFormat.getInstance().format(((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasis.doubleValue() / Math.pow(10,18)) * 100);
-        String unrealizedPnlInEthPercentage = NumberFormat.getInstance().format(((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)) * 100);
+        String priceInUsd = nf.format(posArray[page].currentPriceInUsd.divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))).doubleValue() / Math.pow(10,18));
+        String positionHeld = nf.format(posArray[page].currentAmtHeld.doubleValue() / Math.pow(10,18));
+        String costBasisInUsd = nf.format(posArray[page].costBasis.doubleValue() / Math.pow(10,18));
+        String costBasisInEth = nf.format(posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18));
+        String positionValueInUsd = nf.format(posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18));
+        String positionValueInEth = nf.format(posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18));
+        String unrealizedPnlInUsd = nf.format((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18)));
+        String unrealizedPnlInEth = nf.format((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)));
+        String unrealizedPnlInUsdPercentage = nf.format(((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasis.doubleValue() / Math.pow(10,18)) * 100);
+        String unrealizedPnlInEthPercentage = nf.format(((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)) * 100);
 
         switch(page) {
             case 0 -> { // long squeeth
@@ -535,6 +579,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
+                    eb.addField("Estimated Funding Paid", "$" + nf.format(((LongPositions) posArray[0]).estimatedFunding), false);
                 }
             }
             case 1 -> { // crab v1

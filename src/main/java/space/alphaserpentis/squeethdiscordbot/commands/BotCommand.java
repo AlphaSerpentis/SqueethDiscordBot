@@ -16,6 +16,7 @@ import javax.annotation.Nonnull;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 public abstract class BotCommand<T> {
 
@@ -30,14 +31,14 @@ public abstract class BotCommand<T> {
         protected final boolean deferReplies;
         protected final boolean useRatelimits;
         protected final boolean messagesExpire;
-        protected long defaultRatelimitLength = 0;
-        protected long defaultMessageExpirationLength = 0;
-        protected boolean defaultOnlyEmbed = false;
-        protected boolean defaultOnlyEphemeral = false;
-        protected boolean defaultIsActive = true;
-        protected boolean defaultDeferReplies = false;
-        protected boolean defaultUseRatelimits = false;
-        protected boolean defaultMessagesExpire = false;
+        protected final long defaultRatelimitLength = 0;
+        protected final long defaultMessageExpirationLength = 0;
+        protected final boolean defaultOnlyEmbed = false;
+        protected final boolean defaultOnlyEphemeral = false;
+        protected final boolean defaultIsActive = true;
+        protected final boolean defaultDeferReplies = false;
+        protected final boolean defaultUseRatelimits = false;
+        protected final boolean defaultMessagesExpire = false;
 
         public BotCommandOptions(
                 @Nonnull String name,
@@ -123,7 +124,7 @@ public abstract class BotCommand<T> {
         onlyEmbed = options.onlyEmbed;
         onlyEphemeral = options.onlyEphemeral;
         isActive = options.isActive;
-        deferReplies = options.defaultDeferReplies;
+        deferReplies = options.deferReplies;
         useRatelimits = options.useRatelimits;
         messagesExpire = options.messagesExpire;
     }
@@ -267,16 +268,12 @@ public abstract class BotCommand<T> {
 
     protected static void letMessageExpire(@Nonnull BotCommand<?> command, @Nonnull Message message) {
         if(command.doMessagesExpire()) {
-            new Thread(
-                    () -> {
-                        try {
-                            Thread.sleep(command.getMessageExpirationLength() * 1000);
-                            message.delete().complete();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+            message.delete().queueAfter(command.getMessageExpirationLength(), TimeUnit.SECONDS,
+                    (ignored) -> {},
+                    (fail) -> {
+                        throw new RuntimeException(fail);
                     }
-            ).start();
+            );
         }
     }
 
