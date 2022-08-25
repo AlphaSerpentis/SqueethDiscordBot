@@ -202,10 +202,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 case "clear_leaderboard" -> {
                     if(verifyManageServerPerms(event.getMember())) {
                         eb.setDescription("**Are you sure you want to clear the leaderboard?**\n\n**THIS IS IRREVERSIBLE**");
+                        session.currentState = States.PENDING_CONFIRMATION;
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
-                    return eb.build();
                 }
             }
         }
@@ -400,8 +400,19 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 buttons.add(Button.secondary("squiz_page", viewingSession.currentPage + 1 + "/" + viewingSession.pages.size()).asDisabled());
             }
             case "squiz_confirm" -> {
-                squizSessionHashMap.remove(userId);
-                eb.setDescription("Leaderboard cleared");
+                SquizLeaderboard squizLeaderboard = SquizHandler.squizLeaderboardHashMap.get(serverId);
+
+                squizLeaderboard.leaderboard.clear();
+                updateLeaderboard(serverId);
+                try {
+                    SquizHandler.updateSquizLeaderboard();
+                    eb.setDescription("Leaderboard cleared");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    eb.setDescription("Leaderboard cleared, but not updated on disk!");
+                } finally {
+                    squizSessionHashMap.remove(userId);
+                }
             }
             case "squiz_cancel" -> {
                 squizSessionHashMap.remove(userId);
