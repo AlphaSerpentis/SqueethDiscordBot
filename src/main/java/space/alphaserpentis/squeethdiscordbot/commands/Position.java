@@ -166,7 +166,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 )
         );
 
-        public double earliestNormFactor = 0;
         public double estimatedFunding = 0;
 
         public LongPositions(@Nonnull String userAddress) {
@@ -188,7 +187,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
             DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
             for(int block : tokensAtBlock.keySet().stream().sorted().collect(Collectors.toList())) {
-                BigInteger priceOsqth, priceEth;
+                BigInteger priceOsqth, priceEth, transferCostBasis;
+                double earliestNormFactor;
                 try {
                     PriceData priceData = new PriceData();
 
@@ -204,17 +204,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         priceData.osqthEth = priceOsqth;
                     }
 
-                    if(earliestNormFactor == 0) {
-                        if(priceData.normFactor.equals(BigInteger.ZERO)) {
-                            priceData.normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
-                                    controller,
-                                    getExpectedNormFactor,
-                                    (long) block
-                            ).get(0).getValue();
-                        }
-
-                        earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
+                    if(priceData.normFactor.equals(BigInteger.ZERO)) {
+                        priceData.normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                                controller,
+                                getExpectedNormFactor,
+                                (long) block
+                        ).get(0).getValue();
                     }
+
+                    earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
 
                     PositionsDataHandler.addNewData((long) block, priceData);
 
@@ -223,8 +221,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 }
 
                 costBasisInEth = costBasisInEth.add(priceOsqth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
-                costBasis = costBasis.add(priceOsqth.multiply(priceEth).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
-                estimatedFunding = calculateEstimatedFunding(earliestNormFactor, costBasis.doubleValue() / Math.pow(10,18));
+                transferCostBasis = priceOsqth.multiply(priceEth).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36)))));
+                costBasis = costBasis.add(transferCostBasis);
+                estimatedFunding = estimatedFunding + calculateEstimatedFunding(earliestNormFactor, transferCostBasis.doubleValue() / Math.pow(10,18));
             }
         }
 
