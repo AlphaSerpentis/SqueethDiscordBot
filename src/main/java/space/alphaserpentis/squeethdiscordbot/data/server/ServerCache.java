@@ -9,10 +9,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ServerCache {
+    public static HashMap<Long, ArrayList<Long>> guildToChannelsMap = new HashMap<>();
     public static HashMap<Long, ArrayList<Long>> cachedMessages = new HashMap<>();
 
-    public static void addNewMessage(@Nonnull Long channelId, @Nonnull Long messageId) {
+    public static void addNewMessage(@Nonnull Long guildId, @Nonnull Long channelId, @Nonnull Long messageId) {
         ArrayList<Long> messages = cachedMessages.get(channelId);
+        ArrayList<Long> trackedChannels = guildToChannelsMap.getOrDefault(guildId, new ArrayList<>());
 
         if(messages == null) {
             messages = new ArrayList<>();
@@ -25,27 +27,33 @@ public class ServerCache {
             messages.add(messageId);
         } else {
             messages.add(messageId);
-
         }
+
+        if(!trackedChannels.contains(channelId))
+            trackedChannels.add(channelId);
+
+        guildToChannelsMap.put(guildId, trackedChannels);
     }
 
-    public static void removeMessages(@Nonnull Long channelId) {
+    public static void removeMessages(@Nonnull Long guildId) {
         if(cachedMessages.isEmpty()) {
             return;
         }
 
-        for(Long msgId: cachedMessages.get(channelId)) {
-            try {
-                Launcher.api.getGuildChannelById(channelId).getGuild().getTextChannelById(channelId).retrieveMessageById(msgId).queue(
-                        (success) -> success.delete().complete(),
-                        (ignored) -> {}
-                );
-            } catch(NullPointerException ignored) {
+        for(Long channelId: guildToChannelsMap.get(guildId)) {
+            for(Long msgId: cachedMessages.get(channelId)) {
+                try {
+                    Launcher.api.getGuildChannelById(channelId).getGuild().getTextChannelById(channelId).retrieveMessageById(msgId).queue(
+                            (success) -> success.delete().queue(),
+                            (ignored) -> {}
+                    );
+                } catch(NullPointerException ignored) {
 
+                }
             }
-        }
 
-        cachedMessages.get(channelId).clear();
+            cachedMessages.get(channelId).clear();
+        }
     }
 
 }

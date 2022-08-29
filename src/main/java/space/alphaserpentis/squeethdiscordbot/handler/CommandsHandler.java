@@ -87,7 +87,7 @@ public class CommandsHandler extends ListenerAdapter {
             message = BotCommand.handleReply(event, cmd);
 
             if(event.getGuild() != null && !message.isEphemeral()) {
-                ServerCache.addNewMessage(message.getChannel().getIdLong(), message.getIdLong());
+                ServerCache.addNewMessage(message.getGuild().getIdLong(), message.getChannel().getIdLong(), message.getIdLong());
             }
         });
     }

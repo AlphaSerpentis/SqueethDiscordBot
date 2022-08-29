@@ -489,7 +489,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
         Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
         session.message = message;
-        ServerCache.addNewMessage(message.getChannel().getIdLong(), message.getIdLong());
+        ServerCache.addNewMessage(message.getGuild().getIdLong(), message.getChannel().getIdLong(), message.getIdLong());
     }
 
     public void updateLeaderboard(long serverId) throws NullPointerException {
