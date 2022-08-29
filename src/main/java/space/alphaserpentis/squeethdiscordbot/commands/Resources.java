@@ -62,10 +62,12 @@ public class Resources extends ButtonCommand<MessageEmbed> {
     }};
 
     public Resources() {
-        name = "resources";
-        description = "Obtain educational resources all about Squeeth!";
-        onlyEmbed = true;
-        onlyEphemeral = true;
+        super(new BotCommandOptions(
+           "resoures",
+           "Obtain educational resources all about Squeeth!",
+           true,
+           true
+        ));
 
         buttonHashMap.put("Previous", Button.primary("resources_previous", "Previous").asDisabled());
         buttonHashMap.put("Page", Button.secondary("resources_page", "1/" + pages.size()).asDisabled());

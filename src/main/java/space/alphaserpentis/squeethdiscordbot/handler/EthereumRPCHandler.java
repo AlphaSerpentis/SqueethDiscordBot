@@ -15,6 +15,7 @@ import org.web3j.protocol.core.methods.request.Transaction;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.AlchemyRequest;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.TokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -33,14 +34,14 @@ import javax.annotation.Nullable;
 
 public class EthereumRPCHandler {
 
-    public static final String zeroAddress = "0x0000000000000000000000000000000000000000";
     public static Web3j web3;
     public static URL url;
 
+    @SuppressWarnings("rawtypes")
     public static List<Type> ethCallAtSpecificBlock(@Nonnull String address, @Nonnull Function function, @Nonnull Long block) throws ExecutionException, InterruptedException {
         return FunctionReturnDecoder.decode(
                 web3.ethCall(Transaction.createEthCallTransaction(
-                        zeroAddress,
+                        Addresses.zeroAddress,
                         address,
                         FunctionEncoder.encode(function)
                 ), new DefaultBlockParameterNumber(block)).sendAsync().get().getResult(),
@@ -48,10 +49,11 @@ public class EthereumRPCHandler {
         );
     }
 
+    @SuppressWarnings("rawtypes")
     public static List<Type> ethCallAtLatestBlock(@Nonnull String address, @Nonnull Function function) throws ExecutionException, InterruptedException {
         return FunctionReturnDecoder.decode(
                 web3.ethCall(Transaction.createEthCallTransaction(
-                        zeroAddress,
+                        Addresses.zeroAddress,
                         address,
                         FunctionEncoder.encode(function)
                 ), DefaultBlockParameterName.LATEST).sendAsync().get().getResult(),

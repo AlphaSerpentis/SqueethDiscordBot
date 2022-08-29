@@ -16,10 +16,12 @@ import javax.annotation.Nonnull;
 public class Clean extends BotCommand<MessageEmbed> {
 
     public Clean() {
-        name = "clean";
-        description = "Cleans the last couple of messages";
-        onlyEmbed = true;
-        onlyEphemeral = true;
+        super(new BotCommandOptions(
+            "clean",
+            "Cleans the last couple of messages",
+            true,
+            true
+        ));
     }
 
     @Nonnull

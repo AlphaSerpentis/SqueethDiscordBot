@@ -15,9 +15,12 @@ import java.awt.*;
 public class Help extends BotCommand<MessageEmbed> {
 
     public Help() {
-        name = "help";
-        description = "Lists all of the available commands";
-        onlyEmbed = true;
+        super(new BotCommandOptions(
+                "help",
+                "Lists all of the available commands",
+                true,
+                false
+        ));
     }
 
     @Nonnull

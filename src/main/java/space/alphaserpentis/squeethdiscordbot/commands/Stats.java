@@ -17,9 +17,12 @@ import java.text.NumberFormat;
 public class Stats extends BotCommand<MessageEmbed> {
 
     public Stats() {
-        name = "stats";
-        description = "Get current statistics on Squeeth!";
-        onlyEmbed = true;
+        super(new BotCommandOptions(
+            "stats",
+            "Get current statistics on Squeeth",
+            true,
+            false
+        ));
     }
 
     @Nonnull

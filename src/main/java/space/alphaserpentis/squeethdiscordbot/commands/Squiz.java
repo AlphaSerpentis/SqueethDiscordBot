@@ -4,6 +4,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -35,7 +36,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         RANDOM,
         IN_PROGRESS,
         COMPLETE,
-        VIEWING_LEADERBOARD
+        VIEWING_LEADERBOARD,
+        GETTING_PLAYERS,
+        PENDING_CONFIRMATION
     }
 
     public static class SquizSession {
@@ -66,19 +69,30 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public Message message;
     }
 
+    public static class ViewingPlayersSession extends SquizSession {
+        public ArrayList<String> pages;
+        public int currentPage = 0;
+    }
+
     public static HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
     public static HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
 
     public Squiz() {
-        name = "squiz";
-        description = "Squeeth quiz!";
-        onlyEmbed = true;
-        onlyEphemeral = true;
-        messagesExpire = true;
-        messageExpirationLength = 60;
+        super(new BotCommandOptions(
+            "squiz",
+            "Squeeth quiz!",
+            0,
+            60,
+            true,
+            true,
+            true,
+            false,
+            false,
+            true
+        ));
 
         buttonHashMap.put("Start", Button.primary("squiz_start", "Start"));
-        buttonHashMap.put("End", Button.primary("squiz_end", "End"));
+        buttonHashMap.put("End", Button.danger("squiz_end", "End"));
         buttonHashMap.put("A", Button.primary("squiz_answer_a", "A"));
         buttonHashMap.put("B", Button.primary("squiz_answer_b", "B"));
         buttonHashMap.put("C", Button.primary("squiz_answer_c", "C"));
@@ -87,6 +101,11 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         buttonHashMap.put("False", Button.primary("squiz_answer_false", "False"));
         buttonHashMap.put("Leaderboard", Button.primary("squiz_leaderboard", "Leaderboard"));
         buttonHashMap.put("Review", Button.primary("squiz_review", "Review"));
+        buttonHashMap.put("Previous", Button.primary("squiz_previous", "Previous").asDisabled());
+        buttonHashMap.put("1/?", Button.secondary("squiz_page", "1/?").asDisabled());
+        buttonHashMap.put("Next", Button.primary("squiz_next", "Next"));
+        buttonHashMap.put("Confirm", Button.danger("squiz_confirm", "Confirm"));
+        buttonHashMap.put("Cancel", Button.primary("squiz_cancel", "Cancel"));
     }
 
     @Nonnull
@@ -120,6 +139,74 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         eb.setDescription("You are already in a quiz!");
                     }
                 }
+                case "add_point" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
+
+                        leaderboard.addPoint(event.getUser().getIdLong());
+
+                        SquizHandler.squizLeaderboardHashMap.putIfAbsent(event.getGuild().getIdLong(), leaderboard);
+
+                        eb.setDescription("Added one point to " + event.getOptions().get(0).getAsUser().getAsMention());
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                    return eb.build();
+                }
+                case "remove_point" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
+
+                        leaderboard.removePoint(event.getUser().getIdLong());
+
+                        SquizHandler.squizLeaderboardHashMap.putIfAbsent(event.getGuild().getIdLong(), leaderboard);
+
+                        eb.setDescription("Removed one point to " + event.getOptions().get(0).getAsUser().getAsMention());
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                    return eb.build();
+                }
+                case "get_players" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        session = new ViewingPlayersSession();
+                        StringBuilder users = new StringBuilder("\n");
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.get(event.getGuild().getIdLong());
+                        ArrayList<String> pages;
+
+                        if(leaderboard == null) {
+                            eb.setDescription("No players have played the Squiz yet");
+                            return eb.build();
+                        } else {
+                            String backupString;
+                            pages = new ArrayList<>();
+                            for(long playerId: leaderboard.leaderboard.keySet()) {
+                                backupString = users.toString();
+                                users.append(Launcher.api.retrieveUserById(playerId).complete().getAsMention()).append("\n");
+                                if(users.length() > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
+                                    pages.add(backupString + "\n");
+                                    users = new StringBuilder("\n");
+                                }
+                            }
+                            users.append("\n");
+                            pages.add(users.toString());
+                        }
+
+                        eb.setDescription(pages.get(0));
+                        session.currentState = States.GETTING_PLAYERS;
+                        ((ViewingPlayersSession) session).pages = pages;
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                }
+                case "clear_leaderboard" -> {
+                    if(verifyManageServerPerms(event.getMember())) {
+                        eb.setDescription("**Are you sure you want to clear the leaderboard?**\n\n**THIS IS IRREVERSIBLE**");
+                        session.currentState = States.PENDING_CONFIRMATION;
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                }
             }
         }
 
@@ -134,8 +221,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
+        SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -146,8 +235,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
+        SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -275,6 +366,58 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 }
                 squizSessionHashMap.remove(userId);
             }
+            case "squiz_next" -> {
+                buttons = new ArrayList<>();
+                ViewingPlayersSession viewingSession = (ViewingPlayersSession) session;
+
+                viewingSession.currentPage = viewingSession.currentPage + 1;
+                eb.setDescription(viewingSession.pages.get(viewingSession.currentPage));
+
+                if(viewingSession.pages.size() >= viewingSession.currentPage + 1) {
+                    buttons.add(Button.primary("squiz_next", "Next").asDisabled());
+                } else {
+                    buttons.add(Button.primary("squiz_next", "Next").asDisabled());
+                }
+
+                buttons.add(Button.primary("squiz_previous", "Previous").asEnabled());
+                buttons.add(Button.secondary("squiz_page", viewingSession.currentPage + 1 + "/" + viewingSession.pages.size()).asDisabled());
+            }
+            case "squiz_previous" -> {
+                buttons = new ArrayList<>();
+                ViewingPlayersSession viewingSession = (ViewingPlayersSession) session;
+
+                viewingSession.currentPage = viewingSession.currentPage - 1;
+                eb.setDescription(viewingSession.pages.get(viewingSession.currentPage));
+
+                buttons.add(Button.primary("squiz_next", "Next").asEnabled());
+
+                if(viewingSession.currentPage == 0) {
+                    buttons.add(Button.primary("squiz_previous", "Previous").asDisabled());
+                } else {
+                    buttons.add(Button.primary("squiz_previous", "Previous").asEnabled());
+                }
+
+                buttons.add(Button.secondary("squiz_page", viewingSession.currentPage + 1 + "/" + viewingSession.pages.size()).asDisabled());
+            }
+            case "squiz_confirm" -> {
+                SquizLeaderboard squizLeaderboard = SquizHandler.squizLeaderboardHashMap.get(serverId);
+
+                squizLeaderboard.leaderboard.clear();
+                updateLeaderboard(serverId);
+                try {
+                    SquizHandler.updateSquizLeaderboard();
+                    eb.setDescription("Leaderboard cleared");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    eb.setDescription("Leaderboard cleared, but not updated on disk!");
+                } finally {
+                    squizSessionHashMap.remove(userId);
+                }
+            }
+            case "squiz_cancel" -> {
+                squizSessionHashMap.remove(userId);
+                eb.setDescription("Leaderboard not cleared");
+            }
         }
 
         MessageEditCallbackAction pending = event.editComponents().setEmbeds(eb.build());
@@ -291,7 +434,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;
 
-        if(state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
+        if (state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
             return List.of(
                     buttonHashMap.get("A"),
                     buttonHashMap.get("B"),
@@ -299,12 +442,27 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     buttonHashMap.get("D"),
                     buttonHashMap.get("End")
             );
-        } else if(state == States.COMPLETE) {
+        } else if (state == States.COMPLETE) {
             return List.of(buttonHashMap.get("Review"));
-        } else if(event.getSubcommandName().equalsIgnoreCase("play") && state == States.IN_PROGRESS && session.currentQuestion != 0) {
+        } else if (event.getSubcommandName().equalsIgnoreCase("play") && state == States.IN_PROGRESS && session.currentQuestion != 0) {
             return List.of(buttonHashMap.get("End"));
-        } else if(state == States.VIEWING_LEADERBOARD) {
+        } else if (state == States.VIEWING_LEADERBOARD) {
             return Collections.emptyList();
+        } else if (state == States.GETTING_PLAYERS) {
+            if(((ViewingPlayersSession) session).pages.size() > 1) {
+                return List.of(
+                        buttonHashMap.get("Previous"),
+                        buttonHashMap.get("1/?").withLabel("1/" + ((ViewingPlayersSession) session).pages.size()),
+                        buttonHashMap.get("Next")
+                );
+            } else {
+                return Collections.emptyList();
+            }
+        } else if(state == States.PENDING_CONFIRMATION) {
+            return List.of(
+                    buttonHashMap.get("Confirm"),
+                    buttonHashMap.get("Cancel")
+            );
         } else { // Assumes this is DEFAULT
             return List.of(buttonHashMap.get("Start"));
         }
@@ -331,7 +489,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
         Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
         session.message = message;
-        ServerCache.addNewMessage(serverId, message);
+        ServerCache.addNewMessage(message.getGuild().getIdLong(), message.getChannel().getIdLong(), message.getIdLong());
     }
 
     public void updateLeaderboard(long serverId) throws NullPointerException {
@@ -613,5 +771,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             }
         }
         return 0;
+    }
+
+    private static boolean verifyManageServerPerms(@Nonnull Member member) {
+        return member.hasPermission(Permission.MANAGE_SERVER);
     }
 }
