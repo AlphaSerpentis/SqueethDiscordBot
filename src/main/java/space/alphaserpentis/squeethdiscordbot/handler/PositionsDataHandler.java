@@ -79,6 +79,7 @@ public class PositionsDataHandler {
 
     public static void removeData(@Nonnull String address, @Nonnull String tokenAddress) {
         ArrayList<SimpleTokenTransferResponse> originalList = cachedTransfers.get(address);
+        if(originalList == null) return;
         ArrayList<SimpleTokenTransferResponse> filteredList = (ArrayList<SimpleTokenTransferResponse>) originalList.stream().filter(t -> !t.token.equalsIgnoreCase(tokenAddress)).collect(Collectors.toList());
 
         if(!originalList.equals(filteredList)) {
