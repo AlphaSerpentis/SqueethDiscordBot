@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import com.google.gson.Gson;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -22,6 +23,7 @@ import org.web3j.abi.datatypes.generated.Uint96;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
+import space.alphaserpentis.squeethdiscordbot.data.api.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
@@ -29,9 +31,14 @@ import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.awt.*;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.DayOfWeek;
@@ -500,6 +507,40 @@ public class Crab extends BotCommand<MessageEmbed> {
                 sizes[1] = -delta/(osqthEth.doubleValue() / Math.pow(10,18));
 
                 return sizes;
+            }
+
+            @Nullable
+            public static ArrayList<LatestCrabAuctionResponse.Auction.Bid> getCurrentBids() throws IOException {
+                HttpURLConnection con = (HttpURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
+                con.setRequestMethod("GET");
+                con.setInstanceFollowRedirects(true);
+                con.setDoOutput(true);
+
+                int responseCode = con.getResponseCode();
+
+                if(responseCode == HttpURLConnection.HTTP_OK) {
+                    Gson gson = new Gson();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    LatestCrabAuctionResponse responseConverted;
+
+                    while((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+
+                    in.close();
+                    con.disconnect();
+
+                    responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+
+                    if(!responseConverted.isLive) return null;
+
+                    return (ArrayList<LatestCrabAuctionResponse.Auction.Bid>) responseConverted.auction.bids.values().stream().toList();
+                } else {
+                    con.disconnect();
+                    return null;
+                }
             }
 
             public static long getAuctionTime() {
