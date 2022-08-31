@@ -132,9 +132,11 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         session = new SquizSession(); // dereference to prevent reusing old reference
                         squizSessionHashMap.put(userId, session);
                         session.currentState = States.DEFAULT;
-                        eb.setDescription("Welcome to the Squeeth quiz!\n\n" +
-                                "The quiz will ask you 10 questions and you will have to answer each question with the correct choice.\n" +
-                                "You can end the quiz by pressing the \"End\" button.");
+                        eb.setDescription("""
+                                Welcome to the Squeeth quiz!
+
+                                The quiz will ask you 10 questions and you will have to answer each question with the correct choice.
+                                You can end the quiz by pressing the "End" button.""");
                     } else {
                         eb.setDescription("You are already in a quiz!");
                     }
@@ -170,19 +172,24 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                 case "get_players" -> {
                     if(verifyManageServerPerms(event.getMember())) {
                         session = new ViewingPlayersSession();
+                        session.currentState = States.GETTING_PLAYERS;
                         StringBuilder users = new StringBuilder("\n");
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.get(event.getGuild().getIdLong());
-                        ArrayList<String> pages;
+                        ArrayList<String> pages = new ArrayList<>();
+                        ArrayList<Long> sortedPlayers = new ArrayList<>(leaderboard.leaderboard.keySet());
+
+                        sortedPlayers.sort(
+                                (o1, o2) -> leaderboard.leaderboard.get(o2).compareTo(leaderboard.leaderboard.get(o1))
+                        );
 
                         if(leaderboard == null) {
                             eb.setDescription("No players have played the Squiz yet");
-                            return eb.build();
                         } else {
                             String backupString;
                             pages = new ArrayList<>();
-                            for(long playerId: leaderboard.leaderboard.keySet()) {
+                            for(long playerId: sortedPlayers) {
                                 backupString = users.toString();
-                                users.append(Launcher.api.retrieveUserById(playerId).complete().getAsMention()).append("\n");
+                                users.append("<@").append(playerId).append("> = ").append(leaderboard.leaderboard.get(playerId)).append("\n");
                                 if(users.length() > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
                                     pages.add(backupString + "\n");
                                     users = new StringBuilder("\n");
@@ -190,10 +197,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                             }
                             users.append("\n");
                             pages.add(users.toString());
+                            eb.setDescription(pages.get(0));
                         }
 
-                        eb.setDescription(pages.get(0));
-                        session.currentState = States.GETTING_PLAYERS;
                         ((ViewingPlayersSession) session).pages = pages;
                     } else {
                         eb.setDescription("Insufficient permissions");
