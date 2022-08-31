@@ -176,15 +176,15 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         StringBuilder users = new StringBuilder("\n");
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.get(event.getGuild().getIdLong());
                         ArrayList<String> pages = new ArrayList<>();
-                        ArrayList<Long> sortedPlayers = new ArrayList<>(leaderboard.leaderboard.keySet());
-
-                        sortedPlayers.sort(
-                                (o1, o2) -> leaderboard.leaderboard.get(o2).compareTo(leaderboard.leaderboard.get(o1))
-                        );
 
                         if(leaderboard == null) {
                             eb.setDescription("No players have played the Squiz yet");
                         } else {
+                            ArrayList<Long> sortedPlayers = new ArrayList<>(leaderboard.leaderboard.keySet());
+
+                            sortedPlayers.sort(
+                                    (o1, o2) -> leaderboard.leaderboard.get(o2).compareTo(leaderboard.leaderboard.get(o1))
+                            );
                             String backupString;
                             pages = new ArrayList<>();
                             for(long playerId: sortedPlayers) {
