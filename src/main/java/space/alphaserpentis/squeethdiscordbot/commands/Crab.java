@@ -9,10 +9,16 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.*;
@@ -23,15 +29,19 @@ import org.web3j.abi.datatypes.generated.Uint96;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
-import space.alphaserpentis.squeethdiscordbot.data.api.LatestCrabAuctionResponse;
+import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.Auction;
+import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionByIdResponse;
+import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.net.ssl.HttpsURLConnection;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -59,7 +69,7 @@ import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
 
-public class Crab extends BotCommand<MessageEmbed> {
+public class Crab extends ButtonCommand<MessageEmbed> {
 
     public static abstract class CrabVault {
         public static final Function callVaultsFunc = new Function("getVaultDetails",
@@ -254,10 +264,10 @@ public class Crab extends BotCommand<MessageEmbed> {
 
     public static class v2 extends CrabVault {
 
-        public static Auction auction;
+        public static FeedingTime auction;
         public static long previousNotificationId;
 
-        public static class Auction {
+        public static class FeedingTime {
 
             enum NotificationPhase {
                 AUCTION_NOT_ACTIVE,
@@ -273,8 +283,9 @@ public class Crab extends BotCommand<MessageEmbed> {
             public static ScheduledExecutorService scheduledExecutor;
             public static long auctionTime;
             public static NotificationPhase notificationPhase;
+            public static long lastBidMessageId;
 
-            public Auction() {
+            public FeedingTime() {
                 scheduledExecutor = Executors.newScheduledThreadPool(1);
 
                 scheduledExecutor.schedule(() -> {
@@ -291,7 +302,7 @@ public class Crab extends BotCommand<MessageEmbed> {
 
                     if(timeUntilNextAuction - 3600 > 0) {
                         notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
-                        scheduledExecutor.schedule(Auction::prepareNotification, (timeUntilNextAuction - 3600), TimeUnit.SECONDS);
+                        scheduledExecutor.schedule(FeedingTime::prepareNotification, (timeUntilNextAuction - 3600), TimeUnit.SECONDS);
                     } else {
                         prepareNotification();
                     }
@@ -370,16 +381,16 @@ public class Crab extends BotCommand<MessageEmbed> {
 
                 if(timeDiff <= 3600 && timeDiff > 0) {
                     if(timeDiff > 1800) {
-                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff - 1800, TimeUnit.SECONDS);
+                        scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff - 1800, TimeUnit.SECONDS);
                         notificationPhase = NotificationPhase.SIXTY_MINUTES;
                     } else if(timeDiff > 600) {
-                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff - 600, TimeUnit.SECONDS);
+                        scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff - 600, TimeUnit.SECONDS);
                         notificationPhase = NotificationPhase.THIRTY_MINUTES;
                     } else if(timeDiff > 60) {
-                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff - 60, TimeUnit.SECONDS);
+                        scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff - 60, TimeUnit.SECONDS);
                         notificationPhase = NotificationPhase.TEN_MINUTES;
                     } else {
-                        scheduledExecutor.schedule(Auction::prepareNotification, timeDiff, TimeUnit.SECONDS);
+                        scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff, TimeUnit.SECONDS);
                         notificationPhase = NotificationPhase.ONE_MINUTE;
                     }
                 } else if(timeDiff <= 0 && notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // out-of-date auction time
@@ -387,14 +398,14 @@ public class Crab extends BotCommand<MessageEmbed> {
                     prepareNotification(); // check again
                     return;
                 } else if(timeDiff <= 0 && timeDiff > -600) {
-                    scheduledExecutor.schedule(Auction::prepareNotification, timeDiff + 600, TimeUnit.SECONDS);
+                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 600, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_ACTIVE;
                 } else if(timeDiff <= -600 && timeDiff > -1200) {
-                    scheduledExecutor.schedule(Auction::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
+                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_SETTLING;
                 } else {
                     notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
-                    scheduledExecutor.schedule(Auction::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
+                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
                 }
 
                 if(originalPhase != null || notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // Skips notifying if the bot started up during auction
@@ -460,6 +471,19 @@ public class Crab extends BotCommand<MessageEmbed> {
                 }
             }
 
+            public static void updateMessageForBids() {
+                EmbedBuilder eb = new EmbedBuilder();
+
+                for(Long serverId: serversListening) {
+                    if(lastBidMessageId == 0) { // make new bid message
+
+                    } else { // edit bid message
+                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+
+                    }
+                }
+            }
+
             @SuppressWarnings("rawtypes")
             public static double[] estimateSizeOfAuction() {
                 double[] sizes = new double[2];
@@ -509,9 +533,10 @@ public class Crab extends BotCommand<MessageEmbed> {
                 return sizes;
             }
 
-            @Nullable
-            public static ArrayList<LatestCrabAuctionResponse.Auction.Bid> getCurrentBids() throws IOException {
-                HttpURLConnection con = (HttpURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
+            @Nonnull
+            @CheckReturnValue
+            public static ArrayList<Auction.Bid> getCurrentBids() throws IOException {
+                HttpsURLConnection con = (HttpsURLConnection) new URL("https://beta.squeethportal.xyz/api/auction/getLatestAuction").openConnection();
                 con.setRequestMethod("GET");
                 con.setInstanceFollowRedirects(true);
                 con.setDoOutput(true);
@@ -534,12 +559,92 @@ public class Crab extends BotCommand<MessageEmbed> {
 
                     responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
 
-                    if(!responseConverted.isLive) return null;
+                    if(!responseConverted.isLive) return new ArrayList<>();
 
-                    return (ArrayList<LatestCrabAuctionResponse.Auction.Bid>) responseConverted.auction.bids.values().stream().toList();
+                    return (ArrayList<Auction.Bid>) responseConverted.auction.bids.values().stream().toList();
                 } else {
+                    if(responseCode == 308) {
+                        URL newUrl = new URL(con.getHeaderField("Location"));
+                        con = (HttpsURLConnection) newUrl.openConnection();
+                        con.setDoOutput(true);
+
+                        Gson gson = new Gson();
+                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        String inputLine;
+                        StringBuilder response = new StringBuilder();
+                        LatestCrabAuctionResponse responseConverted;
+
+                        while((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+
+                        in.close();
+                        con.disconnect();
+
+                        responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+
+                        if(!responseConverted.isLive) return new ArrayList<>();
+
+                        return (ArrayList<Auction.Bid>) responseConverted.auction.bids.values().stream().toList();
+                    } else {
+                        con.disconnect();
+                        return new ArrayList<>();
+                    }
+                }
+            }
+
+            @Nullable
+            public static Auction getAuction(@Nullable Long id) throws IOException {
+                HttpURLConnection con = (HttpURLConnection) new URL("https://beta.squeethportal.xyz/api/auction/getAuctionById?id=" + id).openConnection();
+                con.setRequestMethod("GET");
+                con.setInstanceFollowRedirects(true);
+                con.setDoOutput(true);
+
+                int responseCode = con.getResponseCode();
+
+                if(responseCode == HttpURLConnection.HTTP_OK) {
+                    Gson gson = new Gson();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    GetAuctionByIdResponse responseConverted;
+
+                    while((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+
+                    in.close();
                     con.disconnect();
-                    return null;
+
+                    responseConverted = gson.fromJson(response.toString(), GetAuctionByIdResponse.class);
+
+                    return responseConverted.auction;
+                } else {
+                    if(responseCode == 308) {
+                        URL newUrl = new URL(con.getHeaderField("Location"));
+                        con = (HttpsURLConnection) newUrl.openConnection();
+                        con.setDoOutput(true);
+
+                        Gson gson = new Gson();
+                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        String inputLine;
+                        StringBuilder response = new StringBuilder();
+                        GetAuctionByIdResponse responseConverted;
+
+                        while((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+
+                        in.close();
+                        con.disconnect();
+
+                        responseConverted = gson.fromJson(response.toString(), GetAuctionByIdResponse.class);
+
+                        return responseConverted.auction;
+                    } else {
+                        con.disconnect();
+                        return null;
+                    }
                 }
             }
 
@@ -550,7 +655,7 @@ public class Crab extends BotCommand<MessageEmbed> {
 
         public v2() {
             super("0x3B960E47784150F5a63777201ee2B15253D713e8");
-            auction = new Auction();
+            auction = new FeedingTime();
         }
 
         @SuppressWarnings("rawtypes")
@@ -666,6 +771,11 @@ public class Crab extends BotCommand<MessageEmbed> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        buttonHashMap.put("Previous", Button.primary("crab_previous", "Previous").asDisabled());
+        buttonHashMap.put("Page", Button.secondary("crab_page", "1/2").asDisabled());
+        buttonHashMap.put("Next", Button.primary("crab_next", "Next"));
+        buttonHashMap.put("Refresh", Button.danger("crab_refresh", "Refresh"));
     }
 
     @Nonnull
@@ -750,49 +860,7 @@ public class Crab extends BotCommand<MessageEmbed> {
                 eb.setFooter("Last Updated at " + Instant.ofEpochSecond(crab.lastRun).atOffset(ZoneOffset.UTC).toOffsetTime());
                 eb.setColor(Color.RED);
             }
-            case "rebalance" -> {
-                NumberFormat instance = NumberFormat.getInstance();
-                DecimalFormat df = new DecimalFormat("#");
-
-                eb.setTitle("Crab " + identifier + " Rebalance Statistics");
-                eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
-                eb.setDescription("View detailed information that happened during the last rebalance!\n\nParticipate in the auctions: https://www.squeethportal.xyz/auction");
-
-                if(crab.lastRebalanceRun + 60 < Instant.now().getEpochSecond()) {
-                    try {
-                        crab.updateLastHedge();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    crab.lastRebalanceRun = Instant.now().getEpochSecond();
-                }
-
-                try {
-                    double timestamp = EthereumRPCHandler.web3.ethGetBlockByNumber(new DefaultBlockParameterNumber(crab.lastHedgeBlock), true).send().getBlock().getTimestamp().doubleValue();
-                    eb.addField("Last Rebalance", "<t:" + df.format(timestamp) + ">", false);
-                    if(crab.rebalanceSoldOsqth) {
-                        eb.addField("Sold", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
-                        eb.addField("Received", instance.format(crab.rebalancedEth) + " ETH", false);
-                    } else {
-                        eb.addField("Bought", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
-                        eb.addField("Paid", instance.format(crab.rebalancedEth) + " ETH", false);
-                    }
-                    if(crab instanceof v2) {
-                        eb.addField("Upcoming Auction", "<t:" + v2.Auction.getAuctionTime() + ">", false);
-                    }
-                    eb.addField("Δ Delta", "$" + instance.format(crab.preVaultGreeksAtHedge.delta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.delta), true);
-                    eb.addField("Γ Gamma", "$" + instance.format(crab.preVaultGreeksAtHedge.gamma) + " → $" + instance.format(crab.postVaultGreeksAtHedge.gamma), true);
-                    eb.addBlankField(true);
-                    eb.addField("ν Vega", "$" + instance.format(crab.preVaultGreeksAtHedge.vega) + " → $" + instance.format(crab.postVaultGreeksAtHedge.vega), true);
-                    eb.addField("Θ Theta", "$" + instance.format(crab.preVaultGreeksAtHedge.theta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.theta), true);
-                    eb.addBlankField(true);
-                    eb.addField("Greeks Notice", "Greeks shown here go from pre-rebalance → post-rebalance", false);
-                    eb.setColor(Color.RED);
-                } catch (IOException e) {
-                    eb.setDescription("An unexpected error has occurred. Please try again later.");
-                }
-
-            }
+            case "rebalance" -> rebalancePage(eb, crab);
         }
 
         return eb.build();
@@ -816,5 +884,115 @@ public class Crab extends BotCommand<MessageEmbed> {
         Command cmd = jda.upsertCommand(name, description).addSubcommands(stats, rebalance).complete();
 
         commandId = cmd.getIdLong();
+    }
+
+    @Override
+    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+        EmbedBuilder eb = new EmbedBuilder();
+        List<Button> buttons = new ArrayList<>();
+        int currentPage = Integer.parseInt(event.getMessage().getButtons().get(1).getLabel().substring(0,1));
+        MessageEditCallbackAction pending = event.deferEdit();
+
+        switch(event.getButton().getId()) {
+            case "crab_next" -> {
+//                pending = event.editMessageEmbeds(getPage(++currentPage, eb).build());
+                pending.setEmbeds(getPage(++currentPage, eb).build());
+                buttons.add(getButton("Previous").asEnabled());
+                buttons.add(Button.secondary("crab_page", currentPage + "/2").asDisabled());
+                buttons.add(getButton("Next").asDisabled());
+                buttons.add(getButton("Refresh").asEnabled());
+            }
+            case "crab_previous" -> {
+//                pending = event.editMessageEmbeds(getPage(--currentPage, eb).build());
+                pending.setEmbeds(getPage(--currentPage, eb).build());
+                buttons.add(getButton("Previous").asDisabled());
+                buttons.add(Button.secondary("crab_page", currentPage + "/2").asDisabled());
+                buttons.add(getButton("Next").asEnabled());
+            }
+            case "crab_refresh" -> {
+//                pending = event.editMessageEmbeds(getPage(currentPage, eb).build());
+                pending.setEmbeds(getPage(currentPage, eb).build());
+                buttons.add(getButton("Previous").asEnabled());
+                buttons.add(Button.secondary("crab_page", currentPage + "/2").asDisabled());
+                buttons.add(getButton("Next").asDisabled());
+                buttons.add(getButton("Refresh").asEnabled());
+            }
+        }
+
+        pending.setActionRow(buttons);
+
+        pending.queue();
+    }
+
+    @Override
+    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
+        if(event.getSubcommandName().equalsIgnoreCase("rebalance") && event.getOptions().size() == 0) {
+            return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
+        } else {
+            return null;
+        }
+    }
+
+    @Nonnull
+    private EmbedBuilder getPage(int page, @Nonnull EmbedBuilder eb) {
+        switch(page) {
+            case 1 -> rebalancePage(eb, crabV2);
+            case 2 -> {
+                eb.setTitle("Crab v2 Auction");
+                eb.setDescription("View detailed info of the previous auction");
+                try {
+                    for(Auction.Bid bid: v2.FeedingTime.getCurrentBids()) {
+                        eb.addField(bid.shortenedBidder(), bid.order.toString(), false);
+                    }
+                } catch (IOException | NullPointerException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        return eb;
+    }
+
+    private void rebalancePage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
+        NumberFormat instance = NumberFormat.getInstance();
+        DecimalFormat df = new DecimalFormat("#");
+
+        eb.setTitle("Crab " + (crab instanceof v1 ? "v1" : "v2") + " Rebalance Statistics");
+        eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
+        eb.setDescription("View detailed information that happened during the last rebalance!\n\nParticipate in the auctions: https://www.squeethportal.xyz/auction");
+
+        if(crab.lastRebalanceRun + 60 < Instant.now().getEpochSecond()) {
+            try {
+                crab.updateLastHedge();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            crab.lastRebalanceRun = Instant.now().getEpochSecond();
+        }
+
+        try {
+            double timestamp = EthereumRPCHandler.web3.ethGetBlockByNumber(new DefaultBlockParameterNumber(crab.lastHedgeBlock), true).send().getBlock().getTimestamp().doubleValue();
+            eb.addField("Last Rebalance", "<t:" + df.format(timestamp) + ">", false);
+            if(crab.rebalanceSoldOsqth) {
+                eb.addField("Sold", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
+                eb.addField("Received", instance.format(crab.rebalancedEth) + " ETH", false);
+            } else {
+                eb.addField("Bought", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
+                eb.addField("Paid", instance.format(crab.rebalancedEth) + " ETH", false);
+            }
+            if(crab instanceof v2) {
+                eb.addField("Upcoming Auction", "<t:" + v2.FeedingTime.getAuctionTime() + ">", false);
+            }
+            eb.addField("Δ Delta", "$" + instance.format(crab.preVaultGreeksAtHedge.delta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.delta), true);
+            eb.addField("Γ Gamma", "$" + instance.format(crab.preVaultGreeksAtHedge.gamma) + " → $" + instance.format(crab.postVaultGreeksAtHedge.gamma), true);
+            eb.addBlankField(true);
+            eb.addField("ν Vega", "$" + instance.format(crab.preVaultGreeksAtHedge.vega) + " → $" + instance.format(crab.postVaultGreeksAtHedge.vega), true);
+            eb.addField("Θ Theta", "$" + instance.format(crab.preVaultGreeksAtHedge.theta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.theta), true);
+            eb.addBlankField(true);
+            eb.addField("Greeks Notice", "Greeks shown here go from pre-rebalance → post-rebalance", false);
+            eb.setColor(Color.RED);
+        } catch (IOException e) {
+            eb.setDescription("An unexpected error has occurred. Please try again later.");
+        }
     }
 }

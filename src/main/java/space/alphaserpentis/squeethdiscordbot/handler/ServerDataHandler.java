@@ -72,7 +72,7 @@ public class ServerDataHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildJoin(@Nonnull  GuildJoinEvent event) {
+    public void onGuildJoin(@Nonnull GuildJoinEvent event) {
         serverDataHashMap.put(event.getGuild().getIdLong(), new ServerData());
         try {
             updateServerData();
