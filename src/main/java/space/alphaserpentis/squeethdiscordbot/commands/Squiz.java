@@ -47,7 +47,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public int currentScore = 0;
         public char correctCurrentAnswer = ' ';
         public ArrayList<SquizQuestions> questions;
-        public HashMap<Integer, SquizQuestions> missedQuestions = new HashMap<>();
+        public final HashMap<Integer, SquizQuestions> missedQuestions = new HashMap<>();
 
         @Override
         public String toString() {
@@ -61,9 +61,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     public static class RandomSquizSession extends SquizSession {
-        public static HashMap<Long, Integer> consecutiveAnswers = new HashMap<>();
+        public static final HashMap<Long, Integer> consecutiveAnswers = new HashMap<>();
         public Thread expiringThread;
-        public HashMap<Long, Character> responses = new HashMap<>();
+        public final HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
         public long timeReacted = 0;
         public Message message;
@@ -74,8 +74,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public int currentPage = 0;
     }
 
-    public static HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
-    public static HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
+    public static final HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
+    public static final HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
 
     public Squiz() {
         super(new BotCommandOptions(

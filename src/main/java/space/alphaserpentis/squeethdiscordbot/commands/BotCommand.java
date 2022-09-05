@@ -292,6 +292,7 @@ public abstract class BotCommand<T> {
         } else {
             eb.addField("Error Message", "Error message unable to be generated? Cause of error: " + e.getCause(), false);
         }
+        eb.addField("Error Stack 0", e.getStackTrace()[0].toString(), false);
 
         return eb.build();
     }
