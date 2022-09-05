@@ -288,7 +288,7 @@ public class Settings extends BotCommand<MessageEmbed> {
                     eb.addField("Warning", "Bot is unable to talk in " + channel.getAsMention(), false);
              }
 
-             ArrayList<Long> serverIds = Crab.v2.Auction.serversListening;
+             ArrayList<Long> serverIds = Crab.v2.FeedingTime.serversListening;
 
              if(setting) {
                  if(!serverIds.contains(serverId)) serverIds.add(serverId);
@@ -313,7 +313,7 @@ public class Settings extends BotCommand<MessageEmbed> {
             if(!canBotSendMessages(channel))
                 eb.addField("Warning", "Bot does not have permissions to send messages in " + channel.getAsMention() + "!", false);
             if(sd.getListenToCrabAuctions()) {
-                ArrayList<Long> serverIds = Crab.v2.Auction.serversListening;
+                ArrayList<Long> serverIds = Crab.v2.FeedingTime.serversListening;
 
                 if(!serverIds.contains(serverId)) serverIds.add(serverId);
             }
