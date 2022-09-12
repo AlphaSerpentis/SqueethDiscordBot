@@ -542,6 +542,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
+    @Nonnull
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         if(cachedPositions.get(event.getUser().getIdLong()) == null || isUserRatelimited(event.getUser().getIdLong())) {
             return Collections.emptyList();

@@ -1,12 +1,14 @@
 package space.alphaserpentis.squeethdiscordbot.data.api.squeethportal;
 
+import javax.annotation.Nonnull;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 
 public class Auction {
     public static class Bid {
-        public static class Order {
+        public static class Order implements Comparable<Order> {
             public BigInteger quantity = BigInteger.ZERO;
             public BigInteger price = BigInteger.ZERO;
             public long bidId = 0;
@@ -20,7 +22,33 @@ public class Auction {
                 double convertedQuantity = quantity.doubleValue() / Math.pow(10,18);
                 double convertedPrice = price.doubleValue() / Math.pow(10,18);
 
-                return (isBuying ? " is buying " : " is selling ") + convertedQuantity + " oSQTH for " + (convertedPrice * convertedQuantity) + " ETH";
+                return bidId + (isBuying ? " is buying " : " is selling ") + convertedQuantity + " oSQTH for " + (convertedPrice * convertedQuantity) + " ETH (" + convertedPrice + " ETH)";
+            }
+
+            @Override
+            public int compareTo(@Nonnull Order o) {
+                if(isBuying) {
+                    if(price.compareTo(o.price) > 0) {
+                        return 1;
+                    } else if(price.compareTo(o.price) < 0) {
+                        return -1;
+                    }
+                } else {
+                    if(price.compareTo(o.price) < 0) {
+                        return 1;
+                    } else if(price.compareTo(o.price) > 0) {
+                        return -1;
+                    }
+                }
+
+                // prices are equal, check for quantity
+                if(quantity.compareTo(o.quantity) > 0) {
+                    return -1;
+                } else if (quantity.compareTo(o.quantity) < 0) {
+                    return 1;
+                }
+
+                return 0;
             }
         }
 
@@ -31,13 +59,9 @@ public class Auction {
         public String bidder = "";
         public String r = "";
 
-        public String shortenedBidder() {
-            return bidder.substring(0, 6) + "..." + bidder.substring(bidder.length() - 4);
-        }
-
         @Override
         public String toString() {
-            return shortenedBidder() + order.toString();
+            return order.toString();
         }
     }
 
@@ -50,4 +74,10 @@ public class Auction {
     public BigInteger price = BigInteger.ZERO;
     public long nextAuctionId = 0;
     public BigInteger oSqthAmount = BigInteger.ZERO;
+
+    public static void sortedBids(@Nonnull ArrayList<Bid> listOfBids) {
+        listOfBids.sort(
+                Comparator.comparing(o -> o.order)
+        );
+    }
 }

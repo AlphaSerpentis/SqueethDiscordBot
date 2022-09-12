@@ -434,8 +434,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             pending.complete();
     }
 
-    @Nonnull
     @Override
+    @Nonnull
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;

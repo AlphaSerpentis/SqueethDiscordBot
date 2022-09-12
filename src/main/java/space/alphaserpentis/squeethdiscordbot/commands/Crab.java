@@ -533,6 +533,64 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 return sizes;
             }
 
+            public static long getLatestAuctionId() throws IOException {
+                HttpsURLConnection con = (HttpsURLConnection) new URL("https://beta.squeethportal.xyz/api/auction/getLatestAuction").openConnection();
+                con.setRequestMethod("GET");
+                con.setInstanceFollowRedirects(true);
+                con.setDoOutput(true);
+
+                int responseCode = con.getResponseCode();
+
+                if(responseCode == HttpURLConnection.HTTP_OK) {
+                    Gson gson = new Gson();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    LatestCrabAuctionResponse responseConverted;
+
+                    while((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+
+                    in.close();
+                    con.disconnect();
+
+                    responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+
+                    if(!responseConverted.isLive) return responseConverted.auction.currentAuctionId - 1;
+
+                    return responseConverted.auction.currentAuctionId;
+                } else {
+                    if(responseCode == 308) {
+                        URL newUrl = new URL(con.getHeaderField("Location"));
+                        con = (HttpsURLConnection) newUrl.openConnection();
+                        con.setDoOutput(true);
+
+                        Gson gson = new Gson();
+                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        String inputLine;
+                        StringBuilder response = new StringBuilder();
+                        LatestCrabAuctionResponse responseConverted;
+
+                        while((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+
+                        in.close();
+                        con.disconnect();
+
+                        responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+
+                        if(!responseConverted.isLive) return responseConverted.auction.currentAuctionId - 1;
+
+                        return responseConverted.auction.currentAuctionId;
+                    } else {
+                        con.disconnect();
+                        return -1;
+                    }
+                }
+            }
+
             @Nonnull
             @CheckReturnValue
             public static ArrayList<Auction.Bid> getCurrentBids() throws IOException {
@@ -925,11 +983,12 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
+    @Nonnull
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         if(event.getSubcommandName().equalsIgnoreCase("rebalance") && event.getOptions().size() == 0) {
             return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
         } else {
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -939,10 +998,23 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             case 1 -> rebalancePage(eb, crabV2);
             case 2 -> {
                 eb.setTitle("Crab v2 Auction");
-                eb.setDescription("View detailed info of the previous auction");
                 try {
-                    for(Auction.Bid bid: v2.FeedingTime.getCurrentBids()) {
-                        eb.addField(bid.shortenedBidder(), bid.order.toString(), false);
+                    ArrayList<Auction.Bid> bids = v2.FeedingTime.getCurrentBids();
+                    Auction.sortedBids(bids);
+
+                    for(int i = 0; i < bids.size(); i++) {
+                        eb.addField("#" + (i + 1), bids.get(i).order.toString(), false);
+                    }
+
+                    if(eb.getFields().isEmpty()) {
+                        eb.setDescription("View detailed info of the previous auction");
+                        bids = (ArrayList<Auction.Bid>) v2.FeedingTime.getAuction(v2.FeedingTime.getLatestAuctionId()).bids.values().stream().toList();
+                        Auction.sortedBids(bids);
+                        for(int i = 0; i < bids.size(); i++) {
+                            eb.addField("#" + (i + 1), bids.get(i).order.toString(), false);
+                        }
+                    } else {
+                        eb.setDescription("View detailed info of the current auction");
                     }
                 } catch (IOException | NullPointerException e) {
                     throw new RuntimeException(e);
