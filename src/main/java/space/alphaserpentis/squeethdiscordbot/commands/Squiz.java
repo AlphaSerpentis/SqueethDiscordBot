@@ -20,6 +20,7 @@ import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizTracking;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
@@ -27,6 +28,7 @@ import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 
 public class Squiz extends ButtonCommand<MessageEmbed> {
@@ -66,6 +68,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public final HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
         public long timeReacted = 0;
+        public long epochInMillisecondsWhenPosted;
         public Message message;
     }
 
@@ -285,6 +288,17 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         randomSquizExpires((RandomSquizSession) session);
                         ((RandomSquizSession) session).timeReacted = Instant.now().getEpochSecond();
                     }
+                    HashMap<Long, SquizTracking.UserData> tracking = SquizHandler.squizTracking.serverMapping.getOrDefault(serverId, new HashMap<>());
+                    SquizTracking.UserData userData = tracking.getOrDefault(userId, new SquizTracking.UserData());
+                    SquizTracking.UserData.Response response = new SquizTracking.UserData.Response();
+                    LocalDate date = LocalDate.now();
+
+                    response.responseTime = Instant.now().toEpochMilli() - ((RandomSquizSession) session).epochInMillisecondsWhenPosted;
+                    response.date = date.getMonth() + "-" + date.getDayOfMonth() + "-" + date.getYear();
+
+                    userData.responses.add(response);
+
+                    SquizHandler.squizTracking.serverMapping.put(serverId, tracking);
                 }
                 return;
             } else {
@@ -582,9 +596,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     updateLeaderboard(session.serverId);
                     SquizHandler.updateSquizLeaderboard();
                     ServerDataHandler.updateServerData();
+                    SquizHandler.updateSquizTracking();
                 } catch (IOException e) {
                     e.printStackTrace();
-                    eb.addField("Warning", "Leaderboard not saved to disk!", false);
+                    eb.addField("Warning", "Leaderboard and/or other data not saved to disk!", false);
                 } catch (NullPointerException e) {
                     e.printStackTrace();
                     eb.addField("Warning", "Leaderboard channel isn't set properly!", false);

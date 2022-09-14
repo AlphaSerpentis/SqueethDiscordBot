@@ -19,32 +19,32 @@ public class Auction {
 
             @Override
             public String toString() {
-                double convertedQuantity = quantity.doubleValue() / Math.pow(10,18);
-                double convertedPrice = price.doubleValue() / Math.pow(10,18);
+                double convertedQuantity = Double.parseDouble(String.format("%.5f", quantity.doubleValue() / Math.pow(10,18)));
+                double convertedPrice = Double.parseDouble(String.format("%.5f", price.doubleValue() / Math.pow(10,18)));
 
-                return bidId + (isBuying ? " is buying " : " is selling ") + convertedQuantity + " oSQTH for " + (convertedPrice * convertedQuantity) + " ETH (" + convertedPrice + " ETH)";
+                return (isBuying ? " is buying " : " is selling ") + convertedQuantity + " oSQTH for " + String.format("%.5f", convertedPrice * convertedQuantity) + " ETH (" + convertedPrice + " ETH)";
             }
 
             @Override
             public int compareTo(@Nonnull Order o) {
                 if(isBuying) {
-                    if(price.compareTo(o.price) > 0) {
-                        return 1;
-                    } else if(price.compareTo(o.price) < 0) {
-                        return -1;
-                    }
-                } else {
                     if(price.compareTo(o.price) < 0) {
                         return 1;
                     } else if(price.compareTo(o.price) > 0) {
                         return -1;
                     }
+                } else {
+                    if(price.compareTo(o.price) > 0) {
+                        return 1;
+                    } else if(price.compareTo(o.price) < 0) {
+                        return -1;
+                    }
                 }
 
                 // prices are equal, check for quantity
-                if(quantity.compareTo(o.quantity) > 0) {
+                if(quantity.compareTo(o.quantity) < 0) {
                     return -1;
-                } else if (quantity.compareTo(o.quantity) < 0) {
+                } else if (quantity.compareTo(o.quantity) > 0) {
                     return 1;
                 }
 
@@ -75,9 +75,23 @@ public class Auction {
     public long nextAuctionId = 0;
     public BigInteger oSqthAmount = BigInteger.ZERO;
 
-    public static void sortedBids(@Nonnull ArrayList<Bid> listOfBids) {
-        listOfBids.sort(
+    public static ArrayList<Bid> sortedBids(@Nonnull Auction auction) {
+        ArrayList<Bid> bids = new ArrayList<>(auction.bids.values());
+
+        bids.sort(
                 Comparator.comparing(o -> o.order)
         );
+
+        bids.removeIf(
+                bid -> {
+                    if(auction.isSelling != bid.order.isBuying) {
+                        return true;
+                    }
+
+                    return bid.order.quantity.doubleValue() / Math.pow(10,18) < auction.minSize;
+                }
+        );
+
+        return bids;
     }
 }

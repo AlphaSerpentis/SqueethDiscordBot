@@ -322,6 +322,34 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
+    private void disqualifyUser(long serverId, long userId, @Nonnull EmbedBuilder eb) {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+
+        sd.getDisqualifiedUsers().add(userId);
+
+        try {
+            ServerDataHandler.updateServerData();
+
+            eb.setDescription("<@" + userId + "> has been disqualified from the Squiz");
+        } catch(IOException e) {
+            eb.setDescription(error);
+        }
+    }
+
+    private void removeDisqualifiedUser(long serverId, long userId, @Nonnull EmbedBuilder eb) {
+        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+
+        sd.getDisqualifiedUsers().remove(userId);
+
+        try {
+            ServerDataHandler.updateServerData();
+
+            eb.setDescription("<@" + userId + "> has been removed from the list of disqualified users");
+        } catch(IOException e) {
+            eb.setDescription(error);
+        }
+    }
+
     private void clearCache(@Nonnull EmbedBuilder eb) {
         try {
             PositionsDataHandler.clearPrices();

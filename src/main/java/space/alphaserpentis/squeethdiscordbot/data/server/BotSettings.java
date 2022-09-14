@@ -39,6 +39,8 @@ public class BotSettings {
     public String pricesData;
     public String squizQuestions;
     public String squizLeaderboard;
+    public String squizTracking;
     public String ethereumRPC;
+    public boolean enableSquizTracking;
     public boolean updateCommandsAtLaunch;
 }

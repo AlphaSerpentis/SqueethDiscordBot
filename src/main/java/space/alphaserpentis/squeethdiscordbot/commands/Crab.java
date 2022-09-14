@@ -13,12 +13,14 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
+import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.*;
@@ -38,7 +40,6 @@ import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
@@ -279,7 +280,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 AUCTION_SETTLING
             }
 
-            public static ArrayList<Long> serversListening = new ArrayList<>();
+            public static final ArrayList<Long> serversListening = new ArrayList<>();
             public static ScheduledExecutorService scheduledExecutor;
             public static long auctionTime;
             public static NotificationPhase notificationPhase;
@@ -534,7 +535,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             }
 
             public static long getLatestAuctionId() throws IOException {
-                HttpsURLConnection con = (HttpsURLConnection) new URL("https://beta.squeethportal.xyz/api/auction/getLatestAuction").openConnection();
+                HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
                 con.setRequestMethod("GET");
                 con.setInstanceFollowRedirects(true);
                 con.setDoOutput(true);
@@ -591,69 +592,69 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 }
             }
 
-            @Nonnull
-            @CheckReturnValue
-            public static ArrayList<Auction.Bid> getCurrentBids() throws IOException {
-                HttpsURLConnection con = (HttpsURLConnection) new URL("https://beta.squeethportal.xyz/api/auction/getLatestAuction").openConnection();
-                con.setRequestMethod("GET");
-                con.setInstanceFollowRedirects(true);
-                con.setDoOutput(true);
-
-                int responseCode = con.getResponseCode();
-
-                if(responseCode == HttpURLConnection.HTTP_OK) {
-                    Gson gson = new Gson();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    String inputLine;
-                    StringBuilder response = new StringBuilder();
-                    LatestCrabAuctionResponse responseConverted;
-
-                    while((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-
-                    in.close();
-                    con.disconnect();
-
-                    responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-
-                    if(!responseConverted.isLive) return new ArrayList<>();
-
-                    return (ArrayList<Auction.Bid>) responseConverted.auction.bids.values().stream().toList();
-                } else {
-                    if(responseCode == 308) {
-                        URL newUrl = new URL(con.getHeaderField("Location"));
-                        con = (HttpsURLConnection) newUrl.openConnection();
-                        con.setDoOutput(true);
-
-                        Gson gson = new Gson();
-                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                        String inputLine;
-                        StringBuilder response = new StringBuilder();
-                        LatestCrabAuctionResponse responseConverted;
-
-                        while((inputLine = in.readLine()) != null) {
-                            response.append(inputLine);
-                        }
-
-                        in.close();
-                        con.disconnect();
-
-                        responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-
-                        if(!responseConverted.isLive) return new ArrayList<>();
-
-                        return (ArrayList<Auction.Bid>) responseConverted.auction.bids.values().stream().toList();
-                    } else {
-                        con.disconnect();
-                        return new ArrayList<>();
-                    }
-                }
-            }
+//            @Nonnull
+//            @CheckReturnValue
+//            public static ArrayList<Auction.Bid> getCurrentBids() throws IOException {
+//                HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
+//                con.setRequestMethod("GET");
+//                con.setInstanceFollowRedirects(true);
+//                con.setDoOutput(true);
+//
+//                int responseCode = con.getResponseCode();
+//
+//                if(responseCode == HttpURLConnection.HTTP_OK) {
+//                    Gson gson = new Gson();
+//                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+//                    String inputLine;
+//                    StringBuilder response = new StringBuilder();
+//                    LatestCrabAuctionResponse responseConverted;
+//
+//                    while((inputLine = in.readLine()) != null) {
+//                        response.append(inputLine);
+//                    }
+//
+//                    in.close();
+//                    con.disconnect();
+//
+//                    responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+//
+//                    if(!responseConverted.isLive) return new ArrayList<>();
+//
+//                    return new ArrayList<>(responseConverted.auction.bids.values());
+//                } else {
+//                    if(responseCode == 308) {
+//                        URL newUrl = new URL(con.getHeaderField("Location"));
+//                        con = (HttpsURLConnection) newUrl.openConnection();
+//                        con.setDoOutput(true);
+//
+//                        Gson gson = new Gson();
+//                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+//                        String inputLine;
+//                        StringBuilder response = new StringBuilder();
+//                        LatestCrabAuctionResponse responseConverted;
+//
+//                        while((inputLine = in.readLine()) != null) {
+//                            response.append(inputLine);
+//                        }
+//
+//                        in.close();
+//                        con.disconnect();
+//
+//                        responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+//
+//                        if(!responseConverted.isLive) return new ArrayList<>();
+//
+//                        return new ArrayList<>(responseConverted.auction.bids.values());
+//                    } else {
+//                        con.disconnect();
+//                        return new ArrayList<>();
+//                    }
+//                }
+//            }
 
             @Nullable
             public static Auction getAuction(@Nullable Long id) throws IOException {
-                HttpURLConnection con = (HttpURLConnection) new URL("https://beta.squeethportal.xyz/api/auction/getAuctionById?id=" + id).openConnection();
+                HttpURLConnection con = (HttpURLConnection) new URL("https://squeethportal.xyz/api/auction/getAuctionById?id=" + id).openConnection();
                 con.setRequestMethod("GET");
                 con.setInstanceFollowRedirects(true);
                 con.setDoOutput(true);
@@ -830,95 +831,63 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             throw new RuntimeException(e);
         }
 
-        buttonHashMap.put("Previous", Button.primary("crab_previous", "Previous").asDisabled());
-        buttonHashMap.put("Page", Button.secondary("crab_page", "1/2").asDisabled());
-        buttonHashMap.put("Next", Button.primary("crab_next", "Next"));
         buttonHashMap.put("Refresh", Button.danger("crab_refresh", "Refresh"));
     }
 
+    @Override
+    public void runButtonInteraction(@NotNull ButtonInteractionEvent event) {
+        EmbedBuilder eb = new EmbedBuilder();
+        InteractionHook pending = event.deferEdit().complete();
+
+        if(event.getButton().getId().equalsIgnoreCase("crab_refresh")) {
+            String parseFooter = event.getMessage().getEmbeds().get(0).getFooter().getText();
+
+            if(parseFooter.equalsIgnoreCase("Latest")) {
+                bidsPage(eb, -1);
+            } else {
+                bidsPage(eb, Integer.parseInt(parseFooter.substring(parseFooter.indexOf(" ") + 1)));
+            }
+            pending.editOriginalEmbeds(eb.build()).complete();
+        }
+    }
+
+    @NotNull
+    @Override
+    public Collection<ItemComponent> addButtons(@NotNull GenericCommandInteractionEvent event) {
+        if(event.getSubcommandName().equalsIgnoreCase("bids") && event.getOptions().size() == 0) {
+            return Arrays.asList(new ItemComponent[]{getButton("Refresh")});
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
     @Nonnull
-    @SuppressWarnings("rawtypes")
     @Override
     public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
-        String identifier;
         CrabVault crab;
+        int bidsId = -1;
 
-        if(event.getOptions().size() != 0) {
+        if(event.getOptions().size() != 0 && !event.getSubcommandName().equalsIgnoreCase("bids")) {
             if(event.getOptions().get(0).getAsBoolean()) { // run v1
                 crab = crabV1;
-                identifier = "v1";
             } else { // run v2
                 crab = crabV2;
-                identifier = "v2";
             }
         } else {
             crab = crabV2;
-            identifier = "v2";
         }
 
         switch(event.getSubcommandName()) {
-            case "stats" -> {
-                Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
-                if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
-                    try {
-                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callVaultsFunc);
-                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapOsqth);
-                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapEth);
-
-                        crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                        crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
-                        BigInteger priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                        crab.priceOfEthInUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
-                        crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTotalSupply).get(0).getValue();
-                        crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
-                        DecimalFormat df = new DecimalFormat("#");
-
-                        crab.normFactor = new BigInteger(String.valueOf(df.format(LaevitasHandler.latestSqueethData.getNormalizationFactor() * (long) Math.pow(10,18))));
-
-                        BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
-
-                        crab.ethPerToken = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
-                        crab.usdPerToken = netEth.multiply(crab.priceOfEthInUsd).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
-
-                        crab.lastRun = Instant.now().getEpochSecond();
-
-                        vaultGreeks = new Vault.VaultGreeks(
-                                crab.priceOfEthInUsd.doubleValue() / Math.pow(10,18),
-                                LaevitasHandler.latestSqueethData.getoSQTHPrice(),
-                                crab.normFactor.doubleValue() / Math.pow(10,18),
-                                LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility()/100,
-                                -(crab.shortOsqth.doubleValue() / Math.pow(10,18)),
-                                crab.ethCollateral.doubleValue() / Math.pow(10,18)
-                        );
-                        crab.lastRunVaultGreeks = vaultGreeks;
-                    } catch (ExecutionException | InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+            case "stats" -> statsPage(eb, crab);
+            case "latest" -> rebalancePage(eb, crab);
+            case "bids" -> {
+                if(event.getOptions().isEmpty()) {
+                    bidsPage(eb, -1);
+                } else {
+                    bidsPage(eb, bidsId);
                 }
-
-                NumberFormat instance = NumberFormat.getInstance();
-
-                eb.setTitle("Crab " + identifier + " Statistics");
-                eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
-                eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies" + (LaevitasHandler.isDataStale() ? "\n\n**(Data is stale! Calculations may be off!)**" : ""));
-                eb.addField("ETH Collateral", instance.format(crab.ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
-                eb.addField("Vault Debt", instance.format(crab.shortOsqth.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
-                eb.addField("Collateral Ratio", instance.format(crab.calculateCollateralRatio()) + "%", false);
-                eb.addField("Price per Crab Token", "$" + instance.format(crab.usdPerToken) + " (" + instance.format(crab.ethPerToken) + " Ξ)", false);
-                eb.addField("Total Supply of Crab", instance.format(crab.tokenSupply.divide(BigInteger.valueOf((long) Math.pow(10,18)))), false);
-                eb.addField("Last Rebalance", "<t:" + crab.lastHedgeTime + ">", false);
-                eb.addField("Δ Delta", "$" + instance.format(vaultGreeks.delta), true);
-                eb.addField("Γ Gamma", "$" + instance.format(vaultGreeks.gamma), true);
-                eb.addBlankField(true);
-                eb.addField("ν Vega", "$" + instance.format(vaultGreeks.vega), true);
-                eb.addField("Θ Theta", "$" + instance.format(vaultGreeks.theta), true);
-                eb.addBlankField(true);
-                eb.addField("Greeks Notice", "*Greeks use some Laevitas data which is polled every 5-minutes*", false);
-                eb.setFooter("Last Updated at " + Instant.ofEpochSecond(crab.lastRun).atOffset(ZoneOffset.UTC).toOffsetTime());
-                eb.setColor(Color.RED);
             }
-            case "rebalance" -> rebalancePage(eb, crab);
         }
 
         return eb.build();
@@ -927,9 +896,13 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     @Override
     public void addCommand(@Nonnull JDA jda) {
         SubcommandData stats = new SubcommandData("stats", "Regular statistics on Crab").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 stats", false);
-        SubcommandData rebalance = new SubcommandData("rebalance", "Shows the rebalancing stats").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 rebalance", false);
+        SubcommandGroupData rebalance = new SubcommandGroupData("rebalance", "Shows the rebalancing-related commands")
+                .addSubcommands(
+                        new SubcommandData("latest", "Shows the latest rebalancing stats").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 rebalance", false),
+                        new SubcommandData("bids", "Shows the latest/specific auction bids").addOption(OptionType.INTEGER, "id", "Auction ID to specify", false)
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(stats, rebalance).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(stats).addSubcommandGroups(rebalance).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -937,92 +910,77 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     @Override
     public void updateCommand(@Nonnull JDA jda) {
         SubcommandData stats = new SubcommandData("stats", "Regular statistics on Crab").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 stats", false);
-        SubcommandData rebalance = new SubcommandData("rebalance", "Shows the rebalancing stats").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 rebalance", false);
+        SubcommandGroupData rebalance = new SubcommandGroupData("rebalance", "Shows the rebalancing-related commands")
+                .addSubcommands(
+                        new SubcommandData("latest", "Shows the latest rebalancing stats").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 rebalance", false),
+                        new SubcommandData("bids", "Shows the latest/specific auction bids").addOption(OptionType.INTEGER, "id", "Auction ID to specify", false)
+                );
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(stats, rebalance).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(stats).addSubcommandGroups(rebalance).complete();
 
         commandId = cmd.getIdLong();
     }
 
-    @Override
-    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
-        EmbedBuilder eb = new EmbedBuilder();
-        List<Button> buttons = new ArrayList<>();
-        int currentPage = Integer.parseInt(event.getMessage().getButtons().get(1).getLabel().substring(0,1));
-        MessageEditCallbackAction pending = event.deferEdit();
+    @SuppressWarnings("rawtypes")
+    private void statsPage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
+        Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
+        if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
+            try {
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callVaultsFunc);
+                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapOsqth);
+                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapEth);
 
-        switch(event.getButton().getId()) {
-            case "crab_next" -> {
-//                pending = event.editMessageEmbeds(getPage(++currentPage, eb).build());
-                pending.setEmbeds(getPage(++currentPage, eb).build());
-                buttons.add(getButton("Previous").asEnabled());
-                buttons.add(Button.secondary("crab_page", currentPage + "/2").asDisabled());
-                buttons.add(getButton("Next").asDisabled());
-                buttons.add(getButton("Refresh").asEnabled());
-            }
-            case "crab_previous" -> {
-//                pending = event.editMessageEmbeds(getPage(--currentPage, eb).build());
-                pending.setEmbeds(getPage(--currentPage, eb).build());
-                buttons.add(getButton("Previous").asDisabled());
-                buttons.add(Button.secondary("crab_page", currentPage + "/2").asDisabled());
-                buttons.add(getButton("Next").asEnabled());
-            }
-            case "crab_refresh" -> {
-//                pending = event.editMessageEmbeds(getPage(currentPage, eb).build());
-                pending.setEmbeds(getPage(currentPage, eb).build());
-                buttons.add(getButton("Previous").asEnabled());
-                buttons.add(Button.secondary("crab_page", currentPage + "/2").asDisabled());
-                buttons.add(getButton("Next").asDisabled());
-                buttons.add(getButton("Refresh").asEnabled());
-            }
-        }
+                crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
+                crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
+                BigInteger priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
+                crab.priceOfEthInUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
+                crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTotalSupply).get(0).getValue();
+                crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
+                DecimalFormat df = new DecimalFormat("#");
 
-        pending.setActionRow(buttons);
+                crab.normFactor = new BigInteger(String.valueOf(df.format(LaevitasHandler.latestSqueethData.getNormalizationFactor() * (long) Math.pow(10,18))));
 
-        pending.queue();
-    }
+                BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
 
-    @Override
-    @Nonnull
-    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
-        if(event.getSubcommandName().equalsIgnoreCase("rebalance") && event.getOptions().size() == 0) {
-            return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
-        } else {
-            return Collections.emptyList();
-        }
-    }
+                crab.ethPerToken = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
+                crab.usdPerToken = netEth.multiply(crab.priceOfEthInUsd).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
 
-    @Nonnull
-    private EmbedBuilder getPage(int page, @Nonnull EmbedBuilder eb) {
-        switch(page) {
-            case 1 -> rebalancePage(eb, crabV2);
-            case 2 -> {
-                eb.setTitle("Crab v2 Auction");
-                try {
-                    ArrayList<Auction.Bid> bids = v2.FeedingTime.getCurrentBids();
-                    Auction.sortedBids(bids);
+                crab.lastRun = Instant.now().getEpochSecond();
 
-                    for(int i = 0; i < bids.size(); i++) {
-                        eb.addField("#" + (i + 1), bids.get(i).order.toString(), false);
-                    }
-
-                    if(eb.getFields().isEmpty()) {
-                        eb.setDescription("View detailed info of the previous auction");
-                        bids = (ArrayList<Auction.Bid>) v2.FeedingTime.getAuction(v2.FeedingTime.getLatestAuctionId()).bids.values().stream().toList();
-                        Auction.sortedBids(bids);
-                        for(int i = 0; i < bids.size(); i++) {
-                            eb.addField("#" + (i + 1), bids.get(i).order.toString(), false);
-                        }
-                    } else {
-                        eb.setDescription("View detailed info of the current auction");
-                    }
-                } catch (IOException | NullPointerException e) {
-                    throw new RuntimeException(e);
-                }
+                vaultGreeks = new Vault.VaultGreeks(
+                        crab.priceOfEthInUsd.doubleValue() / Math.pow(10,18),
+                        LaevitasHandler.latestSqueethData.getoSQTHPrice(),
+                        crab.normFactor.doubleValue() / Math.pow(10,18),
+                        LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility()/100,
+                        -(crab.shortOsqth.doubleValue() / Math.pow(10,18)),
+                        crab.ethCollateral.doubleValue() / Math.pow(10,18)
+                );
+                crab.lastRunVaultGreeks = vaultGreeks;
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
 
-        return eb;
+        NumberFormat instance = NumberFormat.getInstance();
+
+        eb.setTitle("Crab " + (crab instanceof v1 ? "v1" : "v2") + " Statistics");
+        eb.setThumbnail("https://c.tenor.com/3CIbJomibvYAAAAi/crab-rave.gif");
+        eb.setDescription("Get all of your crabby stats here!\n\nhttps://squeeth.com/strategies" + (LaevitasHandler.isDataStale() ? "\n\n**(Data is stale! Calculations may be off!)**" : ""));
+        eb.addField("ETH Collateral", instance.format(crab.ethCollateral.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " Ξ", false);
+        eb.addField("Vault Debt", instance.format(crab.shortOsqth.divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue()) + " oSQTH", false);
+        eb.addField("Collateral Ratio", instance.format(crab.calculateCollateralRatio()) + "%", false);
+        eb.addField("Price per Crab Token", "$" + instance.format(crab.usdPerToken) + " (" + instance.format(crab.ethPerToken) + " Ξ)", false);
+        eb.addField("Total Supply of Crab", instance.format(crab.tokenSupply.divide(BigInteger.valueOf((long) Math.pow(10,18)))), false);
+        eb.addField("Last Rebalance", "<t:" + crab.lastHedgeTime + ">", false);
+        eb.addField("Δ Delta", "$" + instance.format(vaultGreeks.delta), true);
+        eb.addField("Γ Gamma", "$" + instance.format(vaultGreeks.gamma), true);
+        eb.addBlankField(true);
+        eb.addField("ν Vega", "$" + instance.format(vaultGreeks.vega), true);
+        eb.addField("Θ Theta", "$" + instance.format(vaultGreeks.theta), true);
+        eb.addBlankField(true);
+        eb.addField("Greeks Notice", "*Greeks use some Laevitas data which is polled every 5-minutes*", false);
+        eb.setFooter("Last Updated at " + Instant.ofEpochSecond(crab.lastRun).atOffset(ZoneOffset.UTC).toOffsetTime());
+        eb.setColor(Color.RED);
     }
 
     private void rebalancePage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
@@ -1065,6 +1023,74 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             eb.setColor(Color.RED);
         } catch (IOException e) {
             eb.setDescription("An unexpected error has occurred. Please try again later.");
+        }
+    }
+
+    private void bidsPage(@Nonnull EmbedBuilder eb, int id) {
+        eb.setTitle("Crab v2 Auction");
+        eb.setImage("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
+        try {
+            if(id == -1) {
+                Auction latestAuction = v2.FeedingTime.getAuction(v2.FeedingTime.getLatestAuctionId());
+                ArrayList<Auction.Bid> bids;
+
+                if(latestAuction == null) {
+                    latestAuction = v2.FeedingTime.getAuction(v2.FeedingTime.getLatestAuctionId() - 1);
+
+                    if(latestAuction == null) {
+                        eb.setDescription("Something went wrong trying to get the latest auction. Report this issue!");
+                        eb.addField("Auction ID Tried To Use", String.valueOf(v2.FeedingTime.getLatestAuctionId()), false);
+                        return;
+                    }
+                }
+
+                bids = Auction.sortedBids(latestAuction);
+                eb.setFooter("Latest");
+
+                if(latestAuction.auctionEnd.longValue()/1000 > Instant.now().getEpochSecond()) {
+                    eb.setDescription("View detailed info of the current auction\n\n**Direction**: " +
+                            (latestAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
+                            "**Size**: " + NumberFormat.getInstance().format(latestAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                            "**Min. Size**: " + latestAuction.minSize + " oSQTH"
+                    );
+                } else {
+                    eb.setDescription("View detailed info of the previous auction\n\n**Direction**: " +
+                            (latestAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
+                            "**Size**: " + NumberFormat.getInstance().format(latestAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                            "**Min. Size**: " + latestAuction.minSize + " oSQTH"
+                    );
+                }
+
+                for(int i = 0; i < bids.size(); i++) {
+                    StringBuilder title = new StringBuilder("Trader " + (i + 1));
+                    for(String winningBidKey: latestAuction.winningBids) {
+                        if(latestAuction.bids.get(winningBidKey).equals(bids.get(i))) {
+                            title.insert(0, "[INCLUDED] ");
+                        }
+                    }
+
+                    eb.addField(title.toString(), bids.get(i).toString(),false);
+                }
+            } else {
+                Auction specificAuction = v2.FeedingTime.getAuction((long) id);
+                ArrayList<Auction.Bid> bids;
+
+                if(specificAuction == null) {
+                    eb.setDescription("Something went wrong trying to get this specific auction! It might not exist, but if you're confident it exists report this issue!");
+                    eb.addField("Auction ID Tried To Use", String.valueOf(id), false);
+                    return;
+                }
+
+                eb.setDescription("View detailed info of the current auction\n\n**Direction**: " +
+                        (specificAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
+                        "**Size**: " + NumberFormat.getInstance().format(specificAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                        "**Min. Size**: " + specificAuction.minSize + " oSQTH"
+                );
+
+                eb.setFooter("Vault " + id);
+            }
+        } catch (IOException | NullPointerException e) {
+            throw new RuntimeException(e);
         }
     }
 }
