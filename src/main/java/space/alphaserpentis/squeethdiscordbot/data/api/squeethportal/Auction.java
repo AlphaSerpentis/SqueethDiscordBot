@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 public class Auction {
     public static class Bid {
@@ -28,23 +29,23 @@ public class Auction {
             @Override
             public int compareTo(@Nonnull Order o) {
                 if(isBuying) {
-                    if(price.compareTo(o.price) < 0) {
+                    if(o.price.compareTo(price) > 0) {
                         return 1;
-                    } else if(price.compareTo(o.price) > 0) {
+                    } else if(o.price.compareTo(price) < 0) {
                         return -1;
                     }
                 } else {
-                    if(price.compareTo(o.price) > 0) {
+                    if(o.price.compareTo(price) < 0) {
                         return 1;
-                    } else if(price.compareTo(o.price) < 0) {
+                    } else if(o.price.compareTo(price) > 0) {
                         return -1;
                     }
                 }
 
                 // prices are equal, check for quantity
-                if(quantity.compareTo(o.quantity) < 0) {
+                if(o.quantity.compareTo(quantity) < 0) {
                     return -1;
-                } else if (quantity.compareTo(o.quantity) > 0) {
+                } else if (o.quantity.compareTo(quantity) > 0) {
                     return 1;
                 }
 
@@ -68,19 +69,16 @@ public class Auction {
     public long currentAuctionId = 0;
     public double minSize = 0;
     public boolean isSelling = false;
-    public HashMap<String, Bid> bids = null;
+    public HashMap<String, Bid> bids = new HashMap<>();
     public BigInteger auctionEnd = BigInteger.ZERO;
-    public ArrayList<String> winningBids = null;
+    public ArrayList<String> winningBids = new ArrayList<>();
     public BigInteger price = BigInteger.ZERO;
     public long nextAuctionId = 0;
     public BigInteger oSqthAmount = BigInteger.ZERO;
 
     public static ArrayList<Bid> sortedBids(@Nonnull Auction auction) {
         ArrayList<Bid> bids = new ArrayList<>(auction.bids.values());
-
-        bids.sort(
-                Comparator.comparing(o -> o.order)
-        );
+        ArrayList<Bid> bidsNotIncluded;
 
         bids.removeIf(
                 bid -> {
@@ -91,6 +89,29 @@ public class Auction {
                     return bid.order.quantity.doubleValue() / Math.pow(10,18) < auction.minSize;
                 }
         );
+
+        bidsNotIncluded = (ArrayList<Bid>) bids.stream().filter(b -> {
+            if (!auction.winningBids.isEmpty()) {
+                for (String winningBidKey : auction.winningBids) {
+                    if (auction.bids.get(winningBidKey).equals(b)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+
+        bids.removeAll(bidsNotIncluded);
+
+        bids.sort(
+                Comparator.comparing(o -> o.order)
+        );
+
+        bidsNotIncluded.sort(
+                Comparator.comparing(o -> o.order)
+        );
+
+        bids.addAll(bidsNotIncluded);
 
         return bids;
     }

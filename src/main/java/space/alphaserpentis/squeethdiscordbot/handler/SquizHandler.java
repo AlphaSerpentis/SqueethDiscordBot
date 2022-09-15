@@ -159,16 +159,14 @@ public class SquizHandler {
         } else {
             TextChannel channel = Launcher.api.getTextChannelById(sd.getLeaderboardChannelId());
 
-            if(channel == null) return false;
-            if(!channel.canTalk()) return false;
+            if(channel == null || !channel.canTalk()) return false;
         }
 
         // Check if the random Squiz channels can messages be sent
         for(long channeId: sd.getRandomSquizQuestionsChannels()) {
             TextChannel channel = Launcher.api.getTextChannelById(channeId);
 
-            if(channel == null) return false;
-            if(!channel.canTalk()) return false;
+            if(channel == null || !channel.canTalk()) return false;
         }
         return true;
     }

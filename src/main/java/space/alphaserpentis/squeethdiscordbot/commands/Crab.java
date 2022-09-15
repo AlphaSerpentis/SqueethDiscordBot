@@ -592,65 +592,54 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 }
             }
 
-//            @Nonnull
-//            @CheckReturnValue
-//            public static ArrayList<Auction.Bid> getCurrentBids() throws IOException {
-//                HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
-//                con.setRequestMethod("GET");
-//                con.setInstanceFollowRedirects(true);
-//                con.setDoOutput(true);
-//
-//                int responseCode = con.getResponseCode();
-//
-//                if(responseCode == HttpURLConnection.HTTP_OK) {
-//                    Gson gson = new Gson();
-//                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-//                    String inputLine;
-//                    StringBuilder response = new StringBuilder();
-//                    LatestCrabAuctionResponse responseConverted;
-//
-//                    while((inputLine = in.readLine()) != null) {
-//                        response.append(inputLine);
-//                    }
-//
-//                    in.close();
-//                    con.disconnect();
-//
-//                    responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-//
-//                    if(!responseConverted.isLive) return new ArrayList<>();
-//
-//                    return new ArrayList<>(responseConverted.auction.bids.values());
-//                } else {
-//                    if(responseCode == 308) {
-//                        URL newUrl = new URL(con.getHeaderField("Location"));
-//                        con = (HttpsURLConnection) newUrl.openConnection();
-//                        con.setDoOutput(true);
-//
-//                        Gson gson = new Gson();
-//                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-//                        String inputLine;
-//                        StringBuilder response = new StringBuilder();
-//                        LatestCrabAuctionResponse responseConverted;
-//
-//                        while((inputLine = in.readLine()) != null) {
-//                            response.append(inputLine);
-//                        }
-//
-//                        in.close();
-//                        con.disconnect();
-//
-//                        responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-//
-//                        if(!responseConverted.isLive) return new ArrayList<>();
-//
-//                        return new ArrayList<>(responseConverted.auction.bids.values());
-//                    } else {
-//                        con.disconnect();
-//                        return new ArrayList<>();
-//                    }
-//                }
-//            }
+            @Nullable
+            public static LatestCrabAuctionResponse getLatestAuction() throws IOException {
+                HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
+                con.setRequestMethod("GET");
+                con.setInstanceFollowRedirects(true);
+                con.setDoOutput(true);
+
+                int responseCode = con.getResponseCode();
+
+                if(responseCode == HttpURLConnection.HTTP_OK) {
+                    Gson gson = new Gson();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+
+                    while((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+
+                    in.close();
+                    con.disconnect();
+
+                    return gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+                } else {
+                    if(responseCode == 308) {
+                        URL newUrl = new URL(con.getHeaderField("Location"));
+                        con = (HttpsURLConnection) newUrl.openConnection();
+                        con.setDoOutput(true);
+
+                        Gson gson = new Gson();
+                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        String inputLine;
+                        StringBuilder response = new StringBuilder();
+
+                        while((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+
+                        in.close();
+                        con.disconnect();
+
+                        return gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
+                    } else {
+                        con.disconnect();
+                        return null;
+                    }
+                }
+            }
 
             @Nullable
             public static Auction getAuction(@Nullable Long id) throws IOException {
@@ -866,7 +855,6 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         CrabVault crab;
-        int bidsId = -1;
 
         if(event.getOptions().size() != 0 && !event.getSubcommandName().equalsIgnoreCase("bids")) {
             if(event.getOptions().get(0).getAsBoolean()) { // run v1
@@ -885,7 +873,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 if(event.getOptions().isEmpty()) {
                     bidsPage(eb, -1);
                 } else {
-                    bidsPage(eb, bidsId);
+                    bidsPage(eb, event.getOptions().get(0).getAsInt());
                 }
             }
         }
@@ -1028,48 +1016,58 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
     private void bidsPage(@Nonnull EmbedBuilder eb, int id) {
         eb.setTitle("Crab v2 Auction");
-        eb.setImage("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
+        eb.setThumbnail("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
         try {
             if(id == -1) {
-                Auction latestAuction = v2.FeedingTime.getAuction(v2.FeedingTime.getLatestAuctionId());
+                LatestCrabAuctionResponse auctionResponse = v2.FeedingTime.getLatestAuction();
+                Auction auction;
                 ArrayList<Auction.Bid> bids;
+                double clearingPrice = -1;
 
-                if(latestAuction == null) {
-                    latestAuction = v2.FeedingTime.getAuction(v2.FeedingTime.getLatestAuctionId() - 1);
-
-                    if(latestAuction == null) {
+                if(auctionResponse == null) {
+                    eb.setDescription("Something went wrong trying to get the latest auction. Report this issue!");
+                    eb.setColor(Color.RED);
+                    return;
+                } else if(!auctionResponse.isLive) {
+                    auction = v2.FeedingTime.getAuction(auctionResponse.auction.currentAuctionId - 1);
+                    if(auction == null) {
                         eb.setDescription("Something went wrong trying to get the latest auction. Report this issue!");
-                        eb.addField("Auction ID Tried To Use", String.valueOf(v2.FeedingTime.getLatestAuctionId()), false);
+                        eb.setColor(Color.RED);
                         return;
                     }
-                }
-
-                bids = Auction.sortedBids(latestAuction);
-                eb.setFooter("Latest");
-
-                if(latestAuction.auctionEnd.longValue()/1000 > Instant.now().getEpochSecond()) {
-                    eb.setDescription("View detailed info of the current auction\n\n**Direction**: " +
-                            (latestAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
-                            "**Size**: " + NumberFormat.getInstance().format(latestAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
-                            "**Min. Size**: " + latestAuction.minSize + " oSQTH"
-                    );
                 } else {
-                    eb.setDescription("View detailed info of the previous auction\n\n**Direction**: " +
-                            (latestAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
-                            "**Size**: " + NumberFormat.getInstance().format(latestAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
-                            "**Min. Size**: " + latestAuction.minSize + " oSQTH"
-                    );
+                    auction = auctionResponse.auction;
                 }
+
+                bids = Auction.sortedBids(auction);
+                eb.setFooter("Latest");
 
                 for(int i = 0; i < bids.size(); i++) {
                     StringBuilder title = new StringBuilder("Trader " + (i + 1));
-                    for(String winningBidKey: latestAuction.winningBids) {
-                        if(latestAuction.bids.get(winningBidKey).equals(bids.get(i))) {
+                    for(String winningBidKey: auction.winningBids) {
+                        if(auction.bids.get(winningBidKey).equals(bids.get(i))) {
                             title.insert(0, "[INCLUDED] ");
+                            clearingPrice = Double.parseDouble(String.format("%.5f", bids.get(i).order.price.doubleValue() / Math.pow(10,18)));
                         }
                     }
 
                     eb.addField(title.toString(), bids.get(i).toString(),false);
+                }
+
+                if(auction.auctionEnd.longValue()/1000 > Instant.now().getEpochSecond()) {
+                    eb.setDescription("View detailed info of the current auction\n\n**Direction**: " +
+                            (auction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
+                            "**Size**: " + NumberFormat.getInstance().format(auction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                            "**Min. Size**: " + auction.minSize + " oSQTH\n" +
+                            "**Clearing Price**: " + (clearingPrice == -1 ? "Undetermined" : clearingPrice + " ETH")
+                    );
+                } else {
+                    eb.setDescription("View detailed info of the previous auction\n\n**Direction**: " +
+                            (auction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
+                            "**Size**: " + NumberFormat.getInstance().format(auction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                            "**Min. Size**: " + auction.minSize + " oSQTH\n" +
+                            "**Clearing Price**: " + (clearingPrice == -1 ? "Undetermined" : clearingPrice + " ETH")
+                    );
                 }
             } else {
                 Auction specificAuction = v2.FeedingTime.getAuction((long) id);
@@ -1078,13 +1076,30 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 if(specificAuction == null) {
                     eb.setDescription("Something went wrong trying to get this specific auction! It might not exist, but if you're confident it exists report this issue!");
                     eb.addField("Auction ID Tried To Use", String.valueOf(id), false);
+                    eb.setColor(Color.RED);
                     return;
                 }
 
-                eb.setDescription("View detailed info of the current auction\n\n**Direction**: " +
+                bids = Auction.sortedBids(specificAuction);
+                double clearingPrice = 0;
+
+                for(int i = 0; i < bids.size(); i++) {
+                    StringBuilder title = new StringBuilder("Trader " + (i + 1));
+                    for(String winningBidKey: specificAuction.winningBids) {
+                        if(specificAuction.bids.get(winningBidKey).equals(bids.get(i))) {
+                            title.insert(0, "[INCLUDED] ");
+                            clearingPrice = Double.parseDouble(String.format("%.5f", bids.get(i).order.price.doubleValue() / Math.pow(10,18)));
+                        }
+                    }
+
+                    eb.addField(title.toString(), bids.get(i).toString(),false);
+                }
+
+                eb.setDescription("View detailed info of the auction #" + id + "\n\n**Direction**: " +
                         (specificAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
                         "**Size**: " + NumberFormat.getInstance().format(specificAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
-                        "**Min. Size**: " + specificAuction.minSize + " oSQTH"
+                        "**Min. Size**: " + specificAuction.minSize + " oSQTH\n" +
+                        "**Clearing Price**: " + clearingPrice + " ETH"
                 );
 
                 eb.setFooter("Vault " + id);

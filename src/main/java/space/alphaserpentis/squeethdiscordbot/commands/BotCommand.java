@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
@@ -293,6 +294,7 @@ public abstract class BotCommand<T> {
             eb.addField("Error Message", "Error message unable to be generated? Cause of error: " + e.getCause(), false);
         }
         eb.addField("Error Stack 0", e.getStackTrace()[0].toString(), false);
+        eb.setColor(Color.RED);
 
         return eb.build();
     }
