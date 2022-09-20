@@ -334,6 +334,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                     response.responseTime = Instant.now().toEpochMilli() - ((RandomSquizSession) session).epochInMillisecondsWhenPosted;
                     response.date = date.getMonth() + "-" + date.getDayOfMonth() + "-" + date.getYear();
+                    response.isCorrect = session.correctCurrentAnswer == getAnswerChar(event.getButton().getId());
 
                     userData.responses.add(response);
 
