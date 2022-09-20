@@ -14,10 +14,15 @@ public class SquizTracking {
              * String representing the date of when the response was made
              */
             public String date;
+
+            @Override
+            public String toString() {
+                return date + ": " + responseTime + " ms";
+            }
         }
 
-        public ArrayList<Response> responses;
+        public ArrayList<Response> responses = new ArrayList<>();
     }
 
-    public HashMap<Long, HashMap<Long, UserData>> serverMapping;
+    public HashMap<Long, HashMap<Long, UserData>> serverMapping = new HashMap<>();
 }

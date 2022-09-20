@@ -1,6 +1,7 @@
 {
   "discordBotKey": "YOUR_DISCORD_BOT_KEY",
   "laevitasKey": "YOUR_LAEVITAS_KEY",
+  "pastebinApiKey": "YOUR_PASTEBIN_API_KEY",
   "botAdmin": "YOUR_USER_ID",
   "serverData": "PATH_TO_SERVER_DATA_JSON",
   "transfersData": "PATH_TO_TRANSFERS_DATA_JSON",

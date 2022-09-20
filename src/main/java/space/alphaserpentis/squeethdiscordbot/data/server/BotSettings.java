@@ -10,6 +10,7 @@ public class BotSettings {
     public BotSettings(
         String discordBotKey,
         String laevitasKey,
+        String pastebinApiKey,
         long botAdmin,
         String serverData,
         String transfersData,
@@ -21,6 +22,7 @@ public class BotSettings {
     ) {
         this.discordBotKey = discordBotKey;
         this.laevitasKey = laevitasKey;
+        this.pastebinApiKey = pastebinApiKey;
         this.botAdmin = botAdmin;
         this.serverData = serverData;
         this.transfersData = transfersData;
@@ -33,6 +35,7 @@ public class BotSettings {
 
     public String discordBotKey;
     public String laevitasKey;
+    public String pastebinApiKey;
     public long botAdmin;
     public String serverData;
     public String transfersData;

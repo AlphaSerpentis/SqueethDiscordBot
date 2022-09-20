@@ -75,6 +75,8 @@ public class Launcher {
         } else {
             SquizHandler.init(Path.of(settings.squizLeaderboard), Path.of(settings.squizQuestions));
         }
+
+        SquizHandler.pastebinApiKey = settings.pastebinApiKey;
     }
 
     /**

@@ -31,12 +31,13 @@ public class SquizHandler {
     public static Path squizLeaderboardJson;
     public static Path squizQuestionsJson;
     public static Path squizTrackingJson;
+    public static String pastebinApiKey;
     /**
      * Key: serverId
      * Value: SquizLeaderboard
      */
     public static Map<Long, SquizLeaderboard> squizLeaderboardHashMap = new HashMap<>();
-    public static SquizTracking squizTracking = null;
+    public static SquizTracking squizTracking = new SquizTracking();
     public static volatile HashMap<Long, ScheduledFuture<?>> runningRandomSquiz = new HashMap<>();
     public static ArrayList<SquizQuestions> squizQuestions = new ArrayList<>();
     private static final ScheduledThreadPoolExecutor scheduledExecutor;
@@ -82,6 +83,8 @@ public class SquizHandler {
         }
 
         squizTracking = new Gson().fromJson(Files.newBufferedReader(squizTrackingJson), new TypeToken<SquizTracking>(){}.getType());
+
+        if(squizTracking == null) squizTracking = new SquizTracking();
     }
 
     public static void init(@Nonnull Path squizLeaderboardJson, @Nonnull Path squizQuestionsJson) throws IOException {
