@@ -22,7 +22,7 @@ public class LaevitasHandler {
     public static String KEY;
     public static SqueethData latestSqueethData = new SqueethData();
     public static long lastSuccessfulPoll = 0;
-    public static ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+    public static final ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
 
     public static void timedPoller() {
         scheduledExecutor.scheduleAtFixedRate(() -> {

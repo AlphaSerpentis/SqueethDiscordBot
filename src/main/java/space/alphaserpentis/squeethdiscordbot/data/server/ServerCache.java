@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+@SuppressWarnings("CanBeFinal")
 public class ServerCache {
     public static HashMap<Long, ArrayList<Long>> guildToChannelsMap = new HashMap<>();
     public static HashMap<Long, ArrayList<Long>> cachedMessages = new HashMap<>();

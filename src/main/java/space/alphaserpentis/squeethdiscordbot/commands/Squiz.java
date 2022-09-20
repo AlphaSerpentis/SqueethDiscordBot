@@ -43,7 +43,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         COMPLETE,
         VIEWING_LEADERBOARD,
         GETTING_PLAYERS,
-        PENDING_CONFIRMATION
+        PENDING_CONFIRMATION,
+        IGNORE
     }
 
     public static class SquizSession {
@@ -148,6 +149,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     }
                 }
                 case "add_point" -> {
+                    session.currentState = States.IGNORE;
                     if(verifyManageServerPerms(event.getMember())) {
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
 
@@ -159,9 +161,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
-                    return eb.build();
                 }
                 case "remove_point" -> {
+                    session.currentState = States.IGNORE;
                     if(verifyManageServerPerms(event.getMember())) {
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
 
@@ -173,7 +175,20 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
-                    return eb.build();
+                }
+                case "set_point" -> {
+                    session.currentState = States.IGNORE;
+                    if(verifyManageServerPerms(event.getMember())) {
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
+
+                        leaderboard.setCustomPoint(event.getOptions().get(0).getAsUser().getIdLong(), event.getOptions().get(1).getAsInt());
+
+                        SquizHandler.squizLeaderboardHashMap.putIfAbsent(event.getGuild().getIdLong(), leaderboard);
+
+                        eb.setDescription("Set points for <@" + event.getOptions().get(0).getAsUser().getIdLong() + "> to " + event.getOptions().get(1).getAsInt());
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
                 }
                 case "get_players" -> {
                     if(verifyManageServerPerms(event.getMember())) {
@@ -220,9 +235,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     }
                 }
                 case "get_tracking" -> {
+                    session.currentState = States.IGNORE;
                     if(verifyManageServerPerms(event.getMember())) {
                         try {
-                            eb.setTitle("Squiz User Tracking for " + event.getUser().getAsMention());
+                            eb.setTitle("Squiz User Tracking for " + event.getUser().getAsTag());
                             eb.setDescription(
                                     getPastebinUrl(SquizHandler.squizTracking.serverMapping.get(event.getGuild().getIdLong()).get(event.getOptions().get(0).getAsUser().getIdLong()).responses.toString())
                             );
@@ -247,11 +263,12 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData setPoint = new SubcommandData("set_point", "Sets the amount of points for a user").addOption(OptionType.USER, "user", "Which user to set custom points for", true).addOption(OptionType.INTEGER, "points", "Custom points to set", true);
         SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
         SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
         SubcommandData getUserTrackingDump = new SubcommandData("get_tracking", "Gets the Random Squiz user tracking data").addOption(OptionType.USER, "user", "Which user to get tracking data from", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, setPoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -262,11 +279,12 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData setPoint = new SubcommandData("set_point", "Sets the amount of points for a user").addOption(OptionType.USER, "user", "Which user to set custom points for", true).addOption(OptionType.INTEGER, "points", "Custom points to set", true);
         SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
         SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
         SubcommandData getUserTrackingDump = new SubcommandData("get_tracking", "Gets the Random Squiz user tracking data").addOption(OptionType.USER, "user", "Which user to get tracking data from", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, setPoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -275,6 +293,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         Collection<ItemComponent> buttons = null;
         EmbedBuilder eb = new EmbedBuilder();
+        //noinspection ConstantConditions
         long serverId = event.getGuild().getIdLong();
         long userId = event.getUser().getIdLong();
 
@@ -297,6 +316,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                     event.replyEmbeds(eb.build()).setEphemeral(true).complete();
                 } else {
+                    //noinspection ConstantConditions
                     ((RandomSquizSession) session).responses.put(userId, getAnswerChar(event.getButton().getId()));
 
                     eb.setDescription("You chose " + ((RandomSquizSession) session).responses.get(userId));
@@ -328,6 +348,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             squizSessionHashMap.put(userId, session);
         }
 
+        //noinspection ConstantConditions
         switch(event.getButton().getId()) {
             case "squiz_start" -> {
                 int questionNumber = session.currentQuestion;
@@ -474,7 +495,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;
 
-        if (state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
+        if(state == States.IGNORE) {
+            return Collections.emptyList();
+        } else if (state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
             return List.of(
                     buttonHashMap.get("A"),
                     buttonHashMap.get("B"),

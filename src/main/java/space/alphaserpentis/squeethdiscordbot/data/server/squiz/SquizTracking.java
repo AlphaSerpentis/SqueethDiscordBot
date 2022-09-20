@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SquizTracking {
+    @SuppressWarnings("CanBeFinal")
     public static class UserData {
         public static class Response {
             /**

@@ -472,18 +472,18 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 }
             }
 
-            public static void updateMessageForBids() {
-                EmbedBuilder eb = new EmbedBuilder();
-
-                for(Long serverId: serversListening) {
-                    if(lastBidMessageId == 0) { // make new bid message
-
-                    } else { // edit bid message
-                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
-
-                    }
-                }
-            }
+//            public static void updateMessageForBids() {
+//                EmbedBuilder eb = new EmbedBuilder();
+//
+//                for(Long serverId: serversListening) {
+//                    if(lastBidMessageId == 0) { // make new bid message
+//
+//                    } else { // edit bid message
+//                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+//
+//                    }
+//                }
+//            }
 
             @SuppressWarnings("rawtypes")
             public static double[] estimateSizeOfAuction() {

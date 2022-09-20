@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 public class Auction {
     public static class Bid {
+        @SuppressWarnings("CanBeFinal")
         public static class Order implements Comparable<Order> {
             public BigInteger quantity = BigInteger.ZERO;
             public BigInteger price = BigInteger.ZERO;
