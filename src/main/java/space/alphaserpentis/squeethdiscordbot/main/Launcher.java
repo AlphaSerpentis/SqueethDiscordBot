@@ -70,7 +70,13 @@ public class Launcher {
         new StatusHandler();
 
         // Initialize SquizHandler
-        SquizHandler.init(Path.of(settings.squizLeaderboard), Path.of(settings.squizQuestions));
+        if(settings.enableSquizTracking) {
+            SquizHandler.init(Path.of(settings.squizLeaderboard), Path.of(settings.squizQuestions), Path.of(settings.squizTracking));
+        } else {
+            SquizHandler.init(Path.of(settings.squizLeaderboard), Path.of(settings.squizQuestions));
+        }
+
+        SquizHandler.pastebinApiKey = settings.pastebinApiKey;
     }
 
     /**

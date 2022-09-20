@@ -21,7 +21,7 @@ public class CommandsHandler extends ListenerAdapter {
     public static final HashMap<String, BotCommand<?>> mappingOfCommands;
 
     public static long adminUserID;
-    public static ExecutorService executor = Executors.newCachedThreadPool();
+    public static final ExecutorService executor = Executors.newCachedThreadPool();
 
     static {
         mappingOfCommands = new HashMap<>() {{

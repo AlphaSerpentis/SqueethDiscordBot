@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 
+@SuppressWarnings("CanBeFinal")
 public class SimpleTokenTransferResponse {
     public String token;
     public int blockNum;

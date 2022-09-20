@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.api.alchemy;
 
+@SuppressWarnings("CanBeFinal")
 public class AlchemyRequest {
     public String jsonrpc = "2.0";
     public int id = 1;

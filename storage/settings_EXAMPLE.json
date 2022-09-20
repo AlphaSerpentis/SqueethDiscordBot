@@ -1,12 +1,15 @@
 {
   "discordBotKey": "YOUR_DISCORD_BOT_KEY",
   "laevitasKey": "YOUR_LAEVITAS_KEY",
+  "pastebinApiKey": "YOUR_PASTEBIN_API_KEY",
   "botAdmin": "YOUR_USER_ID",
   "serverData": "PATH_TO_SERVER_DATA_JSON",
   "transfersData": "PATH_TO_TRANSFERS_DATA_JSON",
   "pricesData": "PATH_TO_PRICES_DATA_JSON",
   "squizQuestions": "PATH_TO_SQUIZ_QUESTIONS_JSON",
   "squizLeaderboard": "PATH_TO_SQUIZ_LEADERBOARD_JSON",
+  "squizTracking": "PATH_TO_SQUIZ_TRACKING_JSON",
   "ethereumRPC": "ETHEREUM_RPC_URL",
+  "enableSquizTracking": false,
   "updateCommandsAtLaunch": false
 }

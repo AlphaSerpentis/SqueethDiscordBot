@@ -78,7 +78,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     public abstract static class AbstractPositions {
 
         public ArrayList<SimpleTokenTransferResponse> transfers = new ArrayList<>();
-        public HashMap<Integer, BigInteger> tokensAtBlock = new HashMap<>();
+        public final HashMap<Integer, BigInteger> tokensAtBlock = new HashMap<>();
         public final String userAddress;
         public BigInteger costBasis = BigInteger.ZERO;
         public BigInteger costBasisInEth = BigInteger.ZERO;
@@ -542,6 +542,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
+    @Nonnull
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         if(cachedPositions.get(event.getUser().getIdLong()) == null || isUserRatelimited(event.getUser().getIdLong())) {
             return Collections.emptyList();

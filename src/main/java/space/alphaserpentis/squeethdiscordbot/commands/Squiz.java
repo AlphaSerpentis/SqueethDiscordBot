@@ -20,13 +20,18 @@ import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizTracking;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 
 public class Squiz extends ButtonCommand<MessageEmbed> {
@@ -38,7 +43,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         COMPLETE,
         VIEWING_LEADERBOARD,
         GETTING_PLAYERS,
-        PENDING_CONFIRMATION
+        PENDING_CONFIRMATION,
+        IGNORE
     }
 
     public static class SquizSession {
@@ -47,7 +53,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public int currentScore = 0;
         public char correctCurrentAnswer = ' ';
         public ArrayList<SquizQuestions> questions;
-        public HashMap<Integer, SquizQuestions> missedQuestions = new HashMap<>();
+        public final HashMap<Integer, SquizQuestions> missedQuestions = new HashMap<>();
 
         @Override
         public String toString() {
@@ -61,11 +67,12 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     public static class RandomSquizSession extends SquizSession {
-        public static HashMap<Long, Integer> consecutiveAnswers = new HashMap<>();
+        public static final HashMap<Long, Integer> consecutiveAnswers = new HashMap<>();
         public Thread expiringThread;
-        public HashMap<Long, Character> responses = new HashMap<>();
+        public final HashMap<Long, Character> responses = new HashMap<>();
         public long serverId;
         public long timeReacted = 0;
+        public long epochInMillisecondsWhenPosted;
         public Message message;
     }
 
@@ -74,8 +81,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         public int currentPage = 0;
     }
 
-    public static HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
-    public static HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
+    public static final HashMap<Long, SquizSession> squizSessionHashMap = new HashMap<>();
+    public static final HashMap<Long, RandomSquizSession> randomSquizSessionsHashMap = new HashMap<>();
 
     public Squiz() {
         super(new BotCommandOptions(
@@ -142,6 +149,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     }
                 }
                 case "add_point" -> {
+                    session.currentState = States.IGNORE;
                     if(verifyManageServerPerms(event.getMember())) {
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
 
@@ -153,9 +161,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
-                    return eb.build();
                 }
                 case "remove_point" -> {
+                    session.currentState = States.IGNORE;
                     if(verifyManageServerPerms(event.getMember())) {
                         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
 
@@ -167,7 +175,20 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     } else {
                         eb.setDescription("Insufficient permissions");
                     }
-                    return eb.build();
+                }
+                case "set_point" -> {
+                    session.currentState = States.IGNORE;
+                    if(verifyManageServerPerms(event.getMember())) {
+                        SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(event.getGuild().getIdLong(), new SquizLeaderboard());
+
+                        leaderboard.setCustomPoint(event.getOptions().get(0).getAsUser().getIdLong(), event.getOptions().get(1).getAsInt());
+
+                        SquizHandler.squizLeaderboardHashMap.putIfAbsent(event.getGuild().getIdLong(), leaderboard);
+
+                        eb.setDescription("Set points for <@" + event.getOptions().get(0).getAsUser().getIdLong() + "> to " + event.getOptions().get(1).getAsInt());
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
                 }
                 case "get_players" -> {
                     if(verifyManageServerPerms(event.getMember())) {
@@ -213,6 +234,21 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         eb.setDescription("Insufficient permissions");
                     }
                 }
+                case "get_tracking" -> {
+                    session.currentState = States.IGNORE;
+                    if(verifyManageServerPerms(event.getMember())) {
+                        try {
+                            eb.setTitle("Squiz User Tracking for " + event.getUser().getAsTag());
+                            eb.setDescription(
+                                    getPastebinUrl(SquizHandler.squizTracking.serverMapping.get(event.getGuild().getIdLong()).get(event.getOptions().get(0).getAsUser().getIdLong()).responses.toString())
+                            );
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        eb.setDescription("Insufficient permissions");
+                    }
+                }
             }
         }
 
@@ -227,10 +263,12 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData setPoint = new SubcommandData("set_point", "Sets the amount of points for a user").addOption(OptionType.USER, "user", "Which user to set custom points for", true).addOption(OptionType.INTEGER, "points", "Custom points to set", true);
         SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
         SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
+        SubcommandData getUserTrackingDump = new SubcommandData("get_tracking", "Gets the Random Squiz user tracking data").addOption(OptionType.USER, "user", "Which user to get tracking data from", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, setPoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -241,10 +279,12 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
         SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
+        SubcommandData setPoint = new SubcommandData("set_point", "Sets the amount of points for a user").addOption(OptionType.USER, "user", "Which user to set custom points for", true).addOption(OptionType.INTEGER, "points", "Custom points to set", true);
         SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
         SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
+        SubcommandData getUserTrackingDump = new SubcommandData("get_tracking", "Gets the Random Squiz user tracking data").addOption(OptionType.USER, "user", "Which user to get tracking data from", true);
 
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, getPlayers, clearLeaderboard).complete();
+        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, setPoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
 
         commandId = cmd.getIdLong();
     }
@@ -253,6 +293,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         Collection<ItemComponent> buttons = null;
         EmbedBuilder eb = new EmbedBuilder();
+        //noinspection ConstantConditions
         long serverId = event.getGuild().getIdLong();
         long userId = event.getUser().getIdLong();
 
@@ -275,6 +316,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                     event.replyEmbeds(eb.build()).setEphemeral(true).complete();
                 } else {
+                    //noinspection ConstantConditions
                     ((RandomSquizSession) session).responses.put(userId, getAnswerChar(event.getButton().getId()));
 
                     eb.setDescription("You chose " + ((RandomSquizSession) session).responses.get(userId));
@@ -285,6 +327,18 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                         randomSquizExpires((RandomSquizSession) session);
                         ((RandomSquizSession) session).timeReacted = Instant.now().getEpochSecond();
                     }
+                    HashMap<Long, SquizTracking.UserData> tracking = SquizHandler.squizTracking.serverMapping.getOrDefault(serverId, new HashMap<>());
+                    SquizTracking.UserData userData = tracking.getOrDefault(userId, new SquizTracking.UserData());
+                    SquizTracking.UserData.Response response = new SquizTracking.UserData.Response();
+                    LocalDate date = LocalDate.now();
+
+                    response.responseTime = Instant.now().toEpochMilli() - ((RandomSquizSession) session).epochInMillisecondsWhenPosted;
+                    response.date = date.getMonth() + "-" + date.getDayOfMonth() + "-" + date.getYear();
+
+                    userData.responses.add(response);
+
+                    tracking.put(userId, userData);
+                    SquizHandler.squizTracking.serverMapping.put(serverId, tracking);
                 }
                 return;
             } else {
@@ -294,6 +348,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             squizSessionHashMap.put(userId, session);
         }
 
+        //noinspection ConstantConditions
         switch(event.getButton().getId()) {
             case "squiz_start" -> {
                 int questionNumber = session.currentQuestion;
@@ -434,13 +489,15 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             pending.complete();
     }
 
-    @Nonnull
     @Override
+    @Nonnull
     public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;
 
-        if (state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
+        if(state == States.IGNORE) {
+            return Collections.emptyList();
+        } else if (state == States.IN_PROGRESS && !event.getSubcommandName().equalsIgnoreCase("play")) {
             return List.of(
                     buttonHashMap.get("A"),
                     buttonHashMap.get("B"),
@@ -495,6 +552,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
         Message message = channelRand.sendMessageEmbeds(eb.build()).setActionRow(buttons).complete();
         session.message = message;
+        session.epochInMillisecondsWhenPosted = Instant.now().toEpochMilli();
         ServerCache.addNewMessage(message.getGuild().getIdLong(), message.getChannel().getIdLong(), message.getIdLong());
     }
 
@@ -582,9 +640,10 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     updateLeaderboard(session.serverId);
                     SquizHandler.updateSquizLeaderboard();
                     ServerDataHandler.updateServerData();
+                    SquizHandler.updateSquizTracking();
                 } catch (IOException e) {
                     e.printStackTrace();
-                    eb.addField("Warning", "Leaderboard not saved to disk!", false);
+                    eb.addField("Warning", "Leaderboard and/or other data not saved to disk!", false);
                 } catch (NullPointerException e) {
                     e.printStackTrace();
                     eb.addField("Warning", "Leaderboard channel isn't set properly!", false);
@@ -710,6 +769,28 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
 
         return questions;
+    }
+
+    private String getPastebinUrl(@Nonnull String contentToPaste) throws Exception {
+        HttpsURLConnection con = (HttpsURLConnection) new URL("https://pastebin.com/api/api_post.php").openConnection();
+        con.setRequestMethod("POST");
+        con.setDoOutput(true);
+        String url;
+
+        OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+        writer.write("api_dev_key=" + SquizHandler.pastebinApiKey + "&api_paste_code=" + contentToPaste + "&api_option=paste");
+        writer.flush();
+        writer.close();
+
+        int responseCode = con.getResponseCode();
+
+        if(responseCode == HttpURLConnection.HTTP_ACCEPTED || responseCode == HttpURLConnection.HTTP_OK) {
+            url = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
+        } else {
+            throw new Exception("Failed to get URL\n\n" + new BufferedReader(new InputStreamReader(con.getInputStream())).readLine());
+        }
+
+        return url;
     }
 
     private static void generateLeaderboard(@Nonnull EmbedBuilder eb, long serverId) {

@@ -5,6 +5,7 @@ package space.alphaserpentis.squeethdiscordbot.data.server.squiz;
 import javax.annotation.Nonnull;
 import java.util.*;
 
+@SuppressWarnings("CanBeFinal")
 public class SquizLeaderboard {
     /**
      * Stores the userId/score pair

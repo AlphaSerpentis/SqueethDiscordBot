@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("CanBeFinal")
 public class TokenTransferResponse {
     public Result result = new Result();
 

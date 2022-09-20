@@ -10,6 +10,7 @@ import space.alphaserpentis.squeethdiscordbot.commands.Squiz;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
+import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizTracking;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizLeaderboardDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizQuestionsDeserializer;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
@@ -29,11 +30,14 @@ public class SquizHandler {
 
     public static Path squizLeaderboardJson;
     public static Path squizQuestionsJson;
+    public static Path squizTrackingJson;
+    public static String pastebinApiKey;
     /**
      * Key: serverId
      * Value: SquizLeaderboard
      */
     public static Map<Long, SquizLeaderboard> squizLeaderboardHashMap = new HashMap<>();
+    public static SquizTracking squizTracking = new SquizTracking();
     public static volatile HashMap<Long, ScheduledFuture<?>> runningRandomSquiz = new HashMap<>();
     public static ArrayList<SquizQuestions> squizQuestions = new ArrayList<>();
     private static final ScheduledThreadPoolExecutor scheduledExecutor;
@@ -50,6 +54,37 @@ public class SquizHandler {
         scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(
                 eligibleServers + 1, Executors.defaultThreadFactory()
         );
+    }
+
+    public static void init(@Nonnull Path squizLeaderboardJson, @Nonnull Path squizQuestionsJson, @Nonnull Path squizTrackingJson) throws IOException {
+        SquizHandler.squizLeaderboardJson = squizLeaderboardJson;
+        SquizHandler.squizQuestionsJson = squizQuestionsJson;
+        SquizHandler.squizTrackingJson = squizTrackingJson;
+
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(squizLeaderboardHashMap.getClass(), new SquizLeaderboardDeserializer())
+                .create();
+
+        squizLeaderboardHashMap = gson.fromJson(Files.newBufferedReader(squizLeaderboardJson), new TypeToken<Map<Long, SquizLeaderboard>>(){}.getType());
+
+        if(squizLeaderboardHashMap == null) squizLeaderboardHashMap = new HashMap<>();
+
+        gson = new GsonBuilder()
+                .registerTypeAdapter(squizQuestions.getClass(), new SquizQuestionsDeserializer())
+                .create();
+
+        squizQuestions = gson.fromJson(Files.newBufferedReader(squizQuestionsJson), new TypeToken<ArrayList<SquizQuestions>>(){}.getType());
+
+        for(Long serverId: ServerDataHandler.serverDataHashMap.keySet()) {
+            if(ServerDataHandler.serverDataHashMap.get(serverId).doRandomSquizQuestions()) {
+                if(isServerValidForRandomSquiz(serverId))
+                    scheduleServer(serverId);
+            }
+        }
+
+        squizTracking = new Gson().fromJson(Files.newBufferedReader(squizTrackingJson), new TypeToken<SquizTracking>(){}.getType());
+
+        if(squizTracking == null) squizTracking = new SquizTracking();
     }
 
     public static void init(@Nonnull Path squizLeaderboardJson, @Nonnull Path squizQuestionsJson) throws IOException {
@@ -95,7 +130,7 @@ public class SquizHandler {
      * @return true if successfully cancelled (or if it wasn't running in the first place), otherwise false
      */
     public static boolean stopServerFromIssuingNewSquiz(long id) {
-        if(runningRandomSquiz.containsKey(id))
+        if(!runningRandomSquiz.containsKey(id))
             return true;
         if(runningRandomSquiz.get(id).cancel(false)) {
             runningRandomSquiz.remove(id);
@@ -127,16 +162,14 @@ public class SquizHandler {
         } else {
             TextChannel channel = Launcher.api.getTextChannelById(sd.getLeaderboardChannelId());
 
-            if(channel == null) return false;
-            if(!channel.canTalk()) return false;
+            if(channel == null || !channel.canTalk()) return false;
         }
 
         // Check if the random Squiz channels can messages be sent
         for(long channeId: sd.getRandomSquizQuestionsChannels()) {
             TextChannel channel = Launcher.api.getTextChannelById(channeId);
 
-            if(channel == null) return false;
-            if(!channel.canTalk()) return false;
+            if(channel == null || !channel.canTalk()) return false;
         }
         return true;
     }
@@ -171,9 +204,21 @@ public class SquizHandler {
         writeToJSON(gson, squizLeaderboardHashMap);
     }
 
+    public static void updateSquizTracking() throws IOException {
+        Gson gson = new Gson();
+
+        writeToJSON(squizTrackingJson, gson, squizTracking);
+    }
+
     public static void writeToJSON(@Nonnull Gson gson, @Nonnull Object data) throws IOException {
         Path path = Paths.get(squizLeaderboardJson.toString());
         try (Writer writer = Files.newBufferedWriter(path)) {
+            gson.toJson(data, writer);
+        }
+    }
+
+    public static void writeToJSON(@Nonnull Path path, @Nonnull Gson gson, @Nonnull Object data) throws IOException {
+        try(Writer writer = Files.newBufferedWriter(path)) {
             gson.toJson(data, writer);
         }
     }

@@ -21,6 +21,7 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
 - Funding Calculator
 - Crab Stats
   - Crab Rebalance Data
+  - Crab Feeding Time (Auction) Notification
 - Positions Viewer
   - Long Squeeth and Crab supported
   - Shorts are not supported yet
@@ -34,7 +35,7 @@ Near real-time data of Squeeth by [Laevitas](https://app.laevitas.ch/dashboard/s
 
 # Requirements to Self-Host
 
-- Java 8+
+- Java 17+
 - Discord Bot Token
 - Laevitas API Key
 - Ethereum RPC Node (self-hosted or 3rd party, preferably Alchemy)

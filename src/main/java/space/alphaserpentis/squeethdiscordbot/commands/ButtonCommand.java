@@ -24,6 +24,7 @@ public abstract class ButtonCommand<T> extends BotCommand<T> {
     }
 
     abstract public void runButtonInteraction(@Nonnull ButtonInteractionEvent event);
+    @Nonnull
     abstract public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event);
     @Nullable
     public Button getButton(String key) {
