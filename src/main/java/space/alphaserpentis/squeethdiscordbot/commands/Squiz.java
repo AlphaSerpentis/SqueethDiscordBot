@@ -239,8 +239,14 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     if(verifyManageServerPerms(event.getMember())) {
                         try {
                             eb.setTitle("Squiz User Tracking for " + event.getUser().getAsTag());
+                            StringBuilder csvString = new StringBuilder("Date,Response Time,Is Correct\n");
+
+                            for(SquizTracking.UserData.Response response: SquizHandler.squizTracking.serverMapping.get(event.getGuild().getIdLong()).get(event.getOptions().get(0).getAsUser().getIdLong()).responses) {
+                                csvString.append(response.date).append(',').append(response.responseTime).append(',').append(response.isCorrect).append('\n');
+                            }
+
                             eb.setDescription(
-                                    getPastebinUrl(SquizHandler.squizTracking.serverMapping.get(event.getGuild().getIdLong()).get(event.getOptions().get(0).getAsUser().getIdLong()).responses.toString())
+                                    getPastebinUrl(csvString.toString())
                             );
                         } catch (Exception e) {
                             throw new RuntimeException(e);
