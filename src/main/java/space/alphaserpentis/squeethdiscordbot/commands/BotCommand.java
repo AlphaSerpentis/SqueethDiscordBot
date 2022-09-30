@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
 
 import javax.annotation.Nonnull;
@@ -20,6 +21,11 @@ import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BotCommand<T> {
+
+    enum TypeOfEphemeral {
+        DEFAULT,
+        DYNAMIC
+    }
 
     public static class BotCommandOptions {
         protected final String name;
@@ -32,6 +38,7 @@ public abstract class BotCommand<T> {
         protected final boolean deferReplies;
         protected final boolean useRatelimits;
         protected final boolean messagesExpire;
+        protected final TypeOfEphemeral typeOfEphemeral;
         protected final long defaultRatelimitLength = 0;
         protected final long defaultMessageExpirationLength = 0;
         protected final boolean defaultOnlyEmbed = false;
@@ -40,6 +47,7 @@ public abstract class BotCommand<T> {
         protected final boolean defaultDeferReplies = false;
         protected final boolean defaultUseRatelimits = false;
         protected final boolean defaultMessagesExpire = false;
+        protected final TypeOfEphemeral defaultTypeOfEphemeral = TypeOfEphemeral.DEFAULT;
 
         public BotCommandOptions(
                 @Nonnull String name,
@@ -55,18 +63,21 @@ public abstract class BotCommand<T> {
             deferReplies = defaultDeferReplies;
             useRatelimits = defaultUseRatelimits;
             messagesExpire = defaultMessagesExpire;
+            typeOfEphemeral = defaultTypeOfEphemeral;
         }
 
         public BotCommandOptions(
                 @Nonnull String name,
                 @Nonnull String description,
                 boolean onlyEmbed,
-                boolean onlyEphemeral
+                boolean onlyEphemeral,
+                @Nonnull TypeOfEphemeral typeOfEphemeral
         ) {
             this.name = name;
             this.description = description;
             this.onlyEmbed = onlyEmbed;
             this.onlyEphemeral = onlyEphemeral;
+            this.typeOfEphemeral = typeOfEphemeral;
             ratelimitLength = defaultRatelimitLength;
             messageExpirationLength = defaultMessageExpirationLength;
             isActive = defaultIsActive;
@@ -82,6 +93,7 @@ public abstract class BotCommand<T> {
                 long messageExpirationLength,
                 boolean onlyEmbed,
                 boolean onlyEphemeral,
+                @Nonnull TypeOfEphemeral typeOfEphemeral,
                 boolean isActive,
                 boolean deferReplies,
                 boolean useRatelimits,
@@ -93,6 +105,7 @@ public abstract class BotCommand<T> {
             this.messageExpirationLength = messageExpirationLength;
             this.onlyEmbed = onlyEmbed;
             this.onlyEphemeral = onlyEphemeral;
+            this.typeOfEphemeral = typeOfEphemeral;
             this.isActive = isActive;
             this.deferReplies = deferReplies;
             this.useRatelimits = useRatelimits;
@@ -111,10 +124,11 @@ public abstract class BotCommand<T> {
     protected final boolean deferReplies;
     protected final boolean useRatelimits;
     protected final boolean messagesExpire;
+    protected final TypeOfEphemeral ephemeralType;
     protected long commandId;
 
     public BotCommand() {
-        throw new RuntimeException("Unsupported constructor");
+        throw new UnsupportedOperationException("Unsupported constructor");
     }
 
     public BotCommand(@Nonnull BotCommandOptions options) {
@@ -128,13 +142,26 @@ public abstract class BotCommand<T> {
         deferReplies = options.deferReplies;
         useRatelimits = options.useRatelimits;
         messagesExpire = options.messagesExpire;
+        ephemeralType = options.typeOfEphemeral;
     }
 
     @Nonnull
-    abstract public T runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);
+    abstract public CommandResponse<T> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);
 
-    abstract public void addCommand(@Nonnull JDA jda);
     abstract public void updateCommand(@Nonnull JDA jda);
+
+    /**
+     * A method that REQUIRES to be overridden if to be used for any BotCommand with an ephemeralType of TypeOfEphemeral.DYNAMIC
+     *
+     * Operations inside must NOT exceed the time it requires to ACKNOWLEDGE the API!
+     * @param userId
+     * @param event
+     * @return
+     */
+    @Nonnull
+    public CommandResponse<T> beforeRunCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+        throw new UnsupportedOperationException("beforeRunCommand needs to be overridden!");
+    }
 
     public void setCommandId(long id) {
         commandId = id;
@@ -181,10 +208,14 @@ public abstract class BotCommand<T> {
     public boolean doMessagesExpire() {
         return messagesExpire;
     }
+    public TypeOfEphemeral getEphemeralType() {
+        return ephemeralType;
+    }
 
     @Nonnull
     public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, @Nonnull BotCommand<?> cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
+        CommandResponse<?> responseFromCommand;
         Object response;
         ReplyCallbackAction reply;
 
@@ -196,18 +227,31 @@ public abstract class BotCommand<T> {
                 }
 
                 if (cmd.isOnlyEmbed()) {
-                    if (!sendAsEphemeral && event.getGuild() != null) {
-                        event.deferReply(false).complete();
+                    if(cmd.ephemeralType == TypeOfEphemeral.DEFAULT) {
+                        if (!sendAsEphemeral && event.getGuild() != null) {
+                            event.deferReply(false).complete();
+                        } else {
+                            event.deferReply(sendAsEphemeral).complete();
+                        }
                     } else {
-                        event.deferReply(sendAsEphemeral).complete();
+                        CommandResponse<?> responseBeforeRunning = cmd.beforeRunCommand(event.getUser().getIdLong(), event);
+
+                        event.deferReply(responseBeforeRunning.messageIsEphemeral()).complete();
+                        if(responseBeforeRunning.messageResponse() != null) {
+                            MessageEmbed message = (MessageEmbed) responseBeforeRunning.messageResponse();
+
+                            event.replyEmbeds(message).complete();
+                        }
                     }
-                    response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+
+                    responseFromCommand = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+                    response = responseFromCommand.messageResponse();
 
                     if (cmd instanceof ButtonCommand) {
                         Collection<ItemComponent> buttons = ((ButtonCommand<?>) cmd).addButtons(event);
 
                         if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
-                            cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
+                            cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.getRatelimitLength());
                         }
 
                         if(!buttons.isEmpty())
@@ -215,17 +259,18 @@ public abstract class BotCommand<T> {
                     }
 
                     if (cmd.isUsingRatelimits() && !cmd.isUserRatelimited(event.getUser().getIdLong())) {
-                        cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.ratelimitLength);
+                        cmd.ratelimitMap.put(event.getUser().getIdLong(), Instant.now().getEpochSecond() + cmd.getRatelimitLength());
                     }
 
-                    return hook.sendMessageEmbeds((MessageEmbed) response).complete();
+                    return hook.sendMessageEmbeds((MessageEmbed) response).setEphemeral(responseFromCommand.messageIsEphemeral()).complete();
                 } else {
                     if (!sendAsEphemeral && event.getGuild() != null) {
                         hook.setEphemeral(false);
                     } else {
                         hook.setEphemeral(sendAsEphemeral);
                     }
-                    response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+                    responseFromCommand = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+                    response = responseFromCommand.messageResponse();
 
                     return hook.sendMessage((String) response).complete();
                 }
@@ -235,7 +280,8 @@ public abstract class BotCommand<T> {
         }
 
         try {
-            response = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+            responseFromCommand = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
+            response = responseFromCommand.messageResponse();
 
             if (!sendAsEphemeral && event.getGuild() != null)
                 sendAsEphemeral = ServerDataHandler.serverDataHashMap.get(event.getGuild().getIdLong()).isOnlyEphemeral();
@@ -300,7 +346,7 @@ public abstract class BotCommand<T> {
     }
 
     @Nonnull
-    private static MessageEmbed inactiveCommandResponse() {
-        return new EmbedBuilder().setDescription("This command is currently not active").build();
+    private static CommandResponse<MessageEmbed> inactiveCommandResponse() {
+        return new CommandResponse<>(new EmbedBuilder().setDescription("This command is currently not active").build(), null);
     }
 }

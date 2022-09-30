@@ -6,13 +6,13 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Bool;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.*;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
@@ -207,6 +207,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             0,
             true,
             true,
+            TypeOfEphemeral.DEFAULT,
             true,
             true,
             true,
@@ -214,15 +215,15 @@ public class Vault extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @NotNull
+    @Nonnull
     @SuppressWarnings("rawtypes")
     @Override
-    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
             eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         // web3j stuff
@@ -334,7 +335,7 @@ public class Vault extends BotCommand<MessageEmbed> {
         } catch (ExecutionException | InterruptedException e) {
             eb.setDescription("An error has occurred. Please try again later. If this continues to persist, reach out to the bot owner.");
             e.printStackTrace();
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         VaultGreeks vaultGreeks = new VaultGreeks(
@@ -391,19 +392,11 @@ public class Vault extends BotCommand<MessageEmbed> {
             eb.setColor(Color.GREEN);
         }
 
-        return eb.build();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description)
-                .addOption(OptionType.INTEGER, "id", "ID of the short vault", true).complete();
-
-        commandId = cmd.getIdLong();
-    }
-
-    @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.INTEGER, "id", "ID of the short vault", true).complete();
 

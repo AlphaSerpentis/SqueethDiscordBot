@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 
 import javax.annotation.Nonnull;
@@ -20,18 +21,19 @@ public class Clean extends BotCommand<MessageEmbed> {
             "clean",
             "Cleans the last couple of messages",
             true,
-            true
+            true,
+            TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(event.getGuild() == null) {
             eb.setDescription("Only works in servers!");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         if(verifyServerPerms(event.getMember())) {
@@ -41,19 +43,14 @@ public class Clean extends BotCommand<MessageEmbed> {
             eb.setDescription("You do not have `Manage Messages` permissions");
         }
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
     public void updateCommand(@Nonnull JDA jda) {
+        Command cmd = jda.upsertCommand(name, description).complete();
 
+        commandId = cmd.getIdLong();
     }
 
     private boolean verifyServerPerms(@Nonnull Member member) {

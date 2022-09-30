@@ -15,8 +15,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
-import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
-import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
@@ -29,9 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static com.fasterxml.jackson.databind.type.LogicalType.Map;
 
 public class Settings extends BotCommand<MessageEmbed> {
 
@@ -47,16 +43,17 @@ public class Settings extends BotCommand<MessageEmbed> {
 
     public Settings() {
         super(new BotCommandOptions(
-           "settings",
-           "Configure the server settings",
-           true,
-           false
+            "settings",
+            "Configure the server settings",
+            true,
+            false,
+            TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
 
@@ -65,7 +62,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         if(event.getGuild() == null) {
             eb.setDescription("Nice try.");
             eb.setImage("https://c.tenor.com/enAcmwfegOsAAAAC/wisers-slow-clap.gif");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         String subcommandGroup = event.getSubcommandGroup();
@@ -111,34 +108,7 @@ public class Settings extends BotCommand<MessageEmbed> {
 
         // You remembered to add the case to the list of settings in defaultResponse, right?
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        SubcommandData ephemeral = new SubcommandData("ephemeral", "Set messages to be ephemeral (private) or not (public)")
-                .addOption(OptionType.BOOLEAN, "setting", "Setting to set to");
-        SubcommandGroupData squiz = new SubcommandGroupData("squiz", "Settings related to Squiz")
-                .addSubcommands(
-                        new SubcommandData("leaderboard", "Set the leaderboard channel").addOption(OptionType.CHANNEL, "channel", "The channel for the leaderboard"),
-                        new SubcommandData("random_questions", "Setting if random questions are active").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not random questions are actively running"),
-                        new SubcommandData("add_channel", "Setting to add the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to add to the list of eligible channels for random questions"),
-                        new SubcommandData("remove_channel", "Setting to remove the channel eligible for random questions").addOption(OptionType.CHANNEL, "channel", "Channel to remove from the list of eligible channels for random questions"),
-                        new SubcommandData("interval", "Setting on how often the next random Squiz will appear if eligible").addOption(OptionType.INTEGER, "seconds", "Number of seconds for each interval")
-                );
-        SubcommandGroupData crab = new SubcommandGroupData("crab", "Settings related to Crab")
-                .addSubcommands(
-                        new SubcommandData("auction_notifications", "Setting to allow the server to be notified of a Crab auction").addOption(OptionType.BOOLEAN, "setting", "Setting whether or not to allow Crab auction notifications to be sent", true),
-                        new SubcommandData("auction_channel", "Setting to set the channel where auction notices are posted").addOption(OptionType.CHANNEL, "channel", "Channel where auction notices will be posted", true)
-                );
-        SubcommandGroupData bot = new SubcommandGroupData("bot", "Settings for the bot owner")
-                .addSubcommands(
-                        new SubcommandData("clear_cache", "Clears the cache")
-                );
-
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(ephemeral).addSubcommandGroups(squiz, crab, bot).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override

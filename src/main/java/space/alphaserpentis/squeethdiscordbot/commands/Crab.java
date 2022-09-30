@@ -20,7 +20,6 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
-import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.*;
@@ -34,6 +33,7 @@ import org.web3j.protocol.core.methods.response.Log;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.Auction;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionByIdResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
@@ -472,18 +472,18 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 }
             }
 
-//            public static void updateMessageForBids() {
-//                EmbedBuilder eb = new EmbedBuilder();
-//
-//                for(Long serverId: serversListening) {
-//                    if(lastBidMessageId == 0) { // make new bid message
-//
-//                    } else { // edit bid message
-//                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
-//
-//                    }
-//                }
-//            }
+            public static void updateMessageForBids() {
+                EmbedBuilder eb = new EmbedBuilder();
+
+                for(Long serverId: serversListening) {
+                    if(lastBidMessageId == 0) { // make new bid message
+
+                    } else { // edit bid message
+                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+
+                    }
+                }
+            }
 
             @SuppressWarnings("rawtypes")
             public static double[] estimateSizeOfAuction() {
@@ -805,6 +805,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
            0,
            true,
            false,
+           TypeOfEphemeral.DYNAMIC,
            true,
            true,
            false,
@@ -824,7 +825,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void runButtonInteraction(@NotNull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         InteractionHook pending = event.deferEdit().complete();
 
@@ -840,9 +841,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    @NotNull
+    @Nonnull
     @Override
-    public Collection<ItemComponent> addButtons(@NotNull GenericCommandInteractionEvent event) {
+    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
         if(event.getSubcommandName().equalsIgnoreCase("bids") && event.getOptions().size() == 0) {
             return Arrays.asList(new ItemComponent[]{getButton("Refresh")});
         } else {
@@ -852,7 +853,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         CrabVault crab;
 
@@ -878,21 +879,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             }
         }
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        SubcommandData stats = new SubcommandData("stats", "Regular statistics on Crab").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 stats", false);
-        SubcommandGroupData rebalance = new SubcommandGroupData("rebalance", "Shows the rebalancing-related commands")
-                .addSubcommands(
-                        new SubcommandData("latest", "Shows the latest rebalancing stats").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 rebalance", false),
-                        new SubcommandData("bids", "Shows the latest/specific auction bids").addOption(OptionType.INTEGER, "id", "Auction ID to specify", false)
-                );
-
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(stats).addSubcommandGroups(rebalance).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), false);
     }
 
     @Override
@@ -907,6 +894,16 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         Command cmd = jda.upsertCommand(name, description).addSubcommands(stats).addSubcommandGroups(rebalance).complete();
 
         commandId = cmd.getIdLong();
+    }
+
+    @Override
+    @Nonnull
+    public CommandResponse<MessageEmbed> beforeRunCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+        if(event.getSubcommandName().equalsIgnoreCase("bids")) {
+            return new CommandResponse<>(null, true);
+        }
+
+        return new CommandResponse<>(null, false);
     }
 
     @SuppressWarnings("rawtypes")

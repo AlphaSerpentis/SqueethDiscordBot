@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import space.alphaserpentis.squeethdiscordbot.data.api.SqueethData;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
 import javax.annotation.Nonnull;
@@ -21,13 +22,14 @@ public class Stats extends BotCommand<MessageEmbed> {
             "stats",
             "Get current statistics on Squeeth",
             true,
-            false
+            false,
+            TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         SqueethData data = LaevitasHandler.latestSqueethData;
@@ -50,18 +52,13 @@ public class Stats extends BotCommand<MessageEmbed> {
         eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.getDate() + " | API Data by Laevitas");
         eb.setColor(new Color(14, 255, 212, 76));
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
     public void updateCommand(@Nonnull JDA jda) {
+        Command cmd = jda.upsertCommand(name, description).complete();
 
+        commandId = cmd.getIdLong();
     }
 }

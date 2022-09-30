@@ -23,6 +23,7 @@ import org.web3j.abi.datatypes.generated.Uint32;
 import org.web3j.abi.datatypes.generated.Uint96;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
 
@@ -186,7 +187,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCostBasis() {
             DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
-            for(int block : tokensAtBlock.keySet().stream().sorted().collect(Collectors.toList())) {
+            for(int block : tokensAtBlock.keySet().stream().sorted().toList()) {
                 BigInteger priceOsqth, priceEth, transferCostBasis;
                 double earliestNormFactor;
                 try {
@@ -338,7 +339,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCostBasis() {
             DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
-            for(int block : tokensAtBlock.keySet().stream().sorted().collect(Collectors.toList())) {
+            for(int block : tokensAtBlock.keySet().stream().sorted().toList()) {
                 BigInteger priceCrabEth;
                 try {
                     PriceData priceData = new PriceData();
@@ -374,7 +375,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                         BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
 
-                        priceCrabEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
+                        priceCrabEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply.subtract(tokensAtBlock.get(block)));
                         priceData.osqthEth = priceOfoSQTH;
                         if(!isV2) {
                             priceData.crabEth = priceCrabEth;
@@ -411,10 +412,11 @@ public class Position extends ButtonCommand<MessageEmbed> {
         super(new BotCommandOptions(
             "position",
             "Checks your wallet's long Squeeth and Crab v1/v2 positions",
-            60,
+            30,
             0,
             true,
             true,
+            TypeOfEphemeral.DEFAULT,
             true,
             true,
             true,
@@ -428,12 +430,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
             eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         String userAddress = event.getOptions().get(0).getAsString();
@@ -441,13 +443,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
         // Validate Ethereum address
         if(userAddress.length() != 42 && userAddress.startsWith("0x") && !userAddress.endsWith(".eth")) {
             eb.setDescription("Invalid Ethereum address (must be a proper Ethereum address with 0x prefix OR valid ENS name)");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         } else {
             try {
                 userAddress = EthereumRPCHandler.getResolvedAddress(userAddress).toLowerCase();
             } catch (Exception e) {
                 eb.setDescription("Invalid Ethereum address (must be a proper Ethereum address with 0x prefix OR valid ENS name)");
-                return eb.build();
+                return new CommandResponse<>(eb.build(), onlyEphemeral);
             }
         }
 
@@ -483,16 +485,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
             cachedPositions.remove(event.getUser().getIdLong());
         }
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description)
-                .addOption(OptionType.STRING, "address", "Your Ethereum address", true)
-                .complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override

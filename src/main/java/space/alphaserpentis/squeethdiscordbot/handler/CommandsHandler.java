@@ -74,7 +74,7 @@ public class CommandsHandler extends ListenerAdapter {
             for(String cmdName: missingCommands) {
                 System.out.println("[CommandsHandler] Adding new slash command: " + cmdName);
                 BotCommand<?> cmd = mappingOfCommands.get(cmdName);
-                cmd.addCommand(api);
+                cmd.updateCommand(api);
             }
         }
     }

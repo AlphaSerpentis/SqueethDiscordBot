@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
 
 import javax.annotation.Nonnull;
@@ -19,16 +20,17 @@ public class Funding extends BotCommand<MessageEmbed> {
 
     public Funding() {
         super(new BotCommandOptions(
-           "funding",
-           "Calculates the estimated amount of funding you would pay (or receive)",
-           true,
-           false
+            "funding",
+            "Calculates the estimated amount of funding you would pay (or receive)",
+            true,
+            false,
+            TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
         double amt, funding, thetaCalculated, amtHeld;
@@ -51,11 +53,11 @@ public class Funding extends BotCommand<MessageEmbed> {
         eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic!");
         eb.addField("Estimated Funding", "With $" + NumberFormat.getInstance().format(amt) + " (" + NumberFormat.getInstance().format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding + "% current implied funding, and holding for " + days + " days, you might pay $" + NumberFormat.getInstance().format(amtHeld * thetaCalculated * days) + " in funding.", false);
 
-        return eb.build();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
-    public void addCommand(@Nonnull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
                 .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
@@ -63,18 +65,5 @@ public class Funding extends BotCommand<MessageEmbed> {
                 .complete();
 
         commandId = cmd.getIdLong();
-    }
-
-    @Override
-    public void updateCommand(@Nonnull JDA jda) {
-        Command cmd = jda.editCommandById(getCommandId()).complete();
-
-        cmd.editCommand().clearOptions()
-                .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
-                .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
-                .addOption(OptionType.NUMBER, "funding", "The funding rate in %", false)
-                .complete();
-
-        System.out.println("[Funding] Updating command");
     }
 }

@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 
 import javax.annotation.Nonnull;
 
@@ -16,13 +17,14 @@ public class About extends BotCommand<MessageEmbed> {
             "about",
             "Description of the bot",
             true,
-            false
+            false,
+            TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("About Sqreeks²");
@@ -33,18 +35,13 @@ public class About extends BotCommand<MessageEmbed> {
         eb.addField("Acknowledgements", "Thanks to geckah for the bot name!\n\nThanks to Berry, Johns, and hanxilgf for beta testing features\n\nThanks to the Laevitas team for allowing us to use their API!", false);
         eb.setFooter("Developed by Amethyst C.");
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
     public void updateCommand(@Nonnull JDA jda) {
+        Command cmd = jda.upsertCommand(name, description).complete();
 
+        commandId = cmd.getIdLong();
     }
 }
