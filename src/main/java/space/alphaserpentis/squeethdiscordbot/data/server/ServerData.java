@@ -16,6 +16,7 @@ public class ServerData {
     private long crabAuctionChannelId = 0;
     private long lastCrabAuctionNotificationId = 0;
     private long listenToCrabAuctionsRoleId = 0;
+    private long lastCrabAuctionBidMessageId = 0;
     private boolean listenToCrabAuctions = false;
 
     public void setOnlyEphemeral(boolean value) {
@@ -47,6 +48,9 @@ public class ServerData {
     }
     public void setListenToCrabAuctionsRoleId(long listenToCrabAuctionsRoleId) {
         this.listenToCrabAuctionsRoleId = listenToCrabAuctionsRoleId;
+    }
+    public void setLastCrabAuctionBidMessageId(long lastCrabAuctionBidMessageId) {
+        this.lastCrabAuctionBidMessageId = lastCrabAuctionBidMessageId;
     }
     public void setListenToCrabAuctions(boolean listenToCrabAuctions) {
         this.listenToCrabAuctions = listenToCrabAuctions;
@@ -81,6 +85,9 @@ public class ServerData {
     }
     public long getListenToCrabAuctionsRoleId() {
         return listenToCrabAuctionsRoleId;
+    }
+    public long getLastCrabAuctionBidMessageId(){
+        return lastCrabAuctionBidMessageId;
     }
     public boolean getListenToCrabAuctions() {
         return listenToCrabAuctions;

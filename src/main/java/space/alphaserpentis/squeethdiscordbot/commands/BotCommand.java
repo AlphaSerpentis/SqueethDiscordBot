@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -151,12 +151,12 @@ public abstract class BotCommand<T> {
     abstract public void updateCommand(@Nonnull JDA jda);
 
     /**
-     * A method that REQUIRES to be overridden if to be used for any BotCommand with an ephemeralType of TypeOfEphemeral.DYNAMIC
-     *
+     * A method that REQUIRES to be overridden if to be used for any BotCommand with an ephemeralType of TypeOfEphemeral.DYNAMIC.
+     * This method is currently only called if the command is DEFERRED.
      * Operations inside must NOT exceed the time it requires to ACKNOWLEDGE the API!
-     * @param userId
-     * @param event
-     * @return
+     * @param userId is a long ID provided by Discord for the user calling the command
+     * @param event is a SlashCommandInteractionEvent that contains the interaction
+     * @return a nonnull CommandResponse containing either a MessageEmbed or Message
      */
     @Nonnull
     public CommandResponse<T> beforeRunCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
@@ -264,11 +264,23 @@ public abstract class BotCommand<T> {
 
                     return hook.sendMessageEmbeds((MessageEmbed) response).setEphemeral(responseFromCommand.messageIsEphemeral()).complete();
                 } else {
-                    if (!sendAsEphemeral && event.getGuild() != null) {
-                        hook.setEphemeral(false);
+                    if(cmd.getEphemeralType() == TypeOfEphemeral.DEFAULT) {
+                        if (!sendAsEphemeral && event.getGuild() != null) {
+                            hook.setEphemeral(false);
+                        } else {
+                            hook.setEphemeral(sendAsEphemeral);
+                        }
                     } else {
-                        hook.setEphemeral(sendAsEphemeral);
+                        CommandResponse<?> responseBeforeRunning = cmd.beforeRunCommand(event.getUser().getIdLong(), event);
+
+                        event.deferReply(responseBeforeRunning.messageIsEphemeral()).complete();
+                        if(responseBeforeRunning.messageResponse() != null) {
+                            Message message = (Message) responseBeforeRunning.messageResponse();
+
+                            event.reply(message).complete();
+                        }
                     }
+
                     responseFromCommand = cmd.isActive() ? cmd.runCommand(event.getUser().getIdLong(), event) : inactiveCommandResponse();
                     response = responseFromCommand.messageResponse();
 

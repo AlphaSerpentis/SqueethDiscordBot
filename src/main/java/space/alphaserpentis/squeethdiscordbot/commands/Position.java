@@ -24,8 +24,8 @@ import org.web3j.abi.datatypes.generated.Uint96;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;

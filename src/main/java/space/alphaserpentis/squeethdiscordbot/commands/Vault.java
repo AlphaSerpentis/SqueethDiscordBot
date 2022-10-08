@@ -13,8 +13,8 @@ import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.*;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;

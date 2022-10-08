@@ -22,8 +22,8 @@ import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizTracking;
-import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;

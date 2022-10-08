@@ -35,9 +35,9 @@ import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionB
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
-import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
@@ -60,10 +60,8 @@ import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
@@ -266,7 +264,6 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     public static class v2 extends CrabVault {
 
         public static FeedingTime auction;
-        public static long previousNotificationId;
 
         public static class FeedingTime {
 
@@ -281,13 +278,16 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             }
 
             public static final ArrayList<Long> serversListening = new ArrayList<>();
-            public static ScheduledExecutorService scheduledExecutor;
+            private static ScheduledExecutorService scheduledExecutor;
+            private static ScheduledFuture<?> notificationFuture = null;
+            private static ScheduledFuture<?> settlementFuture = null;
+            private static EmbedBuilder settlementMessage = null;
+            private static Auction currentAuction = null;
             public static long auctionTime;
             public static NotificationPhase notificationPhase;
-            public static long lastBidMessageId;
 
             public FeedingTime() {
-                scheduledExecutor = Executors.newScheduledThreadPool(1);
+                scheduledExecutor = Executors.newScheduledThreadPool(2);
 
                 scheduledExecutor.schedule(() -> {
                     // check how long until next auction
@@ -443,6 +443,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                 if(notificationPhase == NotificationPhase.AUCTION_ACTIVE) {
                     eb.setDescription("Crab Feeding Time is currently active! Users can place bids at https://squeethportal.xyz/auction");
+                    updateMessageForBids();
                 } else if(notificationPhase == NotificationPhase.AUCTION_SETTLING) {
                     eb.setDescription("Crab Feeding Time is currently in the process of settling; rebalance will occur soon!");
                 } else if(notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
@@ -454,6 +455,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 for(Long serverId: serversListening) {
                     ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
                     Guild guild = Launcher.api.getGuildById(serverId);
+                    final long previousNotificationId = sd.getLastCrabAuctionNotificationId();
                     if(sd.getCrabAuctionChannelId() == 0 || !sd.getListenToCrabAuctions() || guild == null) { // ineligible to send
                         break;
                     }
@@ -465,7 +467,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                                             (ignored) -> {},
                                             Throwable::printStackTrace
                                     );
-                                previousNotificationId = response.getIdLong();
+                                sd.setLastCrabAuctionNotificationId(response.getIdLong());
                             },
                             Throwable::printStackTrace
                     );
@@ -473,16 +475,127 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             }
 
             public static void updateMessageForBids() {
-                EmbedBuilder eb = new EmbedBuilder();
+                AtomicInteger runs = new AtomicInteger();
 
-                for(Long serverId: serversListening) {
-                    if(lastBidMessageId == 0) { // make new bid message
-
-                    } else { // edit bid message
-                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
-
+                try {
+                    if(getLatestActiveAuctionId() != -1) {
+                        currentAuction = getLatestAuction().auction;
                     }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
+
+                if(auction == null) {
+                    scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
+                    return;
+                }
+
+                scheduledExecutor.scheduleAtFixedRate(() -> {
+                    EmbedBuilder eb = new EmbedBuilder();
+
+                    for(Long serverId: serversListening) {
+                        ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
+
+                        if(notificationPhase != NotificationPhase.AUCTION_ACTIVE) { // check if the auction is running or not
+                            cleanBidMessages(sd);
+                            if(notificationPhase == NotificationPhase.AUCTION_SETTLING) { // double check if it's actually settling
+                                listenForSettlement(sd);
+                            }
+                            return;
+                        }
+
+                        TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+                        if(runs.getAndIncrement() == 8) { // allow up to 9 runs
+                            cleanBidMessages(sd);
+                            return;
+                        } else {
+                            final long previousBidMessageId = sd.getLastCrabAuctionBidMessageId();
+                            bidsPage(eb, -1);
+
+                            if(previousBidMessageId == 0) { // make new bid message
+                                channel.sendMessageEmbeds(eb.build()).queue(
+                                        (response) -> sd.setLastCrabAuctionBidMessageId(response.getIdLong()),
+                                        Throwable::printStackTrace
+                                );
+                            } else { // edit bid message
+                                channel.editMessageEmbedsById(previousBidMessageId, eb.build()).queue(
+                                        (ignored) -> {},
+                                        (error) -> sd.setLastCrabAuctionBidMessageId(0)
+                                );
+                            }
+                        }
+                    }
+                },0,1,TimeUnit.MINUTES);
+            }
+
+            private static void cleanBidMessages(@Nonnull ServerData sd) {
+                for(Long serverId: serversListening) {
+                    TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+
+                    channel.deleteMessageById(sd.getLastCrabAuctionBidMessageId()).queue();
+                    sd.setLastCrabAuctionBidMessageId(0);
+                }
+
+                try {
+                    ServerDataHandler.updateServerData();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            private static void listenForSettlement(@Nonnull ServerData sd) {
+                long currentBlock;
+                try {
+                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+                settlementFuture = scheduledExecutor.scheduleWithFixedDelay(() -> {
+                    EthFilter filter;
+                    try {
+                        filter = new EthFilter(new DefaultBlockParameterNumber(currentBlock), new DefaultBlockParameterNumber(EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber()), crabV2.address)
+                                .addOptionalTopics("0xbbc3ba742efe346cfdf333000069964e0ee3087c68da267dac977d299f2366fb");
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    Flowable<Log> logFlowable = EthereumRPCHandler.web3.ethLogFlowable(filter);
+                    AtomicReference<Log> latestLog = new AtomicReference<>();
+
+                    Disposable disposable = logFlowable.subscribe(
+                            latestLog::set
+                    );
+
+                    disposable.dispose();
+
+                    if(latestLog.get() != null) { // check if last log is valid
+                        if(notificationFuture.cancel(false)) {
+                            EmbedBuilder eb = new EmbedBuilder();
+
+                            for(Long serverId: serversListening) {
+                                TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+
+                                channel.sendMessageEmbeds(eb.build()).queue(
+                                        (response) -> {
+                                            if(sd.getLastCrabAuctionNotificationId() != 0)
+                                                response.getChannel().asTextChannel().deleteMessageById(sd.getLastCrabAuctionNotificationId()).queue(
+                                                        (ignored) -> {},
+                                                        Throwable::printStackTrace
+                                                );
+                                            sd.setLastCrabAuctionNotificationId(response.getIdLong());
+                                        },
+                                        Throwable::printStackTrace
+                                );
+                                notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+                            }
+                        }
+
+                        throw new RuntimeException();
+                    }
+                }, 0, 30, TimeUnit.SECONDS);
+
+                scheduledExecutor.schedule(() -> settlementFuture.cancel(false), 10, TimeUnit.MINUTES);
             }
 
             @SuppressWarnings("rawtypes")
@@ -534,7 +647,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 return sizes;
             }
 
-            public static long getLatestAuctionId() throws IOException {
+            public static long getLatestActiveAuctionId() throws IOException {
                 HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
                 con.setRequestMethod("GET");
                 con.setInstanceFollowRedirects(true);
@@ -558,7 +671,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                     responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
 
-                    if(!responseConverted.isLive) return responseConverted.auction.currentAuctionId - 1;
+                    if(!responseConverted.isLive) return -1;
 
                     return responseConverted.auction.currentAuctionId;
                 } else {
@@ -582,7 +695,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                         responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
 
-                        if(!responseConverted.isLive) return responseConverted.auction.currentAuctionId - 1;
+                        if(!responseConverted.isLive) return -1;
 
                         return responseConverted.auction.currentAuctionId;
                     } else {
@@ -1011,23 +1124,23 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private void bidsPage(@Nonnull EmbedBuilder eb, int id) {
+    private static void bidsPage(@Nonnull EmbedBuilder eb, int id) {
         eb.setTitle("Crab v2 Auction");
         eb.setThumbnail("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
         try {
-            if(id == -1) {
+            if (id == -1) {
                 LatestCrabAuctionResponse auctionResponse = v2.FeedingTime.getLatestAuction();
                 Auction auction;
                 ArrayList<Auction.Bid> bids;
                 double clearingPrice = -1;
 
-                if(auctionResponse == null) {
+                if (auctionResponse == null) {
                     eb.setDescription("Something went wrong trying to get the latest auction. Report this issue!");
                     eb.setColor(Color.RED);
                     return;
-                } else if(!auctionResponse.isLive) {
+                } else if (!auctionResponse.isLive) {
                     auction = v2.FeedingTime.getAuction(auctionResponse.auction.currentAuctionId - 1);
-                    if(auction == null) {
+                    if (auction == null) {
                         eb.setDescription("Something went wrong trying to get the latest auction. Report this issue!");
                         eb.setColor(Color.RED);
                         return;
@@ -1039,29 +1152,29 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 bids = Auction.sortedBids(auction);
                 eb.setFooter("Latest");
 
-                for(int i = 0; i < bids.size(); i++) {
+                for (int i = 0; i < bids.size(); i++) {
                     StringBuilder title = new StringBuilder("Trader " + (i + 1));
-                    for(String winningBidKey: auction.winningBids) {
-                        if(auction.bids.get(winningBidKey).equals(bids.get(i))) {
+                    for (String winningBidKey : auction.winningBids) {
+                        if (auction.bids.get(winningBidKey).equals(bids.get(i))) {
                             title.insert(0, "[INCLUDED] ");
-                            clearingPrice = Double.parseDouble(String.format("%.5f", bids.get(i).order.price.doubleValue() / Math.pow(10,18)));
+                            clearingPrice = Double.parseDouble(String.format("%.5f", bids.get(i).order.price.doubleValue() / Math.pow(10, 18)));
                         }
                     }
 
-                    eb.addField(title.toString(), bids.get(i).toString(),false);
+                    eb.addField(title.toString(), bids.get(i).toString(), false);
                 }
 
-                if(auction.auctionEnd.longValue()/1000 > Instant.now().getEpochSecond()) {
+                if (auction.auctionEnd.longValue() / 1000 > Instant.now().getEpochSecond()) {
                     eb.setDescription("View detailed info of the current auction\n\n**Direction**: " +
                             (auction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
-                            "**Size**: " + NumberFormat.getInstance().format(auction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                            "**Size**: " + NumberFormat.getInstance().format(auction.oSqthAmount.doubleValue() / Math.pow(10, 18)) + " oSQTH\n" +
                             "**Min. Size**: " + auction.minSize + " oSQTH\n" +
                             "**Clearing Price**: " + (clearingPrice == -1 ? "Undetermined" : clearingPrice + " ETH")
                     );
                 } else {
                     eb.setDescription("View detailed info of the previous auction\n\n**Direction**: " +
                             (auction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
-                            "**Size**: " + NumberFormat.getInstance().format(auction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                            "**Size**: " + NumberFormat.getInstance().format(auction.oSqthAmount.doubleValue() / Math.pow(10, 18)) + " oSQTH\n" +
                             "**Min. Size**: " + auction.minSize + " oSQTH\n" +
                             "**Clearing Price**: " + (clearingPrice == -1 ? "Undetermined" : clearingPrice + " ETH")
                     );
@@ -1070,7 +1183,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 Auction specificAuction = v2.FeedingTime.getAuction((long) id);
                 ArrayList<Auction.Bid> bids;
 
-                if(specificAuction == null) {
+                if (specificAuction == null) {
                     eb.setDescription("Something went wrong trying to get this specific auction! It might not exist, but if you're confident it exists report this issue!");
                     eb.addField("Auction ID Tried To Use", String.valueOf(id), false);
                     eb.setColor(Color.RED);
@@ -1080,21 +1193,21 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 bids = Auction.sortedBids(specificAuction);
                 double clearingPrice = 0;
 
-                for(int i = 0; i < bids.size(); i++) {
+                for (int i = 0; i < bids.size(); i++) {
                     StringBuilder title = new StringBuilder("Trader " + (i + 1));
-                    for(String winningBidKey: specificAuction.winningBids) {
-                        if(specificAuction.bids.get(winningBidKey).equals(bids.get(i))) {
+                    for (String winningBidKey : specificAuction.winningBids) {
+                        if (specificAuction.bids.get(winningBidKey).equals(bids.get(i))) {
                             title.insert(0, "[INCLUDED] ");
-                            clearingPrice = Double.parseDouble(String.format("%.5f", bids.get(i).order.price.doubleValue() / Math.pow(10,18)));
+                            clearingPrice = Double.parseDouble(String.format("%.5f", bids.get(i).order.price.doubleValue() / Math.pow(10, 18)));
                         }
                     }
 
-                    eb.addField(title.toString(), bids.get(i).toString(),false);
+                    eb.addField(title.toString(), bids.get(i).toString(), false);
                 }
 
                 eb.setDescription("View detailed info of the auction #" + id + "\n\n**Direction**: " +
                         (specificAuction.isSelling ? "Selling oSQTH\n" : "Buying oSQTH\n") +
-                        "**Size**: " + NumberFormat.getInstance().format(specificAuction.oSqthAmount.doubleValue() / Math.pow(10,18)) + " oSQTH\n" +
+                        "**Size**: " + NumberFormat.getInstance().format(specificAuction.oSqthAmount.doubleValue() / Math.pow(10, 18)) + " oSQTH\n" +
                         "**Min. Size**: " + specificAuction.minSize + " oSQTH\n" +
                         "**Clearing Price**: " + clearingPrice + " ETH"
                 );
