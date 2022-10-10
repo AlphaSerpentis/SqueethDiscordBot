@@ -287,7 +287,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             public static NotificationPhase notificationPhase;
 
             public FeedingTime() {
-                scheduledExecutor = Executors.newScheduledThreadPool(2);
+                scheduledExecutor = Executors.newScheduledThreadPool(3);
 
                 scheduledExecutor.schedule(() -> {
                     // check how long until next auction
@@ -402,7 +402,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 600, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_ACTIVE;
                 } else if(timeDiff <= -600 && timeDiff > -1200) {
-                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
+                    notificationFuture = scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_SETTLING;
                 } else {
                     notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
@@ -480,14 +480,11 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 try {
                     if(getLatestActiveAuctionId() != -1) {
                         currentAuction = getLatestAuction().auction;
+                    } else {
+                        scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-                }
-
-                if(auction == null) {
-                    scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
-                    return;
                 }
 
                 scheduledExecutor.scheduleAtFixedRate(() -> {
@@ -572,6 +569,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     if(latestLog.get() != null) { // check if last log is valid
                         if(notificationFuture.cancel(false)) {
                             EmbedBuilder eb = new EmbedBuilder();
+                            bidsPage(eb, currentAuction.currentAuctionId);
 
                             for(Long serverId: serversListening) {
                                 TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
@@ -588,6 +586,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                                         Throwable::printStackTrace
                                 );
                                 notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+                                scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
                             }
                         }
 
@@ -1124,7 +1123,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private static void bidsPage(@Nonnull EmbedBuilder eb, int id) {
+    private static void bidsPage(@Nonnull EmbedBuilder eb, long id) {
         eb.setTitle("Crab v2 Auction");
         eb.setThumbnail("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
         try {
