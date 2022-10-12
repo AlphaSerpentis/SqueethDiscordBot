@@ -280,6 +280,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             public static final ArrayList<Long> serversListening = new ArrayList<>();
             private static ScheduledExecutorService scheduledExecutor;
             private static ScheduledFuture<?> notificationFuture = null;
+            private static ScheduledFuture<?> updateBidsFuture = null;
             private static ScheduledFuture<?> settlementFuture = null;
             private static EmbedBuilder settlementMessage = null;
             private static Auction currentAuction = null;
@@ -487,7 +488,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     throw new RuntimeException(e);
                 }
 
-                scheduledExecutor.scheduleAtFixedRate(() -> {
+                updateBidsFuture = scheduledExecutor.scheduleAtFixedRate(() -> {
                     EmbedBuilder eb = new EmbedBuilder();
 
                     for(Long serverId: serversListening) {
@@ -529,7 +530,10 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 for(Long serverId: serversListening) {
                     TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
 
-                    channel.deleteMessageById(sd.getLastCrabAuctionBidMessageId()).queue();
+                    channel.deleteMessageById(sd.getLastCrabAuctionBidMessageId()).queue(
+                            (ignored) -> {},
+                            (ignored) -> {}
+                    );
                     sd.setLastCrabAuctionBidMessageId(0);
                 }
 
@@ -538,6 +542,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+
+                updateBidsFuture.cancel(false);
             }
 
             private static void listenForSettlement(@Nonnull ServerData sd) {
@@ -587,6 +593,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                                 );
                                 notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
                                 scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
+                                notifyAboutAuction();
                             }
                         }
 

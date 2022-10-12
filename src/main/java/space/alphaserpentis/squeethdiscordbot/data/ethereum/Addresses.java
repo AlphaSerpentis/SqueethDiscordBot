@@ -8,6 +8,7 @@ public interface Addresses {
     interface Squeeth {
         String controller = "0x64187ae08781b09368e6253f9e94951243a493d5";
         String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
+        String crabv2 = "0x3b960e47784150f5a63777201ee2b15253d713e8";
     }
 
     interface Uniswap {

@@ -64,7 +64,7 @@ public class Resources extends ButtonCommand<MessageEmbed> {
 
     public Resources() {
         super(new BotCommandOptions(
-            "resoures",
+            "resources",
             "Obtain educational resources all about Squeeth!",
             true,
             true,
