@@ -5,17 +5,9 @@ package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint128;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.abi.datatypes.generated.Uint96;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
-import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PositionsDataDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PriceDataDeserializer;
 
@@ -26,15 +18,16 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.crabv2;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.osqth;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.usdc;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.weth;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
 
 public class PositionsDataHandler {
 
@@ -42,50 +35,6 @@ public class PositionsDataHandler {
     public static Map<Long, PriceData> cachedPrices = new HashMap<>();
     public static Path cachedTransfersPath;
     public static Path cachedPricesPath;
-    private static final Function getTwap_ethUsd = new Function(
-            "getTwap",
-            Arrays.asList(
-                    new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                    new org.web3j.abi.datatypes.Address(weth),
-                    new org.web3j.abi.datatypes.Address(usdc),
-                    new Uint32(1),
-                    new org.web3j.abi.datatypes.Bool(true)
-            ),
-            List.of(
-                    new TypeReference<Uint256>() {
-                    }
-            )
-    );
-    private static final Function getTwap_osqth = new Function(
-            "getTwap",
-            Arrays.asList(
-                    new org.web3j.abi.datatypes.Address(osqthEthPool),
-                    new org.web3j.abi.datatypes.Address(osqth),
-                    new org.web3j.abi.datatypes.Address(weth),
-                    new Uint32(1),
-                    new org.web3j.abi.datatypes.Bool(true)
-            ),
-            List.of(
-                    new TypeReference<Uint256>() {
-                    }
-            )
-    );
-    private static final Function getVaultDetails = new Function("getVaultDetails",
-            Collections.emptyList(),
-            Arrays.asList(
-                    new TypeReference<Address>() { },
-                    new TypeReference<Uint32>() { },
-                    new TypeReference<Uint96>() { },
-                    new TypeReference<Uint128>() { }
-            )
-    );
-    private static final Function callTotalSupply = new Function("totalSupply",
-            Collections.emptyList(),
-            List.of(
-                    new TypeReference<Uint256>() {
-                    }
-            )
-    );
 
     public static void init(@Nonnull Path transfersJson, @Nonnull Path pricesJson) throws IOException {
         Gson gson = new GsonBuilder()

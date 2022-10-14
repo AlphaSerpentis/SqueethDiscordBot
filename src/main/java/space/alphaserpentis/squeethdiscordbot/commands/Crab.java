@@ -14,19 +14,18 @@ import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionE
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.*;
-import org.web3j.abi.datatypes.generated.Uint128;
+import org.web3j.abi.datatypes.Bool;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.abi.datatypes.generated.Uint96;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
@@ -35,9 +34,9 @@ import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionB
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
@@ -58,61 +57,19 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
 
 public class Crab extends ButtonCommand<MessageEmbed> {
 
     public static abstract class CrabVault {
-        public static final Function callVaultsFunc = new Function("getVaultDetails",
-                Collections.emptyList(),
-                Arrays.asList(
-                        new TypeReference<Address>() { },
-                        new TypeReference<Uint32>() { },
-                        new TypeReference<Uint96>() { },
-                        new TypeReference<Uint128>() { }
-                )
-        );
-        public static final Function callUniswapv3TwapOsqth = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(osqthEthPool),
-                        new org.web3j.abi.datatypes.Address(osqth),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        public static final Function callUniswapv3TwapEth = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new org.web3j.abi.datatypes.Address(usdc),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        public static final Function callTotalSupply = new Function("totalSupply",
-                Collections.emptyList(),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
         public static final Function callTimeAtLastHedge = new Function("timeAtLastHedge",
                 Collections.emptyList(),
                 List.of(
@@ -154,7 +111,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
     public static class v1 extends CrabVault {
         public v1() {
-            super("0xf205ad80bb86ac92247638914265887a8baa437d");
+            super(crabv1);
         }
 
         @SuppressWarnings("rawtypes")
@@ -205,9 +162,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             }
 
             try {
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, callVaultsFunc, lastHedgeBlock - 1);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, lastHedgeBlock - 1);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, lastHedgeBlock - 1);
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock - 1);
+                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock - 1);
+                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock - 1);
                 BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, normFactor;
                 double usdPerOsqth, usdPerEth, impliedVolInPercent;
 
@@ -232,9 +189,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 );
 
                 // get post data
-                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, callVaultsFunc, lastHedgeBlock);
-                osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, lastHedgeBlock);
-                ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, lastHedgeBlock);
+                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock);
+                osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock);
+                ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock);
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
@@ -619,9 +576,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 double impliedVol;
 
                 try {
-                    List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, callVaultsFunc, currentBlock.longValue());
-                    List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, currentBlock.longValue());
-                    List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, currentBlock.longValue());
+                    List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock.longValue());
+                    List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, currentBlock.longValue());
+                    List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, currentBlock.longValue());
                     List<Type> normFactorResult = EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, currentBlock.longValue());
 
                     ethVaultCollateral = (BigInteger) vaultDetails.get(2).getValue();
@@ -821,7 +778,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
 
         public v2() {
-            super("0x3B960E47784150F5a63777201ee2B15253D713e8");
+            super(crabv2);
             auction = new FeedingTime();
         }
 
@@ -858,9 +815,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             rebalancedEth = ((BigInteger) FunctionReturnDecoder.decodeIndexedValue(data[3], new TypeReference<Uint256>() {}).getValue()).doubleValue() / Math.pow(10,18) * rebalancedOsqth;
 
             try {
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, callVaultsFunc, lastHedgeBlock - 1);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, lastHedgeBlock - 1);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, lastHedgeBlock - 1);
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock - 1);
+                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock - 1);
+                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock - 1);
                 BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, normFactor;
                 double usdPerOsqth, usdPerEth, impliedVolInPercent;
 
@@ -885,9 +842,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 );
 
                 // get post data
-                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, callVaultsFunc, lastHedgeBlock);
-                osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapOsqth, lastHedgeBlock);
-                ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3TwapEth, lastHedgeBlock);
+                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock);
+                osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock);
+                ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock);
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
@@ -1030,15 +987,15 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
         if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callVaultsFunc);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapOsqth);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, CrabVault.callUniswapv3TwapEth);
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
+                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_osqth);
+                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd);
 
                 crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
                 BigInteger priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                 crab.priceOfEthInUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
-                crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTotalSupply).get(0).getValue();
+                crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, callTotalSupply).get(0).getValue();
                 crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
                 DecimalFormat df = new DecimalFormat("#");
 
@@ -1186,7 +1143,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     );
                 }
             } else {
-                Auction specificAuction = v2.FeedingTime.getAuction((long) id);
+                Auction specificAuction = v2.FeedingTime.getAuction(id);
                 ArrayList<Auction.Bid> bids;
 
                 if (specificAuction == null) {

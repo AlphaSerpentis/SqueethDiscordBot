@@ -33,7 +33,8 @@ public class Funding extends BotCommand<MessageEmbed> {
     public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
-        double amt, funding, thetaCalculated, amtHeld;
+        NumberFormat instance = NumberFormat.getInstance();
+        double amt, funding, currentEthPrice, thetaCalculated, deltaCalculated, gammaCalculated, amtHeld, breakevenEthChange;
         int days;
 
         // 0th Index should be amount of oSQTH in USD
@@ -46,12 +47,24 @@ public class Funding extends BotCommand<MessageEmbed> {
         else
             funding = LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue();
 
-        thetaCalculated = (funding/100) * LaevitasHandler.latestSqueethData.getoSQTHPrice();
         amtHeld = amt/LaevitasHandler.latestSqueethData.getoSQTHPrice();
+        thetaCalculated = (-funding/100) * LaevitasHandler.latestSqueethData.getoSQTHPrice() * amtHeld * days;
+        deltaCalculated = LaevitasHandler.latestSqueethData.getDelta() * amtHeld;
+        gammaCalculated = LaevitasHandler.latestSqueethData.getGamma() * amtHeld;
+        breakevenEthChange = -(thetaCalculated + gammaCalculated)/deltaCalculated;
+        currentEthPrice = LaevitasHandler.latestSqueethData.getUnderlyingPrice();
 
         eb.setTitle("Funding Calculator");
-        eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic!");
-        eb.addField("Estimated Funding", "With $" + NumberFormat.getInstance().format(amt) + " (" + NumberFormat.getInstance().format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding + "% current implied funding, and holding for " + days + " days, you might pay $" + NumberFormat.getInstance().format(amtHeld * thetaCalculated * days) + " in funding.", false);
+        eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic and other factors like volatility will affect a position's profitability!");
+        eb.addField("Estimated Funding", "With $" + instance.format(amt) +
+                " (" + instance.format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding +
+                "% current implied funding, and holding for " + days + " days, you might pay $" +
+                instance.format(-thetaCalculated) + " in funding. ETH needs to move up by $" +
+                instance.format(breakevenEthChange) + " to breakeven.",
+                false
+        );
+        eb.addField("Current ETH Price", "$" + instance.format(currentEthPrice), false);
+        eb.addField("Breakeven ETH Price", "$" + instance.format(currentEthPrice + breakevenEthChange), false);
 
         return new CommandResponse<>(eb.build(), onlyEphemeral);
     }

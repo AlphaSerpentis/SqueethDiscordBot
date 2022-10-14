@@ -27,10 +27,9 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.controller;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.ethUsdcPool;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.usdc;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.weth;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.osqthEthPool;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.getTwap_ethUsd;
 
 public class Vault extends BotCommand<MessageEmbed> {
 
@@ -242,22 +241,9 @@ public class Vault extends BotCommand<MessageEmbed> {
                         new TypeReference<Uint128>() { } // shortAmount
                 )
         );
-        Function callUniswapv3PriceCheck = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new org.web3j.abi.datatypes.Address(usdc),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
         Function callUniswapv3Tick = new Function("getTimeWeightedAverageTickSafe",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address("0x82c427AdFDf2d245Ec51D8046b41c4ee87F0d29C"),
+                        new org.web3j.abi.datatypes.Address(osqthEthPool),
                         new Uint32(1)
                 ),
                 List.of(
@@ -282,7 +268,7 @@ public class Vault extends BotCommand<MessageEmbed> {
 
         try {
             vaultsResponse = EthereumRPCHandler.ethCallAtLatestBlock(controller, callVaults);
-            priceOfEthResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck);
+            priceOfEthResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd);
             tickOfoSQTHPoolResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3Tick);
             Uniswapv3FuckYouMath univ3 = new Uniswapv3FuckYouMath();
 

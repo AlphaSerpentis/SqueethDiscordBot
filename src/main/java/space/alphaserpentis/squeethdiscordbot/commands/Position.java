@@ -14,13 +14,9 @@ import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
 import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint128;
 import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.abi.datatypes.generated.Uint96;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
@@ -33,48 +29,19 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Instant;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
 
 public class Position extends ButtonCommand<MessageEmbed> {
 
     private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
-    private static final Function getTwap_ethUsd = new Function(
-                    "getTwap",
-                    Arrays.asList(
-                            new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                            new org.web3j.abi.datatypes.Address(weth),
-                            new org.web3j.abi.datatypes.Address(usdc),
-                            new Uint32(1),
-                            new org.web3j.abi.datatypes.Bool(true)
-                    ),
-                    List.of(
-                            new TypeReference<Uint256>() {
-                            }
-                    )
-            );
-
-    private static final Function getTwap_osqth = new Function(
-            "getTwap",
-            Arrays.asList(
-                    new org.web3j.abi.datatypes.Address(osqthEthPool),
-                    new org.web3j.abi.datatypes.Address(osqth),
-                    new org.web3j.abi.datatypes.Address(weth),
-                    new Uint32(1),
-                    new org.web3j.abi.datatypes.Bool(true)
-            ),
-            List.of(
-                    new TypeReference<Uint256>() {
-                    }
-            )
-    );
 
     public abstract static class AbstractPositions {
 
@@ -260,49 +227,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
         private final String crab;
         private final boolean isV2;
 
-        private final Function callVaultsFunc = new Function("getVaultDetails",
-                Collections.emptyList(),
-                Arrays.asList(
-                        new TypeReference<Address>() { },
-                        new TypeReference<Uint32>() { },
-                        new TypeReference<Uint96>() { },
-                        new TypeReference<Uint128>() { }
-                )
-        );
-        private final Function callUniswapv3PriceCheck = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(osqthEthPool),
-                        new org.web3j.abi.datatypes.Address(osqth),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        private final Function callUniswapv3PriceCheck_USDC = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new org.web3j.abi.datatypes.Address(usdc),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        private final Function callTotalSupply = new Function("totalSupply",
-                Collections.emptyList(),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-
         public CrabPositions(@Nonnull String userAddress, @Nonnull String crabAddress, boolean isV2) {
             super(userAddress);
             crab = crabAddress;
@@ -315,9 +239,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
             try {
                 BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
 
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab, callVaultsFunc);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck_USDC);
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab, getVaultDetails);
+                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_osqth);
+                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd);
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
@@ -363,9 +287,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     if(fetchPriceAtThisBlock) {
                         BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
 
-                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, callVaultsFunc, (long) block);
-                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3PriceCheck, (long) block);
-                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3PriceCheck_USDC, (long) block);
+                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, getVaultDetails, (long) block);
+                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, (long) block);
+                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, (long) block);
 
                         ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                         shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
@@ -455,8 +379,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         AbstractPositions[] posArray = new AbstractPositions[]{
                 new LongPositions(userAddress),
-                new CrabPositions(userAddress, "0xf205ad80bb86ac92247638914265887a8baa437d", false), // v1
-                new CrabPositions(userAddress, "0x3b960e47784150f5a63777201ee2b15253d713e8", true) // v2
+                new CrabPositions(userAddress, crabv1, false), // v1
+                new CrabPositions(userAddress, crabv2, true) // v2
         };
 
         posArray[0].getAndSetTransfers(osqth);

@@ -39,7 +39,7 @@ public class Greeks extends BotCommand<MessageEmbed> {
         eb.addField("Δ Delta: " + greeks[0].toString(), "For every $1 ETH moves, oSQTH moves by $" + greeks[0], false);
         eb.addField("Γ Gamma: " + new BigDecimal(greeks[1].toString()).toPlainString(), "For every $1 ETH changes, the delta of oSQTH changes by " + new BigDecimal(greeks[1].toString()).toPlainString(), false);
         eb.addField("ν Vega: " + greeks[2].toString(), "For every 100% IV changes, oSQTH changes by $" + greeks[2], false);
-        eb.addField("Θ Theta: " + greeks[3].toString(), "For every hour that goes by, oSQTH decays by $" + greeks[3], false);
+        eb.addField("Θ Theta: " + greeks[3].toString(), "For every day that goes by, oSQTH decays by $" + greeks[3], false);
         eb.addField("Current IV: " + greeks[4].toString() + "%" , "As IV increases, oSQTH will increase in value and vice versa", false);
         eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.getDate() + " | API Data by Laevitas");
         eb.setColor(new Color(14, 255, 212, 76));
