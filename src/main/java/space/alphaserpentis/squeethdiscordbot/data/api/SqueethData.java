@@ -125,6 +125,6 @@ public class SqueethData {
     }
     
     public Double[] getGreeks() {
-        return new Double[]{delta, gamma, vega, theta, current_implied_volatility_value};
+        return new Double[]{delta, gamma, vega, -theta, current_implied_volatility_value};
     }
 }
