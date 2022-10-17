@@ -29,6 +29,7 @@ import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
+import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.Auction;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionByIdResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
@@ -37,6 +38,7 @@ import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
@@ -71,13 +73,6 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
     public static abstract class CrabVault {
         public static final Function callTimeAtLastHedge = new Function("timeAtLastHedge",
-                Collections.emptyList(),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        public static final Function callNormFactor = new Function("getExpectedNormalizationFactor",
                 Collections.emptyList(),
                 List.of(
                         new TypeReference<Uint256>() {
@@ -162,43 +157,43 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             }
 
             try {
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock - 1);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock - 1);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock - 1);
-                BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, normFactor;
+                long block = lastHedgeBlock - 1;
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, block);
+                PriceData priceData = PositionsDataHandler.getPriceData(block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD;
                 double usdPerOsqth, usdPerEth, impliedVolInPercent;
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
+                priceOfoSQTH = priceData.osqthEth;
+                priceOfETHinUSD = priceData.ethUsdc;
+                normFactor = priceData.normFactor;
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock - 1).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
-                impliedVolInPercent = Math.sqrt(Math.log(priceOfoSQTH.doubleValue() / Math.pow(10,18) * 10000/(normFactor.doubleValue() / Math.pow(10,18) * usdPerEth))/(17.5/365));
+                impliedVolInPercent = Math.sqrt(Math.log(priceOfoSQTH.doubleValue() / Math.pow(10,18) * 10000/(priceData.normFactor.doubleValue() / Math.pow(10,18) * usdPerEth))/(17.5/365));
 
                 preVaultGreeksAtHedge = new Vault.VaultGreeks(
                         priceOfETHinUSD.doubleValue() / Math.pow(10,18),
                         usdPerOsqth,
-                        normFactor.doubleValue() / Math.pow(10,18),
+                        priceData.normFactor.doubleValue() / Math.pow(10,18),
                         impliedVolInPercent,
                         -(shortoSQTH.doubleValue() / Math.pow(10,18)),
                         ethCollateral.doubleValue() / Math.pow(10,18)
                 );
 
                 // get post data
-                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock);
-                osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock);
-                ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock);
+                block = lastHedgeBlock;
+                priceData = PositionsDataHandler.getPriceData(block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, block);
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
+                priceOfoSQTH = priceData.osqthEth;
+                priceOfETHinUSD = priceData.ethUsdc;
+                normFactor = priceData.normFactor;
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -453,7 +448,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                         if(notificationPhase != NotificationPhase.AUCTION_ACTIVE) { // check if the auction is running or not
                             cleanBidMessages(sd);
-                            if(notificationPhase == NotificationPhase.AUCTION_SETTLING) { // double check if it's actually settling
+                            if(notificationPhase == NotificationPhase.AUCTION_SETTLING && settlementFuture == null) { // double check if it's actually settling
                                 listenForSettlement(sd);
                             }
                             return;
@@ -567,25 +562,23 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                 // Get info
                 BigInteger ethUsd, osqthEth, osqthUsd, normFactor, osqthHoldings, ethVaultCollateral;
-                BigInteger currentBlock;
+                long currentBlock;
                 try {
-                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber();
+                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
                 double impliedVol;
 
                 try {
-                    List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock.longValue());
-                    List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, currentBlock.longValue());
-                    List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, currentBlock.longValue());
-                    List<Type> normFactorResult = EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, currentBlock.longValue());
+                    PriceData priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                    List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock);
 
                     ethVaultCollateral = (BigInteger) vaultDetails.get(2).getValue();
                     osqthHoldings = (BigInteger) vaultDetails.get(3).getValue();
-                    osqthEth = (BigInteger) osqthEthPrice.get(0).getValue();
-                    ethUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
-                    normFactor = (BigInteger) normFactorResult.get(0).getValue();
+                    osqthEth = priceData.osqthEth;
+                    ethUsd = priceData.ethUsdc;
+                    normFactor = priceData.normFactor;
 
                     osqthUsd = osqthEth.multiply(ethUsd).divide(BigInteger.valueOf((long) Math.pow(10,18)));
                     impliedVol = Math.sqrt(Math.log(osqthEth.doubleValue() / Math.pow(10,18) * 10000/(normFactor.doubleValue() / Math.pow(10,18) * (ethUsd.doubleValue() / Math.pow(10,18))))/(17.5/365));
@@ -815,18 +808,18 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             rebalancedEth = ((BigInteger) FunctionReturnDecoder.decodeIndexedValue(data[3], new TypeReference<Uint256>() {}).getValue()).doubleValue() / Math.pow(10,18) * rebalancedOsqth;
 
             try {
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock - 1);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock - 1);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock - 1);
+                long block = lastHedgeBlock - 1;
+                PriceData priceData = PositionsDataHandler.getPriceData(block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, block);
                 BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, normFactor;
                 double usdPerOsqth, usdPerEth, impliedVolInPercent;
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
+                priceOfoSQTH = priceData.osqthEth;
+                priceOfETHinUSD = priceData.ethUsdc;
+                normFactor = priceData.normFactor;
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock - 1).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -842,16 +835,16 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 );
 
                 // get post data
-                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, lastHedgeBlock);
-                osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, lastHedgeBlock);
-                ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, lastHedgeBlock);
+                block = lastHedgeBlock;
+                priceData = PositionsDataHandler.getPriceData(block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(address, getVaultDetails, block);
 
                 ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
+                priceOfoSQTH = priceData.osqthEth;
+                priceOfETHinUSD = priceData.ethUsdc;
+                normFactor = priceData.normFactor;
 
-                normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(controller, callNormFactor, lastHedgeBlock).get(0).getValue();
                 usdPerOsqth = priceOfoSQTH.multiply(priceOfETHinUSD).divide(BigInteger.valueOf((long) Math.pow(10,18))).doubleValue() / Math.pow(10,18);
                 usdPerEth = priceOfETHinUSD.doubleValue() / Math.pow(10,18);
 
@@ -987,19 +980,17 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
         if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
+                PriceData priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
                 List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_osqth);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd);
 
                 crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                 crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
-                BigInteger priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                crab.priceOfEthInUsd = (BigInteger) ethUsdcPrice.get(0).getValue();
+                BigInteger priceOfoSQTH = priceData.osqthEth;
+                crab.priceOfEthInUsd = priceData.ethUsdc;
                 crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, callTotalSupply).get(0).getValue();
                 crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
-                DecimalFormat df = new DecimalFormat("#");
 
-                crab.normFactor = new BigInteger(String.valueOf(df.format(LaevitasHandler.latestSqueethData.getNormalizationFactor() * (long) Math.pow(10,18))));
+                crab.normFactor = priceData.normFactor;
 
                 BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
 
@@ -1017,7 +1008,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                         crab.ethCollateral.doubleValue() / Math.pow(10,18)
                 );
                 crab.lastRunVaultGreeks = vaultGreeks;
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }

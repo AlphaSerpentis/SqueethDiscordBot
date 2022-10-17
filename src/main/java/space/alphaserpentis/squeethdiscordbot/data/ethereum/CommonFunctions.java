@@ -63,4 +63,10 @@ public interface CommonFunctions {
                     }
             )
     );
+    Function getExpectedNormFactor = new Function("getExpectedNormalizationFactor",
+            List.of(),
+            List.of(
+                    new TypeReference<Uint256>() {}
+            )
+    );
 }

@@ -13,10 +13,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint256;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
@@ -25,6 +22,7 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsData
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -127,13 +125,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public static class LongPositions extends AbstractPositions {
-        public static final Function getExpectedNormFactor = new Function("getExpectedNormalizationFactor",
-                List.of(),
-                List.of(
-                        new TypeReference<Uint256>() {}
-                )
-        );
-
         public double estimatedFunding = 0;
 
         public LongPositions(@Nonnull String userAddress) {
@@ -165,25 +156,20 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         priceOsqth = priceData.osqthEth;
                         priceEth = priceData.ethUsdc;
                     } else {
-                        priceOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, Long.parseLong(String.valueOf(block))).get(0).getValue();
-                        priceEth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, Long.parseLong(String.valueOf(block))).get(0).getValue();
-
+                        PriceData tempPriceData = PositionsDataHandler.getPriceData((long) block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD});
+                        priceOsqth = tempPriceData.osqthEth;
+                        priceEth = tempPriceData.ethUsdc;
                         priceData.ethUsdc = priceEth;
                         priceData.osqthEth = priceOsqth;
                     }
 
                     if(priceData.normFactor.equals(BigInteger.ZERO)) {
-                        priceData.normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
-                                controller,
-                                getExpectedNormFactor,
-                                (long) block
-                        ).get(0).getValue();
+                        priceData.normFactor = PositionsDataHandler.getPriceData((long) block, new PriceData.Prices[]{PriceData.Prices.NORMFACTOR}).normFactor;
                     }
 
                     earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
 
                     PositionsDataHandler.addNewData((long) block, priceData);
-
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -233,27 +219,25 @@ public class Position extends ButtonCommand<MessageEmbed> {
             this.isV2 = isV2;
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
         public void getAndSetPrices() {
             try {
-                BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
+                PriceData tempPriceData;
+                if(!isV2) {
+                    tempPriceData = PositionsDataHandler.getPriceData(
+                            EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                            new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD}
+                    );
+                } else {
+                    tempPriceData = PositionsDataHandler.getPriceData(
+                            EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                            new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD}
+                    );
+                }
 
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab, getVaultDetails);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_osqth);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd);
-
-                ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
-                crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab, callTotalSupply).get(0).getValue();
-
-                BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
-
-                currentPriceInEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
-                currentPriceInUsd = currentPriceInEth.multiply(priceOfETHinUSD);
-            } catch (ExecutionException | InterruptedException e) {
+                currentPriceInEth = tempPriceData.crabEth;
+                currentPriceInUsd = currentPriceInEth.multiply(tempPriceData.ethUsdc);
+            } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }

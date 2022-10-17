@@ -1,6 +1,5 @@
 package space.alphaserpentis.squeethdiscordbot.data.server.papertrading;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PaperTradingLeaderboard {

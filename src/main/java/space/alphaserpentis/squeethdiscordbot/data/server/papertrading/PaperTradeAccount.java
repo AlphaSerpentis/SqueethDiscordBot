@@ -1,5 +1,6 @@
 package space.alphaserpentis.squeethdiscordbot.data.server.papertrading;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -7,7 +8,7 @@ public class PaperTradeAccount {
     public HashMap<PaperTrade.Asset, Double> balance = new HashMap<>();
     public ArrayList<PaperTrade> history = new ArrayList<>();
 
-    public void trade(PaperTrade.Asset asset, PaperTrade.Action action, double amount) {
+    public void trade(@Nonnull PaperTrade.Asset asset, @Nonnull PaperTrade.Action action, double amount) {
 
     }
 
