@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.handler;
+package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
@@ -19,7 +19,6 @@ import java.util.concurrent.Executors;
 
 public class CommandsHandler extends ListenerAdapter {
     public static final HashMap<String, BotCommand<?>> mappingOfCommands;
-
     public static long adminUserID;
     public static final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -74,7 +73,7 @@ public class CommandsHandler extends ListenerAdapter {
             for(String cmdName: missingCommands) {
                 System.out.println("[CommandsHandler] Adding new slash command: " + cmdName);
                 BotCommand<?> cmd = mappingOfCommands.get(cmdName);
-                cmd.addCommand(api);
+                cmd.updateCommand(api);
             }
         }
     }

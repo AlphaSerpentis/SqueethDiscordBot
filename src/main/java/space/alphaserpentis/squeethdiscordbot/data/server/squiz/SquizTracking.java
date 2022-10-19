@@ -15,6 +15,7 @@ public class SquizTracking {
              * String representing the date of when the response was made
              */
             public String date;
+            public boolean isCorrect;
 
             @Override
             public String toString() {

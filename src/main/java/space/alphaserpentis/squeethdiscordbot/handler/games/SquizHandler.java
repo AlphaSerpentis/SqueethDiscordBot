@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.handler;
+package space.alphaserpentis.squeethdiscordbot.handler.games;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -11,6 +11,8 @@ import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizTracking;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.CommandsHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizLeaderboardDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizQuestionsDeserializer;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;

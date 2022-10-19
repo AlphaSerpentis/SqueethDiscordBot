@@ -9,7 +9,8 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 
 import javax.annotation.Nonnull;
 import java.text.NumberFormat;
@@ -19,19 +20,21 @@ public class Funding extends BotCommand<MessageEmbed> {
 
     public Funding() {
         super(new BotCommandOptions(
-           "funding",
-           "Calculates the estimated amount of funding you would pay (or receive)",
-           true,
-           false
+            "funding",
+            "Calculates the estimated amount of funding you would pay (or receive)",
+            true,
+            false,
+            TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
-        double amt, funding, thetaCalculated, amtHeld;
+        NumberFormat instance = NumberFormat.getInstance();
+        double amt, funding, currentEthPrice, thetaCalculated, deltaCalculated, gammaCalculated, amtHeld, breakevenEthChange;
         int days;
 
         // 0th Index should be amount of oSQTH in USD
@@ -44,18 +47,30 @@ public class Funding extends BotCommand<MessageEmbed> {
         else
             funding = LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue();
 
-        thetaCalculated = (funding/100) * LaevitasHandler.latestSqueethData.getoSQTHPrice();
         amtHeld = amt/LaevitasHandler.latestSqueethData.getoSQTHPrice();
+        thetaCalculated = (-funding/100) * LaevitasHandler.latestSqueethData.getoSQTHPrice() * amtHeld * days;
+        deltaCalculated = LaevitasHandler.latestSqueethData.getDelta() * amtHeld;
+        gammaCalculated = LaevitasHandler.latestSqueethData.getGamma() * amtHeld;
+        breakevenEthChange = -(thetaCalculated + gammaCalculated)/deltaCalculated;
+        currentEthPrice = LaevitasHandler.latestSqueethData.getUnderlyingPrice();
 
         eb.setTitle("Funding Calculator");
-        eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic!");
-        eb.addField("Estimated Funding", "With $" + NumberFormat.getInstance().format(amt) + " (" + NumberFormat.getInstance().format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding + "% current implied funding, and holding for " + days + " days, you might pay $" + NumberFormat.getInstance().format(amtHeld * thetaCalculated * days) + " in funding.", false);
+        eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic and other factors like volatility will affect a position's profitability!");
+        eb.addField("Estimated Funding", "With $" + instance.format(amt) +
+                " (" + instance.format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding +
+                "% current implied funding, and holding for " + days + " days, you might pay $" +
+                instance.format(-thetaCalculated) + " in funding. ETH needs to move up by $" +
+                instance.format(breakevenEthChange) + " to breakeven.",
+                false
+        );
+        eb.addField("Current ETH Price", "$" + instance.format(currentEthPrice), false);
+        eb.addField("Breakeven ETH Price", "$" + instance.format(currentEthPrice + breakevenEthChange), false);
 
-        return eb.build();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
-    public void addCommand(@Nonnull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
                 .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
@@ -63,18 +78,5 @@ public class Funding extends BotCommand<MessageEmbed> {
                 .complete();
 
         commandId = cmd.getIdLong();
-    }
-
-    @Override
-    public void updateCommand(@Nonnull JDA jda) {
-        Command cmd = jda.editCommandById(getCommandId()).complete();
-
-        cmd.editCommand().clearOptions()
-                .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
-                .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
-                .addOption(OptionType.NUMBER, "funding", "The funding rate in %", false)
-                .complete();
-
-        System.out.println("[Funding] Updating command");
     }
 }

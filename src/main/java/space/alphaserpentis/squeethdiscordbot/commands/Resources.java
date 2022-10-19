@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -63,10 +64,11 @@ public class Resources extends ButtonCommand<MessageEmbed> {
 
     public Resources() {
         super(new BotCommandOptions(
-           "resoures",
-           "Obtain educational resources all about Squeeth!",
-           true,
-           true
+            "resources",
+            "Obtain educational resources all about Squeeth!",
+            true,
+            true,
+            TypeOfEphemeral.DEFAULT
         ));
 
         buttonHashMap.put("Previous", Button.primary("resources_previous", "Previous").asDisabled());
@@ -76,7 +78,7 @@ public class Resources extends ButtonCommand<MessageEmbed> {
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("Educational Resources");
@@ -84,7 +86,7 @@ public class Resources extends ButtonCommand<MessageEmbed> {
 
         eb.addField(pages.get(0));
 
-        return eb.build();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
@@ -128,15 +130,11 @@ public class Resources extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void addCommand(@Nonnull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .complete();
 
         commandId = cmd.getIdLong();
-    }
-
-    @Override
-    public void updateCommand(@Nonnull JDA jda) {
     }
 
     @Override

@@ -6,15 +6,15 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import org.jetbrains.annotations.NotNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Bool;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.*;
-import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -27,10 +27,9 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.controller;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.ethUsdcPool;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.usdc;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.weth;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.osqthEthPool;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.getTwap_ethUsd;
 
 public class Vault extends BotCommand<MessageEmbed> {
 
@@ -207,6 +206,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             0,
             true,
             true,
+            TypeOfEphemeral.DEFAULT,
             true,
             true,
             true,
@@ -214,15 +214,15 @@ public class Vault extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @NotNull
+    @Nonnull
     @SuppressWarnings("rawtypes")
     @Override
-    public MessageEmbed runCommand(long userId, @NotNull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
             eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         // web3j stuff
@@ -241,22 +241,9 @@ public class Vault extends BotCommand<MessageEmbed> {
                         new TypeReference<Uint128>() { } // shortAmount
                 )
         );
-        Function callUniswapv3PriceCheck = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new org.web3j.abi.datatypes.Address(usdc),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
         Function callUniswapv3Tick = new Function("getTimeWeightedAverageTickSafe",
                 Arrays.asList(
-                        new org.web3j.abi.datatypes.Address("0x82c427AdFDf2d245Ec51D8046b41c4ee87F0d29C"),
+                        new org.web3j.abi.datatypes.Address(osqthEthPool),
                         new Uint32(1)
                 ),
                 List.of(
@@ -281,7 +268,7 @@ public class Vault extends BotCommand<MessageEmbed> {
 
         try {
             vaultsResponse = EthereumRPCHandler.ethCallAtLatestBlock(controller, callVaults);
-            priceOfEthResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck);
+            priceOfEthResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, getTwap_ethUsd);
             tickOfoSQTHPoolResponse = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3Tick);
             Uniswapv3FuckYouMath univ3 = new Uniswapv3FuckYouMath();
 
@@ -334,7 +321,7 @@ public class Vault extends BotCommand<MessageEmbed> {
         } catch (ExecutionException | InterruptedException e) {
             eb.setDescription("An error has occurred. Please try again later. If this continues to persist, reach out to the bot owner.");
             e.printStackTrace();
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         VaultGreeks vaultGreeks = new VaultGreeks(
@@ -391,19 +378,11 @@ public class Vault extends BotCommand<MessageEmbed> {
             eb.setColor(Color.GREEN);
         }
 
-        return eb.build();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
-    public void addCommand(@NotNull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description)
-                .addOption(OptionType.INTEGER, "id", "ID of the short vault", true).complete();
-
-        commandId = cmd.getIdLong();
-    }
-
-    @Override
-    public void updateCommand(@NotNull JDA jda) {
+    public void updateCommand(@Nonnull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.INTEGER, "id", "ID of the short vault", true).complete();
 

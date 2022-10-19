@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.handler;
+package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum;
 
 import com.google.gson.Gson;
 import org.web3j.abi.FunctionEncoder;

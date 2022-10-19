@@ -16,13 +16,14 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizQuestions;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizTracking;
-import space.alphaserpentis.squeethdiscordbot.handler.ServerDataHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.SquizHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import javax.annotation.Nonnull;
@@ -92,6 +93,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
             60,
             true,
             true,
+            TypeOfEphemeral.DYNAMIC,
             true,
             false,
             false,
@@ -117,7 +119,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         SquizSession session = squizSessionHashMap.getOrDefault(userId, new SquizSession());
         EmbedBuilder eb = new EmbedBuilder();
 
@@ -239,8 +241,14 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
                     if(verifyManageServerPerms(event.getMember())) {
                         try {
                             eb.setTitle("Squiz User Tracking for " + event.getUser().getAsTag());
+                            StringBuilder csvString = new StringBuilder("Date,Response Time,Is Correct\n");
+
+                            for(SquizTracking.UserData.Response response: SquizHandler.squizTracking.serverMapping.get(event.getGuild().getIdLong()).get(event.getOptions().get(0).getAsUser().getIdLong()).responses) {
+                                csvString.append(response.date).append(',').append(response.responseTime).append(',').append(response.isCorrect).append('\n');
+                            }
+
                             eb.setDescription(
-                                    getPastebinUrl(SquizHandler.squizTracking.serverMapping.get(event.getGuild().getIdLong()).get(event.getOptions().get(0).getAsUser().getIdLong()).responses.toString())
+                                    getPastebinUrl(csvString.toString())
                             );
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -254,23 +262,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
         squizSessionHashMap.putIfAbsent(userId, session);
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
-        SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
-        SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
-        SubcommandData removePoint = new SubcommandData("remove_point", "Removes a point for a user").addOption(OptionType.USER, "user", "Which user to remove the point for", true);
-        SubcommandData setPoint = new SubcommandData("set_point", "Sets the amount of points for a user").addOption(OptionType.USER, "user", "Which user to set custom points for", true).addOption(OptionType.INTEGER, "points", "Custom points to set", true);
-        SubcommandData getPlayers = new SubcommandData("get_players", "Generates a list of players");
-        SubcommandData clearLeaderboard = new SubcommandData("clear_leaderboard", "Clears the leaderboard");
-        SubcommandData getUserTrackingDump = new SubcommandData("get_tracking", "Gets the Random Squiz user tracking data").addOption(OptionType.USER, "user", "Which user to get tracking data from", true);
-
-        Command cmd = jda.upsertCommand(name, description).addSubcommands(leaderboard, play, addPoint, removePoint, setPoint, getPlayers, clearLeaderboard, getUserTrackingDump).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
@@ -334,6 +326,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
 
                     response.responseTime = Instant.now().toEpochMilli() - ((RandomSquizSession) session).epochInMillisecondsWhenPosted;
                     response.date = date.getMonth() + "-" + date.getDayOfMonth() + "-" + date.getYear();
+                    response.isCorrect = session.correctCurrentAnswer == getAnswerChar(event.getButton().getId());
 
                     userData.responses.add(response);
 

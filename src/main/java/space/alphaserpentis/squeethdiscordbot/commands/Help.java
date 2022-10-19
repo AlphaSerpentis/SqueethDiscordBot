@@ -7,7 +7,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import space.alphaserpentis.squeethdiscordbot.handler.CommandsHandler;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.CommandsHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -19,13 +20,14 @@ public class Help extends BotCommand<MessageEmbed> {
                 "help",
                 "Lists all of the available commands",
                 true,
-                false
+                false,
+                TypeOfEphemeral.DEFAULT
         ));
     }
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("List of Commands");
@@ -35,18 +37,13 @@ public class Help extends BotCommand<MessageEmbed> {
         }
         eb.setColor(new Color(14, 255, 212, 76));
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description).complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
     public void updateCommand(@Nonnull JDA jda) {
+        Command cmd = jda.upsertCommand(name, description).complete();
 
+        commandId = cmd.getIdLong();
     }
 }

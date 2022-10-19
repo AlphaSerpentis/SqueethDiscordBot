@@ -13,67 +13,33 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint128;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.abi.datatypes.generated.Uint96;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.PositionsDataHandler;
+import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Instant;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
 
 public class Position extends ButtonCommand<MessageEmbed> {
 
     private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
-    private static final Function getTwap_ethUsd = new Function(
-                    "getTwap",
-                    Arrays.asList(
-                            new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                            new org.web3j.abi.datatypes.Address(weth),
-                            new org.web3j.abi.datatypes.Address(usdc),
-                            new Uint32(1),
-                            new org.web3j.abi.datatypes.Bool(true)
-                    ),
-                    List.of(
-                            new TypeReference<Uint256>() {
-                            }
-                    )
-            );
-
-    private static final Function getTwap_osqth = new Function(
-            "getTwap",
-            Arrays.asList(
-                    new org.web3j.abi.datatypes.Address(osqthEthPool),
-                    new org.web3j.abi.datatypes.Address(osqth),
-                    new org.web3j.abi.datatypes.Address(weth),
-                    new Uint32(1),
-                    new org.web3j.abi.datatypes.Bool(true)
-            ),
-            List.of(
-                    new TypeReference<Uint256>() {
-                    }
-            )
-    );
 
     public abstract static class AbstractPositions {
 
@@ -159,13 +125,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public static class LongPositions extends AbstractPositions {
-        public static final Function getExpectedNormFactor = new Function("getExpectedNormalizationFactor",
-                List.of(),
-                List.of(
-                        new TypeReference<Uint256>() {}
-                )
-        );
-
         public double estimatedFunding = 0;
 
         public LongPositions(@Nonnull String userAddress) {
@@ -186,7 +145,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCostBasis() {
             DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
-            for(int block : tokensAtBlock.keySet().stream().sorted().collect(Collectors.toList())) {
+            for(int block : tokensAtBlock.keySet().stream().sorted().toList()) {
                 BigInteger priceOsqth, priceEth, transferCostBasis;
                 double earliestNormFactor;
                 try {
@@ -197,25 +156,20 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         priceOsqth = priceData.osqthEth;
                         priceEth = priceData.ethUsdc;
                     } else {
-                        priceOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, Long.parseLong(String.valueOf(block))).get(0).getValue();
-                        priceEth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, Long.parseLong(String.valueOf(block))).get(0).getValue();
-
+                        PriceData tempPriceData = PositionsDataHandler.getPriceData((long) block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD});
+                        priceOsqth = tempPriceData.osqthEth;
+                        priceEth = tempPriceData.ethUsdc;
                         priceData.ethUsdc = priceEth;
                         priceData.osqthEth = priceOsqth;
                     }
 
                     if(priceData.normFactor.equals(BigInteger.ZERO)) {
-                        priceData.normFactor = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
-                                controller,
-                                getExpectedNormFactor,
-                                (long) block
-                        ).get(0).getValue();
+                        priceData.normFactor = PositionsDataHandler.getPriceData((long) block, new PriceData.Prices[]{PriceData.Prices.NORMFACTOR}).normFactor;
                     }
 
                     earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
 
                     PositionsDataHandler.addNewData((long) block, priceData);
-
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -259,76 +213,31 @@ public class Position extends ButtonCommand<MessageEmbed> {
         private final String crab;
         private final boolean isV2;
 
-        private final Function callVaultsFunc = new Function("getVaultDetails",
-                Collections.emptyList(),
-                Arrays.asList(
-                        new TypeReference<Address>() { },
-                        new TypeReference<Uint32>() { },
-                        new TypeReference<Uint96>() { },
-                        new TypeReference<Uint128>() { }
-                )
-        );
-        private final Function callUniswapv3PriceCheck = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(osqthEthPool),
-                        new org.web3j.abi.datatypes.Address(osqth),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        private final Function callUniswapv3PriceCheck_USDC = new Function("getTwap",
-                Arrays.asList(
-                        new org.web3j.abi.datatypes.Address(ethUsdcPool),
-                        new org.web3j.abi.datatypes.Address(weth),
-                        new org.web3j.abi.datatypes.Address(usdc),
-                        new Uint32(1),
-                        new org.web3j.abi.datatypes.Bool(true)
-                ),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-        private final Function callTotalSupply = new Function("totalSupply",
-                Collections.emptyList(),
-                List.of(
-                        new TypeReference<Uint256>() {
-                        }
-                )
-        );
-
         public CrabPositions(@Nonnull String userAddress, @Nonnull String crabAddress, boolean isV2) {
             super(userAddress);
             crab = crabAddress;
             this.isV2 = isV2;
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
         public void getAndSetPrices() {
             try {
-                BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
+                PriceData tempPriceData;
+                if(!isV2) {
+                    tempPriceData = PositionsDataHandler.getPriceData(
+                            EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                            new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD}
+                    );
+                } else {
+                    tempPriceData = PositionsDataHandler.getPriceData(
+                            EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                            new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD}
+                    );
+                }
 
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab, callVaultsFunc);
-                List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck);
-                List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtLatestBlock(oracle, callUniswapv3PriceCheck_USDC);
-
-                ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
-                crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab, callTotalSupply).get(0).getValue();
-
-                BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
-
-                currentPriceInEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
-                currentPriceInUsd = currentPriceInEth.multiply(priceOfETHinUSD);
-            } catch (ExecutionException | InterruptedException e) {
+                currentPriceInEth = tempPriceData.crabEth;
+                currentPriceInUsd = currentPriceInEth.multiply(tempPriceData.ethUsdc);
+            } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -338,7 +247,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCostBasis() {
             DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
-            for(int block : tokensAtBlock.keySet().stream().sorted().collect(Collectors.toList())) {
+            for(int block : tokensAtBlock.keySet().stream().sorted().toList()) {
                 BigInteger priceCrabEth;
                 try {
                     PriceData priceData = new PriceData();
@@ -362,9 +271,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     if(fetchPriceAtThisBlock) {
                         BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
 
-                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, callVaultsFunc, (long) block);
-                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3PriceCheck, (long) block);
-                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, callUniswapv3PriceCheck_USDC, (long) block);
+                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, getVaultDetails, (long) block);
+                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, (long) block);
+                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, (long) block);
 
                         ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                         shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
@@ -374,7 +283,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                         BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
 
-                        priceCrabEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
+                        priceCrabEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply.subtract(tokensAtBlock.get(block)));
                         priceData.osqthEth = priceOfoSQTH;
                         if(!isV2) {
                             priceData.crabEth = priceCrabEth;
@@ -411,10 +320,11 @@ public class Position extends ButtonCommand<MessageEmbed> {
         super(new BotCommandOptions(
             "position",
             "Checks your wallet's long Squeeth and Crab v1/v2 positions",
-            60,
+            30,
             0,
             true,
             true,
+            TypeOfEphemeral.DEFAULT,
             true,
             true,
             true,
@@ -428,12 +338,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
     @Nonnull
     @Override
-    public MessageEmbed runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
             eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
         String userAddress = event.getOptions().get(0).getAsString();
@@ -441,20 +351,20 @@ public class Position extends ButtonCommand<MessageEmbed> {
         // Validate Ethereum address
         if(userAddress.length() != 42 && userAddress.startsWith("0x") && !userAddress.endsWith(".eth")) {
             eb.setDescription("Invalid Ethereum address (must be a proper Ethereum address with 0x prefix OR valid ENS name)");
-            return eb.build();
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
         } else {
             try {
                 userAddress = EthereumRPCHandler.getResolvedAddress(userAddress).toLowerCase();
             } catch (Exception e) {
                 eb.setDescription("Invalid Ethereum address (must be a proper Ethereum address with 0x prefix OR valid ENS name)");
-                return eb.build();
+                return new CommandResponse<>(eb.build(), onlyEphemeral);
             }
         }
 
         AbstractPositions[] posArray = new AbstractPositions[]{
                 new LongPositions(userAddress),
-                new CrabPositions(userAddress, "0xf205ad80bb86ac92247638914265887a8baa437d", false), // v1
-                new CrabPositions(userAddress, "0x3b960e47784150f5a63777201ee2b15253d713e8", true) // v2
+                new CrabPositions(userAddress, crabv1, false), // v1
+                new CrabPositions(userAddress, crabv2, true) // v2
         };
 
         posArray[0].getAndSetTransfers(osqth);
@@ -483,16 +393,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
             cachedPositions.remove(event.getUser().getIdLong());
         }
 
-        return eb.build();
-    }
-
-    @Override
-    public void addCommand(@Nonnull JDA jda) {
-        Command cmd = jda.upsertCommand(name, description)
-                .addOption(OptionType.STRING, "address", "Your Ethereum address", true)
-                .complete();
-
-        commandId = cmd.getIdLong();
+        return new CommandResponse<>(eb.build(), onlyEphemeral);
     }
 
     @Override
