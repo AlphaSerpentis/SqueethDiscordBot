@@ -228,14 +228,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
                             EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
                             new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD}
                     );
+                    currentPriceInEth = tempPriceData.crabEth;
                 } else {
                     tempPriceData = PositionsDataHandler.getPriceData(
                             EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
                             new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD}
                     );
+                    currentPriceInEth = tempPriceData.crabV2Eth;
                 }
 
-                currentPriceInEth = tempPriceData.crabEth;
                 currentPriceInUsd = currentPriceInEth.multiply(tempPriceData.ethUsdc);
             } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
