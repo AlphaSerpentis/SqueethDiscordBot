@@ -65,9 +65,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.crabv1;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.crabv2;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.callTotalSupply;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.getVaultDetails;
 
 public class Crab extends ButtonCommand<MessageEmbed> {
 
@@ -231,11 +232,11 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
             public static final ArrayList<Long> serversListening = new ArrayList<>();
             private static ScheduledExecutorService scheduledExecutor;
-            private static ScheduledFuture<?> notificationFuture = null;
+//            private static ScheduledFuture<?> notificationFuture = null;
             private static ScheduledFuture<?> updateBidsFuture = null;
-            private static ScheduledFuture<?> settlementFuture = null;
-            private static EmbedBuilder settlementMessage = null;
-            private static Auction currentAuction = null;
+//            private static ScheduledFuture<?> settlementFuture = null;
+//            private static EmbedBuilder settlementMessage = null;
+//            private static Auction currentAuction = null;
             public static long auctionTime;
             public static NotificationPhase notificationPhase;
 
@@ -355,7 +356,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 600, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_ACTIVE;
                 } else if(timeDiff <= -600 && timeDiff > -1200) {
-                    notificationFuture = scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
+//                    notificationFuture = scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
+                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 1200, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_SETTLING;
                 } else {
                     notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
@@ -431,11 +433,14 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 AtomicInteger runs = new AtomicInteger();
 
                 try {
-                    if(getLatestActiveAuctionId() != -1) {
-                        currentAuction = getLatestAuction().auction;
-                    } else {
+//                    if(getLatestActiveAuctionId() != -1) {
+//                        currentAuction = getLatestAuction().auction;
+//                    } else {
+//                        scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
+//                    }
+
+                    if(getLatestActiveAuctionId() == -1)
                         scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
-                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -448,9 +453,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                         if(notificationPhase != NotificationPhase.AUCTION_ACTIVE) { // check if the auction is running or not
                             cleanBidMessages(sd);
-                            if(notificationPhase == NotificationPhase.AUCTION_SETTLING && settlementFuture == null) { // double check if it's actually settling
-                                listenForSettlement(sd);
-                            }
+//                            if(notificationPhase == NotificationPhase.AUCTION_SETTLING && settlementFuture == null) { // double check if it's actually settling
+//                                listenForSettlement(sd);
+//                            }
                             return;
                         }
 
@@ -498,63 +503,63 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 updateBidsFuture.cancel(false);
             }
 
-            private static void listenForSettlement(@Nonnull ServerData sd) {
-                long currentBlock;
-                try {
-                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-                settlementFuture = scheduledExecutor.scheduleWithFixedDelay(() -> {
-                    EthFilter filter;
-                    try {
-                        filter = new EthFilter(new DefaultBlockParameterNumber(currentBlock), new DefaultBlockParameterNumber(EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber()), crabV2.address)
-                                .addOptionalTopics("0xbbc3ba742efe346cfdf333000069964e0ee3087c68da267dac977d299f2366fb");
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-
-                    Flowable<Log> logFlowable = EthereumRPCHandler.web3.ethLogFlowable(filter);
-                    AtomicReference<Log> latestLog = new AtomicReference<>();
-
-                    Disposable disposable = logFlowable.subscribe(
-                            latestLog::set
-                    );
-
-                    disposable.dispose();
-
-                    if(latestLog.get() != null) { // check if last log is valid
-                        if(notificationFuture.cancel(false)) {
-                            EmbedBuilder eb = new EmbedBuilder();
-                            bidsPage(eb, currentAuction.currentAuctionId);
-
-                            for(Long serverId: serversListening) {
-                                TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
-
-                                channel.sendMessageEmbeds(eb.build()).queue(
-                                        (response) -> {
-                                            if(sd.getLastCrabAuctionNotificationId() != 0)
-                                                response.getChannel().asTextChannel().deleteMessageById(sd.getLastCrabAuctionNotificationId()).queue(
-                                                        (ignored) -> {},
-                                                        Throwable::printStackTrace
-                                                );
-                                            sd.setLastCrabAuctionNotificationId(response.getIdLong());
-                                        },
-                                        Throwable::printStackTrace
-                                );
-                                notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
-                                scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
-                                notifyAboutAuction();
-                            }
-                        }
-
-                        throw new RuntimeException();
-                    }
-                }, 0, 30, TimeUnit.SECONDS);
-
-                scheduledExecutor.schedule(() -> settlementFuture.cancel(false), 10, TimeUnit.MINUTES);
-            }
+//            private static void listenForSettlement(@Nonnull ServerData sd) {
+//                long currentBlock;
+//                try {
+//                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//
+//                settlementFuture = scheduledExecutor.scheduleWithFixedDelay(() -> {
+//                    EthFilter filter;
+//                    try {
+//                        filter = new EthFilter(new DefaultBlockParameterNumber(currentBlock), new DefaultBlockParameterNumber(EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber()), crabV2.address)
+//                                .addOptionalTopics("0xbbc3ba742efe346cfdf333000069964e0ee3087c68da267dac977d299f2366fb");
+//                    } catch (IOException e) {
+//                        throw new RuntimeException(e);
+//                    }
+//
+//                    Flowable<Log> logFlowable = EthereumRPCHandler.web3.ethLogFlowable(filter);
+//                    AtomicReference<Log> latestLog = new AtomicReference<>();
+//
+//                    Disposable disposable = logFlowable.subscribe(
+//                            latestLog::set
+//                    );
+//
+//                    disposable.dispose();
+//
+//                    if(latestLog.get() != null) { // check if last log is valid
+//                        if(notificationFuture.cancel(false)) {
+//                            EmbedBuilder eb = new EmbedBuilder();
+//                            bidsPage(eb, currentAuction.currentAuctionId);
+//
+//                            for(Long serverId: serversListening) {
+//                                TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
+//
+//                                channel.sendMessageEmbeds(eb.build()).queue(
+//                                        (response) -> {
+//                                            if(sd.getLastCrabAuctionNotificationId() != 0)
+//                                                response.getChannel().asTextChannel().deleteMessageById(sd.getLastCrabAuctionNotificationId()).queue(
+//                                                        (ignored) -> {},
+//                                                        Throwable::printStackTrace
+//                                                );
+//                                            sd.setLastCrabAuctionNotificationId(response.getIdLong());
+//                                        },
+//                                        Throwable::printStackTrace
+//                                );
+//                                notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+//                                scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
+//                                notifyAboutAuction();
+//                            }
+//                        }
+//
+//                        throw new RuntimeException();
+//                    }
+//                }, 0, 30, TimeUnit.SECONDS);
+//
+//                scheduledExecutor.schedule(() -> settlementFuture.cancel(false), 10, TimeUnit.MINUTES);
+//            }
 
             @SuppressWarnings("rawtypes")
             public static double[] estimateSizeOfAuction() {
