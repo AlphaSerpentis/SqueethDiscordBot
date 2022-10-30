@@ -32,7 +32,7 @@ public class Stats extends BotCommand<MessageEmbed> {
     public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
-        SqueethData data = LaevitasHandler.latestSqueethData;
+        SqueethData.Data data = LaevitasHandler.latestSqueethData.data;
 
         eb.setThumbnail("https://c.tenor.com/URrZkAPGQjAAAAAC/cat-squish-cat.gif");
         eb.setTitle("Squeeth Statistics");
@@ -49,7 +49,7 @@ public class Stats extends BotCommand<MessageEmbed> {
         eb.addField("Current Implied Volatility", data.getCurrentImpliedVolatility() + "%", false);
         eb.addField("Daily Implied Volatility", data.getDailyImpliedVolatility() + "%", false);
         eb.addField("Normalization Factor", Double.toString(data.getNormalizationFactor()), false);
-        eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.getDate() + " | API Data by Laevitas");
+        eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.data.getDate() + " | API Data by Laevitas");
         eb.setColor(new Color(14, 255, 212, 76));
 
         return new CommandResponse<>(eb.build(), onlyEphemeral);

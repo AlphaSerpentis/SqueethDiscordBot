@@ -1006,9 +1006,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                 vaultGreeks = new Vault.VaultGreeks(
                         crab.priceOfEthInUsd.doubleValue() / Math.pow(10,18),
-                        LaevitasHandler.latestSqueethData.getoSQTHPrice(),
+                        LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
                         crab.normFactor.doubleValue() / Math.pow(10,18),
-                        LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility()/100,
+                        LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility()/100,
                         -(crab.shortOsqth.doubleValue() / Math.pow(10,18)),
                         crab.ethCollateral.doubleValue() / Math.pow(10,18)
                 );

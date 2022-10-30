@@ -45,14 +45,14 @@ public class Funding extends BotCommand<MessageEmbed> {
         if(optionMappingList.size() == 3)
             funding = optionMappingList.get(2).getAsDouble();
         else
-            funding = LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue();
+            funding = LaevitasHandler.latestSqueethData.data.getCurrentImpliedFundingValue();
 
-        amtHeld = amt/LaevitasHandler.latestSqueethData.getoSQTHPrice();
-        thetaCalculated = (-funding/100) * LaevitasHandler.latestSqueethData.getoSQTHPrice() * amtHeld * days;
-        deltaCalculated = LaevitasHandler.latestSqueethData.getDelta() * amtHeld;
-        gammaCalculated = LaevitasHandler.latestSqueethData.getGamma() * amtHeld;
+        amtHeld = amt/LaevitasHandler.latestSqueethData.data.getoSQTHPrice();
+        thetaCalculated = (-funding/100) * LaevitasHandler.latestSqueethData.data.getoSQTHPrice() * amtHeld * days;
+        deltaCalculated = LaevitasHandler.latestSqueethData.data.getDelta() * amtHeld;
+        gammaCalculated = LaevitasHandler.latestSqueethData.data.getGamma() * amtHeld;
         breakevenEthChange = -(thetaCalculated + gammaCalculated)/deltaCalculated;
-        currentEthPrice = LaevitasHandler.latestSqueethData.getUnderlyingPrice();
+        currentEthPrice = LaevitasHandler.latestSqueethData.data.getUnderlyingPrice();
 
         eb.setTitle("Funding Calculator");
         eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic and other factors like volatility will affect a position's profitability!");
