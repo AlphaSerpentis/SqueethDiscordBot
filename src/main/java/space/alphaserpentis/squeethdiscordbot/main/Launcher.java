@@ -45,7 +45,7 @@ public class Launcher {
         EthereumRPCHandler.url = new URL(settings.ethereumRPC);
 
         // Set variables
-        LaevitasHandler.API_URL = new URL("https://gateway.laevitas.ch/");
+        LaevitasHandler.API_URL = new URL("https://api.laevitas.ch/");
         LaevitasHandler.KEY = settings.laevitasKey;
 
         // Configure the bot

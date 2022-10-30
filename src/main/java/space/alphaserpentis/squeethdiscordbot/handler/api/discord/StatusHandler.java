@@ -39,9 +39,9 @@ public class StatusHandler {
             statusIndex = 0;
 
         switch(statusIndex++) {
-            case 0 -> statusMessage = "oSQTH: $" + NumberFormat.getInstance().format(LaevitasHandler.latestSqueethData.getoSQTHPrice()) + statusMessage;
-            case 1 -> statusMessage = "Impl. Funding: " + LaevitasHandler.latestSqueethData.getCurrentImpliedFundingValue() + "%" + statusMessage;
-            case 2 -> statusMessage = "IV: " + LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility() + "%" + statusMessage;
+            case 0 -> statusMessage = "oSQTH: $" + NumberFormat.getInstance().format(LaevitasHandler.latestSqueethData.data.getoSQTHPrice()) + statusMessage;
+            case 1 -> statusMessage = "Impl. Funding: " + LaevitasHandler.latestSqueethData.data.getCurrentImpliedFundingValue() + "%" + statusMessage;
+            case 2 -> statusMessage = "IV: " + LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility() + "%" + statusMessage;
         }
 
         Launcher.api.getPresence().setActivity(Activity.watching(statusMessage));

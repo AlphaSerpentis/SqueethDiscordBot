@@ -4,127 +4,114 @@ package space.alphaserpentis.squeethdiscordbot.data.api;
 
 public class SqueethData {
 
-    private String date;
-    private long volume_osqth, volume_usd;
-    private double underlying_price, current_mark, current_index, index, mark, current_implied_funding_value, daily_funding_value, current_implied_volatility_value, daily_implied_volatility_value, oSQTH_price, delta, gamma, vega, theta, normalization_factor;
+    public long date;
+    public Data data;
 
-    public SqueethData() {
+    public static class Data {
+        private double underlying_price;
+        private double current_index;
+        private double current_mark;
+        private double index;
+        private double mark;
+        private double current_implied_funding_value;
+        private double daily_funding_value;
+        private double current_implied_volatility_value;
+        private double daily_implied_volatility_value;
+        private double normalization_factor;
+        private double delta;
+        private double gamma;
+        private double vega;
+        private double theta;
+        private long volume_osqth;
+        private long volume_usd;
+        private double liquidity;
+        private double token0Price;
+        private double volumeToken0;
+        private double volumeToken1;
+        private double volumeUSD;
+        private double feesUSD;
+        private double totalValueLockedToken0;
+        private double totalValueLockedToken1;
+        private double totalValueLockedETH;
+        private double totalValueLockedUSD;
+        private double txCount;
+        private double oSQTH_price;
+        private String date;
 
-    }
+        public String getDate() {
+            return date;
+        }
 
-    public SqueethData(
-            String _date,
-            long _volumeoSQTH,
-            long _volumeUSD,
-            double _underlyingPrice,
-            double _currentMark,
-            double _currentIndex,
-            double _index,
-            double _mark,
-            double _currentImpliedFundingValue,
-            double _dailyFundingValue,
-            double _currentImpliedVolatility,
-            double _dailyImpliedVolatility,
-            double _oSQTHPrice,
-            double _delta,
-            double _gamma,
-            double _vega,
-            double _theta,
-            double _normalization_factor
-    ) {
-        date = _date;
-        volume_osqth = _volumeoSQTH;
-        volume_usd = _volumeUSD;
-        underlying_price = _underlyingPrice;
-        current_mark = _currentMark;
-        current_index = _currentIndex;
-        index = _index;
-        mark = _mark;
-        current_implied_funding_value = _currentImpliedFundingValue;
-        daily_funding_value = _dailyFundingValue;
-        current_implied_volatility_value = _currentImpliedVolatility;
-        daily_implied_volatility_value = _dailyImpliedVolatility;
-        oSQTH_price = _oSQTHPrice;
-        delta = _delta;
-        gamma = _gamma;
-        vega = _vega;
-        theta = _theta;
-        normalization_factor = _normalization_factor;
-    }
+        public long getVolumeoSQTH() {
+            return volume_osqth;
+        }
 
-    public String getDate() {
-        return date;
-    }
+        public long getVolumeUSD() {
+            return volume_usd;
+        }
 
-    public long getVolumeoSQTH() {
-        return volume_osqth;
-    }
+        public double getUnderlyingPrice() {
+            return underlying_price;
+        }
 
-    public long getVolumeUSD() {
-        return volume_usd;
-    }
+        public double getCurrentIndex() {
+            return current_index;
+        }
 
-    public double getUnderlyingPrice() {
-        return underlying_price;
-    }
+        public double getCurrentMark() {
+            return current_mark;
+        }
 
-    public double getCurrentIndex() {
-        return current_index;
-    }
+        public double getIndex() {
+            return index;
+        }
 
-    public double getCurrentMark() {
-        return current_mark;
-    }
+        public double getMark() {
+            return mark;
+        }
 
-    public double getIndex() {
-        return index;
-    }
+        public double getCurrentImpliedFundingValue() {
+            return current_implied_funding_value;
+        }
 
-    public double getMark() {
-        return mark;
-    }
+        public double getDailyFundingValue() {
+            return daily_funding_value;
+        }
 
-    public double getCurrentImpliedFundingValue() {
-        return current_implied_funding_value;
-    }
+        public double getCurrentImpliedVolatility() {
+            return current_implied_volatility_value;
+        }
 
-    public double getDailyFundingValue() {
-        return daily_funding_value;
-    }
+        public double getDailyImpliedVolatility() {
+            return daily_implied_volatility_value;
+        }
 
-    public double getCurrentImpliedVolatility() {
-        return current_implied_volatility_value;
-    }
+        public double getoSQTHPrice() {
+            return oSQTH_price;
+        }
 
-    public double getDailyImpliedVolatility() {
-        return daily_implied_volatility_value;
-    }
+        public double getDelta() {
+            return delta;
+        }
 
-    public double getoSQTHPrice() {
-        return oSQTH_price;
-    }
+        public double getGamma() {
+            return gamma;
+        }
 
-    public double getDelta() {
-        return delta;
-    }
+        public double getVega() {
+            return vega;
+        }
 
-    public double getGamma() {
-        return gamma;
-    }
+        public double getTheta() {
+            return theta;
+        }
 
-    public double getVega() {
-        return vega;
-    }
+        public double getNormalizationFactor() {
+            return normalization_factor;
+        }
 
-    public double getTheta() {
-        return theta;
-    }
-
-    public double getNormalizationFactor() {
-        return normalization_factor;
-    }
-    
-    public Double[] getGreeks() {
-        return new Double[]{delta, gamma, vega, -theta, current_implied_volatility_value};
+        public Double[] getGreeks() {
+            return new Double[]{delta, gamma, vega, -theta, current_implied_volatility_value};
+        }
     }
 }
