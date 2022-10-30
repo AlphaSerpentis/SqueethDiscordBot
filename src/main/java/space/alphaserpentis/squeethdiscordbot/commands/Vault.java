@@ -264,7 +264,7 @@ public class Vault extends BotCommand<MessageEmbed> {
         BigInteger shortAmount;
         BigInteger priceOfEth;
 
-        BigInteger normFactor = new BigInteger(String.valueOf(new DecimalFormat("#").format(LaevitasHandler.latestSqueethData.getNormalizationFactor() * (long) Math.pow(10,18))));
+        BigInteger normFactor = new BigInteger(String.valueOf(new DecimalFormat("#").format(LaevitasHandler.latestSqueethData.data.getNormalizationFactor() * (long) Math.pow(10,18))));
 
         try {
             vaultsResponse = EthereumRPCHandler.ethCallAtLatestBlock(controller, callVaults);
@@ -326,9 +326,9 @@ public class Vault extends BotCommand<MessageEmbed> {
 
         VaultGreeks vaultGreeks = new VaultGreeks(
             priceOfEth.doubleValue() / Math.pow(10,18),
-                LaevitasHandler.latestSqueethData.getoSQTHPrice(),
+                LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
                 normFactor.doubleValue() / Math.pow(10,18),
-                LaevitasHandler.latestSqueethData.getCurrentImpliedVolatility()/100,
+                LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility()/100,
                 -(shortAmount.subtract(nftOsqthLocked).doubleValue() / Math.pow(10,18)),
                 collateral.add(nftEthLocked).doubleValue() / Math.pow(10,18)
         );

@@ -30,7 +30,7 @@ public class Greeks extends BotCommand<MessageEmbed> {
     @Override
     public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
-        Double[] greeks = LaevitasHandler.latestSqueethData.getGreeks();
+        Double[] greeks = LaevitasHandler.latestSqueethData.data.getGreeks();
 
         eb.setTitle("Squeethy Greeks");
         if(LaevitasHandler.isDataStale()) {
@@ -41,7 +41,7 @@ public class Greeks extends BotCommand<MessageEmbed> {
         eb.addField("ν Vega: " + greeks[2].toString(), "For every 100% IV changes, oSQTH changes by $" + greeks[2], false);
         eb.addField("Θ Theta: " + greeks[3].toString(), "For every day that goes by, oSQTH decays by $" + greeks[3], false);
         eb.addField("Current IV: " + greeks[4].toString() + "%" , "As IV increases, oSQTH will increase in value and vice versa", false);
-        eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.getDate() + " | API Data by Laevitas");
+        eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.data.getDate() + " | API Data by Laevitas");
         eb.setColor(new Color(14, 255, 212, 76));
 
         return new CommandResponse<>(eb.build(), onlyEphemeral);
