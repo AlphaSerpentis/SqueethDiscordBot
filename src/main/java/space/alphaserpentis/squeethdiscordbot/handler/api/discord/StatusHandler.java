@@ -26,7 +26,7 @@ public class StatusHandler {
      */
     public void runStatusRotation() {
         LaevitasHandler.timedPoller();
-        scheduledExecutor.scheduleAtFixedRate(this::updateStatus, 0, 15, TimeUnit.SECONDS);
+        scheduledExecutor.scheduleAtFixedRate(this::updateStatus, 5, 15, TimeUnit.SECONDS);
     }
 
     /**
@@ -37,6 +37,9 @@ public class StatusHandler {
 
         if(statusIndex > 2)
             statusIndex = 0;
+
+        if(LaevitasHandler.latestSqueethData.data == null)
+            return;
 
         switch(statusIndex++) {
             case 0 -> statusMessage = "oSQTH: $" + NumberFormat.getInstance().format(LaevitasHandler.latestSqueethData.data.getoSQTHPrice()) + statusMessage;
