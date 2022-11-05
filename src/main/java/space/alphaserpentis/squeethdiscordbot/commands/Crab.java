@@ -439,8 +439,10 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 //                        scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
 //                    }
 
-                    if(getLatestActiveAuctionId() == -1)
+                    if(getLatestActiveAuctionId() == -1) {
                         scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
+                        return;
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

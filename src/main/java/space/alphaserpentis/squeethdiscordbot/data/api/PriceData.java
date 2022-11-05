@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.api;
 
+import javax.annotation.Nonnull;
 import java.math.BigInteger;
 
 public class PriceData {
@@ -27,5 +28,9 @@ public class PriceData {
                 crabV2Eth.equals(BigInteger.ZERO) &&
                 normFactor.equals(BigInteger.ZERO)
         );
+    }
+
+    public static double convertToDouble(@Nonnull BigInteger value, int decimals) {
+        return value.doubleValue() / Math.pow(10,decimals);
     }
 }

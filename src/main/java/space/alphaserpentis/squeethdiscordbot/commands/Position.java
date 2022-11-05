@@ -18,6 +18,7 @@ import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 
 import javax.annotation.Nonnull;
@@ -206,6 +207,19 @@ public class Position extends ButtonCommand<MessageEmbed> {
             }
             double normFactorDiff = normFactorEnd/normFactorStart - 1;
             return normFactorDiff * size * -1;
+        }
+
+        public double calculateEstimatedBreakeven() {
+            double costBasisPerToken = costBasis.doubleValue() / currentAmtHeld.doubleValue();
+            double osqthPrice = currentValueInUsd.doubleValue() / currentAmtHeld.doubleValue();
+            double difference = costBasisPerToken - osqthPrice;
+            double breakevenOsqthPrice = osqthPrice + difference;
+            double impliedVol = LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility() / 100;
+            double normFactor = LaevitasHandler.latestSqueethData.data.getNormalizationFactor();
+            final double fundingPeriod = 0.04794520548;
+            final double scalingFactor = 10000;
+
+            return Math.sqrt((breakevenOsqthPrice * scalingFactor)/(normFactor*Math.exp(Math.pow(impliedVol,2) * fundingPeriod)));
         }
     }
 
@@ -475,12 +489,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 } else {
                     eb.setThumbnail("https://c.tenor.com/URrZkAPGQjAAAAAC/cat-squish-cat.gif");
                     eb.setColor(Color.GREEN);
-                    eb.addField("Long Position", "Holding " + positionHeld, false);
+                    eb.addField("Long Position", "Holding " + positionHeld + " oSQTH", false);
                     eb.addField("Price of oSQTH", "$" + priceInUsd, false);
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                     eb.addField("Estimated Funding Paid", "$" + nf.format(((LongPositions) posArray[0]).estimatedFunding), false);
+                    eb.addField("Estimated Breakeven", "$" + nf.format(((LongPositions) posArray[0]).calculateEstimatedBreakeven()), false);
                 }
             }
             case 1 -> { // crab v1

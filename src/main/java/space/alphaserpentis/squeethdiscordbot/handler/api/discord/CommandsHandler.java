@@ -4,6 +4,7 @@ package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -36,6 +37,7 @@ public class CommandsHandler extends ListenerAdapter {
             put("position", new Position());
             put("vault", new Vault());
             put("squiz", new Squiz());
+            put("paper", new PaperTrade());
         }};
     }
 
@@ -97,6 +99,15 @@ public class CommandsHandler extends ListenerAdapter {
             BotCommand<?> cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
 
             ((ButtonCommand<?>) cmd).runButtonInteraction(event);
+        });
+    }
+
+    @Override
+    public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
+        executor.submit(() -> {
+            BotCommand<?> cmd = mappingOfCommands.get(event.getModalId().substring(0, event.getModalId().indexOf("_")));
+
+            ((ModalCommand) cmd).runModalInteraction(event);
         });
     }
 }

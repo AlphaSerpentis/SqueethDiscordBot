@@ -1,6 +1,6 @@
 package space.alphaserpentis.squeethdiscordbot.data.server.papertrading;
 
-public class PaperTrade {
+public interface IPaperTrade {
     enum Action {
         BUY,
         SELL
@@ -12,9 +12,4 @@ public class PaperTrade {
         LONG_OSQTH,
         CRAB
     }
-
-    public long block;
-    public Action action;
-    public Asset asset;
-    public double amount;
 }

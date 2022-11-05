@@ -337,7 +337,7 @@ public abstract class BotCommand<T> {
     }
 
     @Nonnull
-    private static MessageEmbed handleError(@Nonnull Exception e) {
+    protected static MessageEmbed handleError(@Nonnull Exception e) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("Command Failed To Execute");
@@ -351,7 +351,9 @@ public abstract class BotCommand<T> {
         } else {
             eb.addField("Error Message", "Error message unable to be generated? Cause of error: " + e.getCause(), false);
         }
-        eb.addField("Error Stack 0", e.getStackTrace()[0].toString(), false);
+        for(int i = 0; i < e.getStackTrace().length; i++) {
+            eb.addField("Error Stack " + i, e.getStackTrace()[i].toString(), false);
+        }
         eb.setColor(Color.RED);
 
         return eb.build();

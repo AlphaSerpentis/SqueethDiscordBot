@@ -107,7 +107,8 @@ public class PositionsDataHandler {
 
         if(data == null) {
             data = new PriceData();
-        } else if(pricesToUpdate.length == 0) {
+        }
+        if(pricesToUpdate.length == 0) {
             throw new IllegalArgumentException("Requires a non-empty array of PriceData.Prices to update");
         }
 
