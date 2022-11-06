@@ -90,17 +90,6 @@ public class PaperTradeAccount {
         lastBlock = 0;
     }
 
-    public double calculatePnl() {
-        double pnl = 0;
-        HashMap<IPaperTrade.Asset, Double> openPositions = new HashMap<>();
-
-        for(FinalizedTrade trade: history) {
-
-        }
-
-        return pnl;
-    }
-
     public double portfolioValueInUsd() {
         double value = 0;
 

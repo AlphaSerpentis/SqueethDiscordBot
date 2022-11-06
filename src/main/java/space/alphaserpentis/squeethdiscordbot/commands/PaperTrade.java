@@ -33,7 +33,8 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     enum ButtonStates {
         SHOW_BUY_SELL,
         SHOW_ASSETS,
-        SHOW_CONFIRM_AND_CANCEL
+        SHOW_CONFIRM_AND_CANCEL,
+        SHOW_HISTORY
     }
 
     protected static class PaperTradeSession {
@@ -46,8 +47,8 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         }
     }
 
-    protected record SessionData<T>(ArrayList<T> data) {
-        public void addData(T newData) {
+    protected record SessionData<T>(@Nonnull ArrayList<T> data) {
+        public void addData(@Nonnull T newData) {
             data.add(newData);
         }
     }
@@ -72,6 +73,9 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     put("ETH", Button.primary("paper_eth", "ETH"));
                     put("LONG_OSQTH", Button.primary("paper_long_osqth", "oSQTH"));
                     put("CRAB", Button.primary("paper_crab", "Crab"));
+                    put("Previous_History", Button.primary("paper_previous_history", "Previous").asDisabled());
+                    put("Page_History", Button.secondary("paper_page_history", "1/?").asDisabled());
+                    put("Next_History", Button.primary("paper_next_history", "Next"));
                 }}
         );
     }
@@ -133,7 +137,6 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                 case "paper_buy" -> {
                     pending = event.deferEdit().complete();
                     buyButtonAction(event, eb);
-                    buttons.add(getButton("USDC"));
                     buttons.add(getButton("ETH"));
                     buttons.add(getButton("LONG_OSQTH"));
                     buttons.add(getButton("CRAB"));
@@ -144,7 +147,6 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                 case "paper_sell" -> {
                     pending = event.deferEdit().complete();
                     sellButtonAction(event, eb);
-                    buttons.add(getButton("USDC"));
                     buttons.add(getButton("ETH"));
                     buttons.add(getButton("LONG_OSQTH"));
                     buttons.add(getButton("CRAB"));
@@ -231,10 +233,18 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         } else if(buttonState == ButtonStates.SHOW_ASSETS) {
             return Arrays.asList(
                     new ItemComponent[]{
-                        getButton("USDC"),
+//                        getButton("USDC"),
                         getButton("ETH"),
                         getButton("LONG_OSQTH"),
                         getButton("CRAB")
+                    }
+            );
+        } else if(buttonState == ButtonStates.SHOW_HISTORY) {
+            return Arrays.asList(
+                    new ItemComponent[]{
+                        getButton("Previous_History"),
+                        getButton("Page_History"),
+                        getButton("Next_History")
                     }
             );
         }
@@ -327,6 +337,11 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     false
             );
             eb.addField(
+                    "PNL",
+                    "$" + instance.format(account.portfolioValueInUsd() - 10000),
+                    false
+            );
+            eb.addField(
                     "USDC Holdings",
                     "$" + instance.format(account.balanceInUsd(IPaperTrade.Asset.USDC)),
                     false
@@ -382,7 +397,13 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         eb.setDescription(
                 "Confirm you want to " + ((boolean) sessionData.data.get(0) ? "buy " : "sell ")
                         + sessionData.data.get(2) + " " + sessionData.data.get(1) + " for $"
-                        + (Double.parseDouble((String) sessionData.data.get(2)) * account.assetPriceInUsd(buttonLabelToAsset((String) sessionData.data.get(1)))) + "?"
+                        + NumberFormat.getInstance().format(
+                                Double.parseDouble(
+                                        (String) sessionData.data.get(2)) * account.assetPriceInUsd(
+                                                buttonLabelToAsset((String) sessionData.data.get(1)
+                                                )
+                                )
+                ) + "?"
         );
         eb.addField("Quantity", sessionData.data.get(2) + " " + sessionData.data.get(1), false);
 
