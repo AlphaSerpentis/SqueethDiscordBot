@@ -271,7 +271,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     }
                 }
 
-                TimeZone timeZone = TimeZone.getTimeZone("America/Los_Angeles");
+                TimeZone timeZone = TimeZone.getTimeZone("UTC");
                 Calendar calendar = Calendar.getInstance(timeZone);
                 TemporalAdjuster ta;
                 LocalDate today = LocalDate.now(timeZone.toZoneId());
@@ -284,43 +284,43 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     case Calendar.SATURDAY, Calendar.SUNDAY -> {
                         ta = TemporalAdjusters.next(DayOfWeek.MONDAY);
                         auctionDay = today.with(ta);
-                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                     }
                     case Calendar.MONDAY -> {
-                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = today.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
 
                         if(timeNow >= timeThen) {
                             ta = TemporalAdjusters.next(DayOfWeek.WEDNESDAY);
                             auctionDay = today.with(ta);
-                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                            timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                         }
                     }
                     case Calendar.TUESDAY -> {
                         ta = TemporalAdjusters.next(DayOfWeek.WEDNESDAY);
                         auctionDay = today.with(ta);
-                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                     }
                     case Calendar.WEDNESDAY -> {
-                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = today.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
 
                         if(timeNow >= timeThen) {
                             ta = TemporalAdjusters.next(DayOfWeek.FRIDAY);
                             auctionDay = today.with(ta);
-                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                            timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                         }
                     }
                     case Calendar.THURSDAY -> {
                         ta = TemporalAdjusters.next(DayOfWeek.FRIDAY);
                         auctionDay = today.with(ta);
-                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                     }
                     case Calendar.FRIDAY -> {
-                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = today.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
 
                         if(timeNow >= timeThen) {
                             ta = TemporalAdjusters.next(DayOfWeek.MONDAY);
                             auctionDay = today.with(ta);
-                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                            timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                         }
                     }
                 }
