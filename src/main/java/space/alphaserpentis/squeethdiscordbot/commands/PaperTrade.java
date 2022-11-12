@@ -17,16 +17,20 @@ import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.IPaperTrade;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.PaperTradeAccount;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.games.PaperTradingHandler;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalCommand {
 
@@ -69,7 +73,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     put("Cancel", Button.primary("paper_cancel", "Cancel"));
                     put("Buy", Button.primary("paper_buy", "Buy"));
                     put("Sell", Button.primary("paper_sell", "Sell"));
-                    put("USDC", Button.primary("paper_usdc", "USDC"));
+//                    put("USDC", Button.primary("paper_usdc", "USDC"));
                     put("ETH", Button.primary("paper_eth", "ETH"));
                     put("LONG_OSQTH", Button.primary("paper_long_osqth", "oSQTH"));
                     put("CRAB", Button.primary("paper_crab", "Crab"));
@@ -154,10 +158,20 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                         add(false);
                     }});
                 }
-                case "paper_usdc", "paper_eth", "paper_long_osqth", "paper_crab" -> {
+                case "paper_eth", "paper_long_osqth", "paper_crab" -> {
                     sessions.get(userId).sessionData.data.add(event.getButton().getLabel());
+                    NumberFormat instance = NumberFormat.getInstance();
                     TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessions.get(userId).sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
-                    Modal modal = Modal.create("paper_asset_modal", "How much?")
+                    Modal modal = Modal.create(
+                            "paper_asset_modal", "How much? (Maximum is " + instance.format(
+                                    calculateMaxAmountToBuyOrSell(
+                                            (boolean) sessions.get(userId).sessionData.data.get(0),
+                                            buttonLabelToAsset(event.getButton().getLabel()),
+                                            Objects.requireNonNull(
+                                                    PaperTradingHandler.getAccount(event.getGuild().getIdLong(), userId)
+                                            )
+                                    )) + ")"
+                            )
                             .addActionRows(ActionRow.of(amount))
                             .build();
 
@@ -391,20 +405,31 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     private static void afterTradeAmountInputPage(long serverId, long userId, @Nonnull SessionData<Object> sessionData, @Nonnull EmbedBuilder eb) {
         PaperTradeAccount account = PaperTradingHandler.getAccount(serverId, userId);
 
+
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
-        eb.setDescription(
-                "Confirm you want to " + ((boolean) sessionData.data.get(0) ? "buy " : "sell ")
-                        + sessionData.data.get(2) + " " + sessionData.data.get(1) + " for $"
-                        + NumberFormat.getInstance().format(
-                                Double.parseDouble(
-                                        (String) sessionData.data.get(2)) * account.assetPriceInUsd(
-                                                buttonLabelToAsset((String) sessionData.data.get(1)
-                                                )
-                                )
-                ) + "?"
-        );
+        try {
+            PriceData priceData = PositionsDataHandler.getPriceData(
+                    new PriceData.Prices[]{
+                            PaperTradeAccount.assetToPrices(
+                                    buttonLabelToAsset((String) sessionData.data.get(1))
+                            )
+                    });
+
+            eb.setDescription(
+                    "Confirm you want to " + ((boolean) sessionData.data.get(0) ? "buy " : "sell ")
+                            + sessionData.data.get(2) + " " + sessionData.data.get(1) + " for $"
+                            + NumberFormat.getInstance().format(
+                                    Double.parseDouble((String) sessionData.data.get(2)) * account.assetPriceInUsd(
+                                            buttonLabelToAsset(
+                                                    (String) sessionData.data.get(1)
+                                            ), priceData
+                                    ) + "?"
+            ));
+        } catch (ExecutionException | InterruptedException | IOException e) {
+            throw new RuntimeException(e);
+        }
         eb.addField("Quantity", sessionData.data.get(2) + " " + sessionData.data.get(1), false);
 
     }
@@ -432,6 +457,25 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                 return IPaperTrade.Asset.ETH;
             }
             default -> throw new UnsupportedOperationException("Invalid label");
+        }
+    }
+
+    private static double calculateMaxAmountToBuyOrSell(boolean isBuying, @Nonnull IPaperTrade.Asset asset, @Nonnull PaperTradeAccount account) {
+        if(isBuying) {
+            try {
+                PriceData priceData = PositionsDataHandler.getPriceData(
+                        new PriceData.Prices[]{
+                                PaperTradeAccount.assetToPrices(
+                                        asset
+                                )
+                        });
+
+                return account.balance.get(IPaperTrade.Asset.USDC)/PaperTradeAccount.assetPriceInUsd(asset, priceData);
+            } catch (ExecutionException | InterruptedException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return account.balance.get(asset);
         }
     }
 }

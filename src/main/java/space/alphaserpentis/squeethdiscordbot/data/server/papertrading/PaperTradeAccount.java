@@ -9,6 +9,7 @@ import space.alphaserpentis.squeethdiscordbot.handler.games.PaperTradingHandler;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
@@ -29,7 +30,25 @@ public class PaperTradeAccount {
     public EmbedBuilder trade(@Nonnull IPaperTrade.Action action, @Nonnull IPaperTrade.Asset asset, double amount, @Nonnull EmbedBuilder eb) {
         final HashMap<IPaperTrade.Asset, Double> originalBalance = balance;
         final ArrayList<FinalizedTrade> originalHistory = history;
-        double assetUsdValue = assetPriceInUsd(asset);
+        double assetUsdValue;
+        PriceData priceData;
+
+        try {
+            PriceData.Prices price = assetToPrices(asset);
+            lastBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
+            if(price != null)
+                priceData = PositionsDataHandler.getPriceData(
+                        lastBlock,
+                        new PriceData.Prices[]{price, PriceData.Prices.ETHUSD}
+                );
+            else
+                throw new UnsupportedOperationException("assetToPrices returned null");
+        } catch (ExecutionException | InterruptedException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        assetUsdValue = assetPriceInUsd(asset, priceData);
+        
         // Check if they have the sufficient amount
         if (amount <= 0) {
             return eb.setDescription("Amount to buy/sell cannot be zero or less");
@@ -73,10 +92,15 @@ public class PaperTradeAccount {
             throw new RuntimeException(e);
         }
 
+        NumberFormat instance = NumberFormat.getInstance();
+
         return eb
-                .addField(action == IPaperTrade.Action.BUY ? "Bought" : "Sold", amount + " " + asset + " for $" + assetUsdValue * amount + "",false)
-                .addField(asset + " Balance", balance.get(asset) + " " + asset, false)
-                .addField("USD Balance", "$" + balance.get(IPaperTrade.Asset.USDC), false);
+                .addField(
+                        action == IPaperTrade.Action.BUY ? "Bought" : "Sold",
+                        amount + " " + asset + " for $" + instance.format(assetUsdValue * amount),false
+                )
+                .addField(asset + " Balance", instance.format(balance.get(asset)) + " " + asset, false)
+                .addField("USD Balance", "$" + instance.format(balance.get(IPaperTrade.Asset.USDC)), false);
     }
 
     public void resetAccount() {
@@ -100,19 +124,7 @@ public class PaperTradeAccount {
         return value;
     }
 
-    public double assetPriceInUsd(@Nonnull IPaperTrade.Asset asset) {
-        PriceData priceData = null;
-        try {
-            PriceData.Prices price = assetToPrices(asset);
-            lastBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
-            if(price != null)
-                priceData = PositionsDataHandler.getPriceData(
-                        lastBlock,
-                        new PriceData.Prices[]{price, PriceData.Prices.ETHUSD}
-                );
-        } catch (ExecutionException | InterruptedException | IOException e) {
-            throw new RuntimeException(e);
-        }
+    public static double assetPriceInUsd(@Nonnull IPaperTrade.Asset asset, @Nonnull PriceData priceData) {
         switch(asset) {
             case ETH -> {
                 return PriceData.convertToDouble(priceData.ethUsdc, 18);
@@ -129,7 +141,7 @@ public class PaperTradeAccount {
         }
         return -1;
     }
-
+    
     public double balanceInUsd(@Nonnull IPaperTrade.Asset asset) {
         PriceData priceData = null;
         try {
