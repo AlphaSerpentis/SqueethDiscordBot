@@ -405,7 +405,6 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     private static void afterTradeAmountInputPage(long serverId, long userId, @Nonnull SessionData<Object> sessionData, @Nonnull EmbedBuilder eb) {
         PaperTradeAccount account = PaperTradingHandler.getAccount(serverId, userId);
 
-
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
@@ -425,9 +424,11 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                                             buttonLabelToAsset(
                                                     (String) sessionData.data.get(1)
                                             ), priceData
-                                    ) + "?"
-            ));
-        } catch (ExecutionException | InterruptedException | IOException e) {
+                                    )
+                    ) + "?"
+            );
+        } catch (ExecutionException | InterruptedException | IOException | IllegalArgumentException e) {
+            System.out.println(e);
             throw new RuntimeException(e);
         }
         eb.addField("Quantity", sessionData.data.get(2) + " " + sessionData.data.get(1), false);
