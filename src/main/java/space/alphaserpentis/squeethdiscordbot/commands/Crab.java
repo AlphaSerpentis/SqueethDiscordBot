@@ -34,6 +34,8 @@ import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.Auction;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionByIdResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
@@ -1061,6 +1063,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
         try {
             double timestamp = EthereumRPCHandler.web3.ethGetBlockByNumber(new DefaultBlockParameterNumber(crab.lastHedgeBlock), true).send().getBlock().getTimestamp().doubleValue();
+            double ethPriceAtRebalance = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(Addresses.Uniswap.oracle, CommonFunctions.getTwap_ethUsd, crab.lastHedgeBlock).get(0).getValue()).doubleValue() / Math.pow(10,18);
             eb.addField("Last Rebalance", "<t:" + df.format(timestamp) + ">", false);
             if(crab.rebalanceSoldOsqth) {
                 eb.addField("Sold", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
@@ -1072,6 +1075,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             if(crab instanceof v2) {
                 eb.addField("Upcoming Auction", "<t:" + v2.FeedingTime.getAuctionTime() + ">", false);
             }
+            eb.addField("ETH Price at Rebalance", "$" + instance.format(ethPriceAtRebalance), false);
+            eb.addField("Price Hedge Threshold", "$" + instance.format(ethPriceAtRebalance * 0.8) + "/" + instance.format(ethPriceAtRebalance * 1.2), false);
             eb.addField("Δ Delta", "$" + instance.format(crab.preVaultGreeksAtHedge.delta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.delta), true);
             eb.addField("Γ Gamma", "$" + instance.format(crab.preVaultGreeksAtHedge.gamma) + " → $" + instance.format(crab.postVaultGreeksAtHedge.gamma), true);
             eb.addBlankField(true);
@@ -1082,6 +1087,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             eb.setColor(Color.RED);
         } catch (IOException e) {
             eb.setDescription("An unexpected error has occurred. Please try again later.");
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
