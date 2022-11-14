@@ -211,7 +211,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
 
         switch(session.originalState) {
             case SHOW_BUY_SELL -> {
-                afterTradeAmountInputPage(event.getGuild().getIdLong(), userId, session.sessionData, eb);
+                afterTradeAmountInputPage(session.sessionData, eb);
                 buttons.add(getButton("Confirm_Position"));
                 buttons.add(getButton("Cancel"));
             }
@@ -374,8 +374,8 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
             );
             eb.addField(
                     "oSQTH Holdings",
-                    instance.format(account.balance.getOrDefault(IPaperTrade.Asset.LONG_OSQTH, 0d))
-                            + " oSQTH ($" + instance.format(account.balanceInUsd(IPaperTrade.Asset.LONG_OSQTH)) + ")",
+                    instance.format(account.balance.getOrDefault(IPaperTrade.Asset.OSQTH, 0d))
+                            + " oSQTH ($" + instance.format(account.balanceInUsd(IPaperTrade.Asset.OSQTH)) + ")",
                     false
             );
         }
@@ -402,9 +402,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         eb.setDescription("Choose the asset you want to " + (isBuying ? "buy": "sell"));
     }
 
-    private static void afterTradeAmountInputPage(long serverId, long userId, @Nonnull SessionData<Object> sessionData, @Nonnull EmbedBuilder eb) {
-        PaperTradeAccount account = PaperTradingHandler.getAccount(serverId, userId);
-
+    private static void afterTradeAmountInputPage(@Nonnull SessionData<Object> sessionData, @Nonnull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
@@ -413,14 +411,15 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     new PriceData.Prices[]{
                             PaperTradeAccount.assetToPrices(
                                     buttonLabelToAsset((String) sessionData.data.get(1))
-                            )
+                            ),
+                            PriceData.Prices.ETHUSD
                     });
 
             eb.setDescription(
                     "Confirm you want to " + ((boolean) sessionData.data.get(0) ? "buy " : "sell ")
                             + sessionData.data.get(2) + " " + sessionData.data.get(1) + " for $"
                             + NumberFormat.getInstance().format(
-                                    Double.parseDouble((String) sessionData.data.get(2)) * account.assetPriceInUsd(
+                                    Double.parseDouble((String) sessionData.data.get(2)) * PaperTradeAccount.assetPriceInUsd(
                                             buttonLabelToAsset(
                                                     (String) sessionData.data.get(1)
                                             ), priceData
@@ -428,7 +427,6 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     ) + "?"
             );
         } catch (ExecutionException | InterruptedException | IOException | IllegalArgumentException e) {
-            System.out.println(e);
             throw new RuntimeException(e);
         }
         eb.addField("Quantity", sessionData.data.get(2) + " " + sessionData.data.get(1), false);
@@ -452,7 +450,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                 return IPaperTrade.Asset.CRAB;
             }
             case "oSQTH" -> {
-                return IPaperTrade.Asset.LONG_OSQTH;
+                return IPaperTrade.Asset.OSQTH;
             }
             case "ETH" -> {
                 return IPaperTrade.Asset.ETH;
@@ -468,7 +466,8 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                         new PriceData.Prices[]{
                                 PaperTradeAccount.assetToPrices(
                                         asset
-                                )
+                                ),
+                                PriceData.Prices.ETHUSD
                         });
 
                 return account.balance.get(IPaperTrade.Asset.USDC)/PaperTradeAccount.assetPriceInUsd(asset, priceData);

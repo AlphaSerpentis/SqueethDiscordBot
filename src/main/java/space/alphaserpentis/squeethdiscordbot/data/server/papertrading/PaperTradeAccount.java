@@ -107,7 +107,7 @@ public class PaperTradeAccount {
         balance = new HashMap<>() {{
             put(IPaperTrade.Asset.USDC, 10000.00);
             put(IPaperTrade.Asset.CRAB, 0.0);
-            put(IPaperTrade.Asset.LONG_OSQTH, 0.0);
+            put(IPaperTrade.Asset.OSQTH, 0.0);
             put(IPaperTrade.Asset.ETH, 0.0);
         }};
         history.clear();
@@ -135,7 +135,7 @@ public class PaperTradeAccount {
             case USDC -> {
                 return 1;
             }
-            case LONG_OSQTH -> {
+            case OSQTH -> {
                 return PriceData.convertToDouble(priceData.osqthEth, 18) * PriceData.convertToDouble(priceData.ethUsdc, 18);
             }
         }
@@ -164,7 +164,7 @@ public class PaperTradeAccount {
             case USDC -> {
                 return balance.get(asset);
             }
-            case LONG_OSQTH -> {
+            case OSQTH -> {
                 return balance.get(asset) * PriceData.convertToDouble(priceData.osqthEth, 18) * PriceData.convertToDouble(priceData.ethUsdc, 18);
             }
         }
@@ -180,7 +180,7 @@ public class PaperTradeAccount {
             case CRAB -> {
                 return PriceData.Prices.CRABV2ETH;
             }
-            case LONG_OSQTH -> {
+            case OSQTH -> {
                 return PriceData.Prices.OSQTHETH;
             }
         }

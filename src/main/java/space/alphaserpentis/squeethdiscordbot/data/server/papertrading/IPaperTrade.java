@@ -9,7 +9,7 @@ public interface IPaperTrade {
     enum Asset {
         ETH,
         USDC,
-        LONG_OSQTH,
+        OSQTH,
         CRAB
     }
 }
