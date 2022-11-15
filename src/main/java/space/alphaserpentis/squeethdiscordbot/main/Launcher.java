@@ -33,6 +33,7 @@ public class Launcher {
      * The JDA instance being utilized
      */
     public static JDA api;
+    public static boolean isReady = false;
 
     public Launcher(String[] args) throws LoginException, InterruptedException, IOException {
         Gson gson = new Gson();
@@ -86,6 +87,8 @@ public class Launcher {
         SquizHandler.pastebinApiKey = settings.pastebinApiKey;
         // Initialize PaperTradingHandler
         PaperTradingHandler.init(Path.of(settings.paperTradingLeaderboard));
+
+        isReady = true;
     }
 
     /**

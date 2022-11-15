@@ -1084,6 +1084,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             eb.addField("Θ Theta", "$" + instance.format(crab.preVaultGreeksAtHedge.theta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.theta), true);
             eb.addBlankField(true);
             eb.addField("Greeks Notice", "Greeks shown here go from pre-rebalance → post-rebalance", false);
+            eb.addField("Price Hedge Notice", "Price hedges will only be initiated if the price of Ethereum breaches the threshold and stays at or below for a set amount of time.", false);
             eb.setColor(Color.RED);
         } catch (IOException e) {
             eb.setDescription("An unexpected error has occurred. Please try again later.");

@@ -159,13 +159,18 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     }});
                 }
                 case "paper_eth", "paper_long_osqth", "paper_crab" -> {
-                    sessions.get(userId).sessionData.data.add(event.getButton().getLabel());
+                    SessionData<Object> sessionData = sessions.get(userId).sessionData;
+
+                    if(sessionData.data.size() < 2)
+                        sessionData.data.add(event.getButton().getLabel());
+                    else
+                        sessionData.data.set(1, event.getButton().getLabel());
                     NumberFormat instance = NumberFormat.getInstance();
-                    TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessions.get(userId).sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
+                    TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
                     Modal modal = Modal.create(
                             "paper_asset_modal", "How much? (Maximum is " + instance.format(
                                     calculateMaxAmountToBuyOrSell(
-                                            (boolean) sessions.get(userId).sessionData.data.get(0),
+                                            (boolean) sessionData.data.get(0),
                                             buttonLabelToAsset(event.getButton().getLabel()),
                                             Objects.requireNonNull(
                                                     PaperTradingHandler.getAccount(event.getGuild().getIdLong(), userId)
@@ -203,24 +208,30 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     public void runModalInteraction(@Nonnull ModalInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         InteractionHook pending = event.deferEdit().complete();
-        Collection<ItemComponent> buttons = new ArrayList<>();
         long userId = event.getUser().getIdLong();
-        PaperTradeSession session = sessions.get(userId);
 
-        session.sessionData.addData(event.getValues().get(0).getAsString());
+        try {
+            Collection<ItemComponent> buttons = new ArrayList<>();
+            PaperTradeSession session = sessions.get(userId);
 
-        switch(session.originalState) {
-            case SHOW_BUY_SELL -> {
-                afterTradeAmountInputPage(session.sessionData, eb);
-                buttons.add(getButton("Confirm_Position"));
-                buttons.add(getButton("Cancel"));
+            session.sessionData.addData(event.getValues().get(0).getAsString());
+
+            switch(session.originalState) {
+                case SHOW_BUY_SELL -> {
+                    afterTradeAmountInputPage(session.sessionData, eb);
+                    buttons.add(getButton("Confirm_Position"));
+                    buttons.add(getButton("Cancel"));
+                }
             }
-        }
 
-        if(buttons.isEmpty())
-            pending.editOriginalComponents().setEmbeds(eb.build()).complete();
-        else
-            pending.editOriginalComponents().setActionRow(buttons).setEmbeds(eb.build()).complete();
+            if(buttons.isEmpty())
+                pending.editOriginalComponents().setEmbeds(eb.build()).complete();
+            else
+                pending.editOriginalComponents().setActionRow(buttons).setEmbeds(eb.build()).complete();
+        } catch (Exception e) {
+            pending.editOriginalComponents().setEmbeds(BotCommand.handleError(e)).complete();
+            sessions.remove(userId);
+        }
     }
 
     @Nonnull
@@ -340,10 +351,18 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         if(account == null) {
             noAccountFoundResponse(eb);
         } else {
+            double pnl = account.portfolioValueInUsd() - 10000;
+
             eb.setTitle(defaultTitle);
             eb.setFooter(defaultDisclaimer);
             eb.setColor(Color.CYAN);
-            eb.setThumbnail("https://media.tenor.com/b7jgsT3ctlwAAAAC/when-the-money-fast-money.gif");
+            if(pnl == 0) {
+                eb.setThumbnail("https://media.tenor.com/WeKxpDGmElMAAAAd/luluwpp.gif");
+            } else if(pnl > 0) {
+                eb.setThumbnail("https://media.tenor.com/b7jgsT3ctlwAAAAC/when-the-money-fast-money.gif");
+            } else {
+                eb.setThumbnail("https://media.tenor.com/ShzdJcrguswAAAAC/burn-elmo.gif");
+            }
             eb.setDescription("View your balances and PNL");
             eb.addField(
                     "Portfolio Value",
@@ -352,7 +371,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
             );
             eb.addField(
                     "PNL",
-                    "$" + instance.format(account.portfolioValueInUsd() - 10000),
+                    "$" + instance.format(pnl),
                     false
             );
             eb.addField(
