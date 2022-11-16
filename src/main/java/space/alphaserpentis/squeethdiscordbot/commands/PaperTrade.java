@@ -3,6 +3,7 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -12,6 +13,7 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.ComponentInteraction;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -43,6 +45,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
 
     protected static class PaperTradeSession {
         final ButtonStates originalState;
+        long messageId;
         ButtonStates buttonState;
         SessionData<Object> sessionData;
 
@@ -92,6 +95,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     @Override
     public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
+        sessions.remove(event.getUser().getIdLong());
 
         switch(event.getSubcommandName()) {
             case "about" -> aboutPage(eb);
@@ -127,6 +131,14 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         InteractionHook pending = null;
         Collection<ItemComponent> buttons = new ArrayList<>();
         long userId = event.getUser().getIdLong();
+        PaperTradeSession session = sessions.get(userId);
+
+        if(session == null) {
+            invalidSessionFoundResponse(eb);
+            event.deferEdit().complete().editOriginalComponents().setEmbeds(eb.build()).complete();
+            return;
+        }
+
         try {
             switch(event.getButton().getId()) {
                 case "paper_confirm_open_account" -> {
@@ -144,7 +156,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     buttons.add(getButton("ETH"));
                     buttons.add(getButton("LONG_OSQTH"));
                     buttons.add(getButton("CRAB"));
-                    sessions.get(userId).sessionData = new SessionData<>(new ArrayList<>(){{
+                    session.sessionData = new SessionData<>(new ArrayList<>(){{
                         add(true);
                     }});
                 }
@@ -154,33 +166,18 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     buttons.add(getButton("ETH"));
                     buttons.add(getButton("LONG_OSQTH"));
                     buttons.add(getButton("CRAB"));
-                    sessions.get(userId).sessionData = new SessionData<>(new ArrayList<>(){{
+                    session.sessionData = new SessionData<>(new ArrayList<>(){{
                         add(false);
                     }});
                 }
                 case "paper_eth", "paper_long_osqth", "paper_crab" -> {
-                    SessionData<Object> sessionData = sessions.get(userId).sessionData;
+                    SessionData<Object> sessionData = session.sessionData;
 
                     if(sessionData.data.size() < 2)
                         sessionData.data.add(event.getButton().getLabel());
                     else
                         sessionData.data.set(1, event.getButton().getLabel());
-                    NumberFormat instance = NumberFormat.getInstance();
-                    TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
-                    Modal modal = Modal.create(
-                            "paper_asset_modal", "How much? (Maximum is " + instance.format(
-                                    calculateMaxAmountToBuyOrSell(
-                                            (boolean) sessionData.data.get(0),
-                                            buttonLabelToAsset(event.getButton().getLabel()),
-                                            Objects.requireNonNull(
-                                                    PaperTradingHandler.getAccount(event.getGuild().getIdLong(), userId)
-                                            )
-                                    )) + ")"
-                            )
-                            .addActionRows(ActionRow.of(amount))
-                            .build();
-
-                    event.replyModal(modal).complete();
+                    promptModalForAmount(sessionData, event.getInteraction(), event.getGuild().getIdLong(), userId);
                     return;
                 }
                 case "paper_confirm_position" -> {
@@ -218,9 +215,14 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
 
             switch(session.originalState) {
                 case SHOW_BUY_SELL -> {
-                    afterTradeAmountInputPage(session.sessionData, eb);
-                    buttons.add(getButton("Confirm_Position"));
-                    buttons.add(getButton("Cancel"));
+                    try {
+                        afterTradeAmountInputPage(session.sessionData, eb);
+                        buttons.add(getButton("Confirm_Position"));
+                        buttons.add(getButton("Cancel"));
+                    } catch(RuntimeException ignored) {
+                        invalidInputResponse(eb);
+                        sessions.remove(userId);
+                    }
                 }
             }
 
@@ -386,15 +388,15 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     false
             );
             eb.addField(
-                    "Crab Holdings",
-                    instance.format(account.balance.getOrDefault(IPaperTrade.Asset.CRAB, 0d))
-                            + " Crab ($" + instance.format(account.balanceInUsd(IPaperTrade.Asset.CRAB)) + ")",
-                    false
-            );
-            eb.addField(
                     "oSQTH Holdings",
                     instance.format(account.balance.getOrDefault(IPaperTrade.Asset.OSQTH, 0d))
                             + " oSQTH ($" + instance.format(account.balanceInUsd(IPaperTrade.Asset.OSQTH)) + ")",
+                    false
+            );
+            eb.addField(
+                    "Crab Holdings",
+                    instance.format(account.balance.getOrDefault(IPaperTrade.Asset.CRAB, 0d))
+                            + " Crab ($" + instance.format(account.balanceInUsd(IPaperTrade.Asset.CRAB)) + ")",
                     false
             );
         }
@@ -459,7 +461,40 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         eb.setDescription("You haven't registered an account yet! Run `/paper account open` to open a new account!");
     }
 
+    private static void invalidSessionFoundResponse(@Nonnull EmbedBuilder eb) {
+        eb.setTitle(defaultTitle);
+        eb.setFooter(defaultDisclaimer);
+        eb.setColor(Color.RED);
+        eb.setDescription("Invalid session. Did you run a new command?");
+    }
+
+    private static void invalidInputResponse(@Nonnull EmbedBuilder eb) {
+        eb.setTitle(defaultTitle);
+        eb.setFooter(defaultDisclaimer);
+        eb.setColor(Color.RED);
+        eb.setDescription("Input must be a numerical value!");
+    }
+
     // Misc
+    private static void promptModalForAmount(@Nonnull SessionData<Object> sessionData, @Nonnull ComponentInteraction interaction, long serverId, long userId) {
+        NumberFormat instance = NumberFormat.getInstance();
+        TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
+        Modal modal = Modal.create(
+                        "paper_asset_modal", "How much? (Maximum is " + instance.format(
+                                calculateMaxAmountToBuyOrSell(
+                                        (boolean) sessionData.data.get(0),
+                                        buttonLabelToAsset((String) sessionData.data.get(1)),
+                                        Objects.requireNonNull(
+                                                PaperTradingHandler.getAccount(serverId, userId)
+                                        )
+                                )) + ")"
+                )
+                .addActionRows(ActionRow.of(amount))
+                .build();
+
+        interaction.replyModal(modal).complete();
+    }
+
     private static IPaperTrade.Asset buttonLabelToAsset(@Nonnull String label) {
         switch(label) {
             case "USDC" -> {

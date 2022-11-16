@@ -37,7 +37,7 @@ public class CommandsHandler extends ListenerAdapter {
             put("position", new Position());
             put("vault", new Vault());
             put("squiz", new Squiz());
-            put("paper", new PaperTrade());
+//            put("paper", new PaperTrade());
         }};
     }
 
