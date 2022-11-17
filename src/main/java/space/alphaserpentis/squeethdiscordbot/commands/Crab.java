@@ -1067,11 +1067,12 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             eb.addField("Last Rebalance", "<t:" + df.format(timestamp) + ">", false);
             if(crab.rebalanceSoldOsqth) {
                 eb.addField("Sold", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
-                eb.addField("Received", instance.format(crab.rebalancedEth) + " ETH", false);
+                eb.addField("Received", instance.format(crab.rebalancedEth) + " Ξ", false);
             } else {
                 eb.addField("Bought", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
-                eb.addField("Paid", instance.format(crab.rebalancedEth) + " ETH", false);
+                eb.addField("Paid", instance.format(crab.rebalancedEth) + " Ξ", false);
             }
+            eb.addField("Clearing Price", instance.format(crab.rebalancedEth/crab.rebalancedOsqth) + " Ξ", false);
             if(crab instanceof v2) {
                 eb.addField("Upcoming Auction", "<t:" + v2.FeedingTime.getAuctionTime() + ">", false);
             }
@@ -1084,7 +1085,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             eb.addField("Θ Theta", "$" + instance.format(crab.preVaultGreeksAtHedge.theta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.theta), true);
             eb.addBlankField(true);
             eb.addField("Greeks Notice", "Greeks shown here go from pre-rebalance → post-rebalance", false);
-            eb.addField("Price Hedge Notice", "Price hedges will only be initiated if the price of Ethereum breaches the threshold and stays at or below for a set amount of time.", false);
+            eb.addField("Price Hedge Notice", "Price hedges will only be initiated if the price of Ethereum breaches the threshold and stays at or past it for a set amount of time.", false);
             eb.setColor(Color.RED);
         } catch (IOException e) {
             eb.setDescription("An unexpected error has occurred. Please try again later.");
