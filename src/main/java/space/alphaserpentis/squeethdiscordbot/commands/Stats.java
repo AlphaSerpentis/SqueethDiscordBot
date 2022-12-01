@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -11,7 +12,6 @@ import space.alphaserpentis.squeethdiscordbot.data.api.SqueethData;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 
-import javax.annotation.Nonnull;
 import java.awt.*;
 import java.text.NumberFormat;
 
@@ -27,9 +27,9 @@ public class Stats extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         SqueethData.Data data = LaevitasHandler.latestSqueethData.data;
@@ -56,7 +56,7 @@ public class Stats extends BotCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();

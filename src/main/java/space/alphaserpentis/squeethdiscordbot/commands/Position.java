@@ -21,7 +21,7 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHa
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
 import java.awt.*;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -55,14 +55,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public BigInteger currentValueInEth;
         public BigInteger currentValueInUsd;
 
-        public AbstractPositions(@Nonnull String userAddress) {
+        public AbstractPositions(@NonNull String userAddress) {
             this.userAddress = userAddress;
         }
 
         /**
          * Obtains the transfers of the given token for userAddress
          */
-        public void getAndSetTransfers(@Nonnull String tokenAddress) {
+        public void getAndSetTransfers(@NonNull String tokenAddress) {
             // Check caches to see if we have the data
             if(PositionsDataHandler.cachedTransfers.containsKey(userAddress)) { // cache does contain address
                 if(PositionsDataHandler.cachedTransfers.get(userAddress).stream().noneMatch(t -> t.token.equalsIgnoreCase(tokenAddress))) { // cache doesn't have the specific token we need
@@ -120,7 +120,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public abstract void getAndSetPrices();
         public abstract void calculateCostBasis();
         public abstract void calculateCurrentValue();
-        public boolean isValueDust(@Nonnull BigInteger value) {
+        public boolean isValueDust(@NonNull BigInteger value) {
             return value.compareTo(BigInteger.TEN.pow(12)) < 0;
         }
     }
@@ -128,7 +128,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     public static class LongPositions extends AbstractPositions {
         public double estimatedFunding = 0;
 
-        public LongPositions(@Nonnull String userAddress) {
+        public LongPositions(@NonNull String userAddress) {
             super(userAddress);
         }
 
@@ -227,7 +227,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         private final String crab;
         private final boolean isV2;
 
-        public CrabPositions(@Nonnull String userAddress, @Nonnull String crabAddress, boolean isV2) {
+        public CrabPositions(@NonNull String userAddress, @NonNull String crabAddress, boolean isV2) {
             super(userAddress);
             crab = crabAddress;
             this.isV2 = isV2;
@@ -351,9 +351,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
         buttonHashMap.put("Next", Button.primary("position_next", "Next"));
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
@@ -412,7 +412,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.STRING, "address", "Your Ethereum address", true)
                 .complete();
@@ -421,7 +421,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@NonNull ButtonInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<ItemComponent> buttons = new ArrayList<>();
         AbstractPositions[] posArray = cachedPositions.get(event.getUser().getIdLong());
@@ -458,8 +458,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    @Nonnull
-    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
+    @NonNull
+    public Collection<ItemComponent> addButtons(@NonNull GenericCommandInteractionEvent event) {
         if(cachedPositions.get(event.getUser().getIdLong()) == null || isUserRatelimited(event.getUser().getIdLong())) {
             return Collections.emptyList();
         }
@@ -467,7 +467,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         return Arrays.asList(new ItemComponent[]{getButton("Previous"), getButton("Page"), getButton("Next")});
     }
 
-    private void displayPositionPage(@Nonnull EmbedBuilder eb, int page, @Nonnull AbstractPositions[] posArray) {
+    private void displayPositionPage(@NonNull EmbedBuilder eb, int page, @NonNull AbstractPositions[] posArray) {
         DecimalFormat df = new DecimalFormat("#");
         NumberFormat nf = NumberFormat.getInstance();
 

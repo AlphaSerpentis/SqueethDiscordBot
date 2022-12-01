@@ -1,9 +1,8 @@
 package space.alphaserpentis.squeethdiscordbot.data.bot;
 
+import io.reactivex.annotations.Nullable;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-
-import javax.annotation.Nullable;
 
 public record CommandResponse<T>(T messageResponse, Boolean messageIsEphemeral) {
     public CommandResponse(

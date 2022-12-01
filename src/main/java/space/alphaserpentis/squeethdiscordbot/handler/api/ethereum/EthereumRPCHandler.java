@@ -3,6 +3,8 @@
 package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum;
 
 import com.google.gson.Gson;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.datatypes.Function;
@@ -29,16 +31,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 public class EthereumRPCHandler {
 
     public static Web3j web3;
     public static URL url;
 
     @SuppressWarnings("rawtypes")
-    public static List<Type> ethCallAtSpecificBlock(@Nonnull String address, @Nonnull Function function, @Nonnull Long block) throws ExecutionException, InterruptedException {
+    public static List<Type> ethCallAtSpecificBlock(@NonNull String address, @NonNull Function function, @NonNull Long block) throws ExecutionException, InterruptedException {
         return FunctionReturnDecoder.decode(
                 web3.ethCall(Transaction.createEthCallTransaction(
                         Addresses.zeroAddress,
@@ -50,7 +49,7 @@ public class EthereumRPCHandler {
     }
 
     @SuppressWarnings("rawtypes")
-    public static List<Type> ethCallAtLatestBlock(@Nonnull String address, @Nonnull Function function) throws ExecutionException, InterruptedException {
+    public static List<Type> ethCallAtLatestBlock(@NonNull String address, @NonNull Function function) throws ExecutionException, InterruptedException {
         return FunctionReturnDecoder.decode(
                 web3.ethCall(Transaction.createEthCallTransaction(
                         Addresses.zeroAddress,
@@ -61,7 +60,7 @@ public class EthereumRPCHandler {
         );
     }
 
-    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(@Nonnull String address, @Nonnull String token, long startingBlock, long endingBlock) {
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(@NonNull String address, @NonNull String token, long startingBlock, long endingBlock) {
         String[] responses = new String[2];
         ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
 
@@ -103,7 +102,7 @@ public class EthereumRPCHandler {
         return listOfTransfers;
     }
 
-    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(@Nonnull String address, @Nonnull String token) {
+    public static ArrayList<SimpleTokenTransferResponse> getAssetTransfersOfUser(@NonNull String address, @NonNull String token) {
         String[] responses = new String[2];
         ArrayList<SimpleTokenTransferResponse> listOfTransfers = new ArrayList<>();
 
@@ -145,7 +144,7 @@ public class EthereumRPCHandler {
         return listOfTransfers;
     }
 
-    public static String alchemy_getAssetTransfers(@Nonnull String fromAddress, @Nonnull String toAddress, @Nonnull String token, @Nullable String pageKey, long startingBlock, long endingBlock) throws IOException {
+    public static String alchemy_getAssetTransfers(@NonNull String fromAddress, @NonNull String toAddress, @NonNull String token, @Nullable String pageKey, long startingBlock, long endingBlock) throws IOException {
         StringBuilder response = null;
         AlchemyRequest req = new AlchemyRequest();
         Gson gson = new Gson();
@@ -212,8 +211,8 @@ public class EthereumRPCHandler {
         }
     }
 
-    @Nonnull
-    public static String getENSName(@Nonnull String address) {
+    @NonNull
+    public static String getENSName(@NonNull String address) {
         EnsResolver resolver = new EnsResolver(web3);
 
         try {
@@ -223,7 +222,7 @@ public class EthereumRPCHandler {
         }
     }
 
-    public static String getResolvedAddress(@Nonnull String ens) throws Exception {
+    public static String getResolvedAddress(@NonNull String ens) throws Exception {
         EnsResolver resolver = new EnsResolver(web3);
 
         try {

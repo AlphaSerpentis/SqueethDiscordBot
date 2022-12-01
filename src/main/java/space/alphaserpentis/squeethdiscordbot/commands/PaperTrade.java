@@ -3,7 +3,6 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -15,10 +14,10 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ComponentInteraction;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
-import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.IPaperTrade;
@@ -26,7 +25,7 @@ import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.PaperTrad
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.games.PaperTradingHandler;
 
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
 import java.awt.*;
 import java.io.IOException;
 import java.text.NumberFormat;
@@ -54,8 +53,8 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         }
     }
 
-    protected record SessionData<T>(@Nonnull ArrayList<T> data) {
-        public void addData(@Nonnull T newData) {
+    protected record SessionData<T>(@NonNull ArrayList<T> data) {
+        public void addData(@NonNull T newData) {
             data.add(newData);
         }
     }
@@ -91,9 +90,9 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     private static final String defaultDisclaimer = "Trades made are NOT real and have no real-life value whether physically or digitally.";
     private static final HashMap<Long, PaperTradeSession> sessions = new HashMap<>();
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         sessions.remove(event.getUser().getIdLong());
 
@@ -108,7 +107,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         SubcommandData about = new SubcommandData("about", "What is Paper Trading?");
         SubcommandData trade = new SubcommandData("trade", "Trade your positions");
         SubcommandGroupData account = new SubcommandGroupData("account", "Account-related commands")
@@ -126,7 +125,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     }
 
     @Override
-    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@NonNull ButtonInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         InteractionHook pending = null;
         Collection<ItemComponent> buttons = new ArrayList<>();
@@ -202,7 +201,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     }
 
     @Override
-    public void runModalInteraction(@Nonnull ModalInteractionEvent event) {
+    public void runModalInteraction(@NonNull ModalInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         InteractionHook pending = event.deferEdit().complete();
         long userId = event.getUser().getIdLong();
@@ -236,9 +235,9 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         }
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
+    public Collection<ItemComponent> addButtons(@NonNull GenericCommandInteractionEvent event) {
         PaperTradeSession session = sessions.get(event.getUser().getIdLong());
         if(session == null)
             return List.of();
@@ -280,7 +279,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     }
 
     // BUTTON INTERACTIONS
-    private void confirmOpenAccountButtonAction(@Nonnull ButtonInteractionEvent event, @Nonnull EmbedBuilder eb) throws Exception {
+    private void confirmOpenAccountButtonAction(@NonNull ButtonInteractionEvent event, @NonNull EmbedBuilder eb) throws Exception {
         eb.setTitle(defaultTitle);
         eb.setDescription("You've opened a new account! You will start with $10,000.00 USDC. Good luck and have fun!");
         eb.setColor(Color.CYAN);
@@ -294,7 +293,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         sessions.remove(event.getUser().getIdLong());
     }
 
-    private void confirmPositionButtonAction(@Nonnull ButtonInteractionEvent event, @Nonnull EmbedBuilder eb) {
+    private void confirmPositionButtonAction(@NonNull ButtonInteractionEvent event, @NonNull EmbedBuilder eb) {
         PaperTradeAccount account = PaperTradingHandler.getAccount(event.getGuild().getIdLong(), event.getUser().getIdLong());
         SessionData<Object> sessionData = sessions.get(event.getUser().getIdLong()).sessionData;
 
@@ -312,33 +311,33 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         sessions.remove(event.getUser().getIdLong());
     }
 
-    private void cancelButtonAction(@Nonnull EmbedBuilder eb) {
+    private void cancelButtonAction(@NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setDescription("Action cancelled");
         eb.setColor(Color.CYAN);
     }
 
-    private void buyButtonAction(@Nonnull ButtonInteractionEvent event, @Nonnull EmbedBuilder eb) {
+    private void buyButtonAction(@NonNull ButtonInteractionEvent event, @NonNull EmbedBuilder eb) {
         eb.setColor(Color.GREEN);
         afterBuyOrSellPage(true, eb);
         sessions.get(event.getUser().getIdLong()).buttonState = ButtonStates.SHOW_ASSETS;
     }
 
-    private void sellButtonAction(@Nonnull ButtonInteractionEvent event, @Nonnull EmbedBuilder eb) {
+    private void sellButtonAction(@NonNull ButtonInteractionEvent event, @NonNull EmbedBuilder eb) {
         eb.setColor(Color.RED);
         afterBuyOrSellPage(false, eb);
         sessions.get(event.getUser().getIdLong()).buttonState = ButtonStates.SHOW_ASSETS;
     }
 
     // PAGES
-    private static void aboutPage(@Nonnull EmbedBuilder eb) {
+    private static void aboutPage(@NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setDescription("This is a trading game that trades with equivalent assets of ETH, oSQTH, Crab v2, and USDC! " + defaultDisclaimer);
         eb.addField("How do I play?", "Simply run `/paper account open` to open a new account", false);
         eb.addField("How do I trade?", "Simply run `/paper trade` and on moves to do", false);
     }
 
-    private static void openAccountPage(long userId, @Nonnull EmbedBuilder eb) {
+    private static void openAccountPage(long userId, @NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setColor(Color.RED);
         eb.setDescription("Are you sure you want to open/reset your account?\n\nIf you're new, press 'Confirm'");
@@ -346,7 +345,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         sessions.get(userId).buttonState = ButtonStates.SHOW_CONFIRM_AND_CANCEL;
     }
 
-    private static void viewAccountPage(@Nonnull SlashCommandInteractionEvent event, @Nonnull EmbedBuilder eb) {
+    private static void viewAccountPage(@NonNull SlashCommandInteractionEvent event, @NonNull EmbedBuilder eb) {
         PaperTradeAccount account = PaperTradingHandler.getAccount(event.getGuild().getIdLong(), event.getUser().getIdLong());
         NumberFormat instance = NumberFormat.getInstance();
 
@@ -402,7 +401,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         }
     }
 
-    private static void tradePositionsPage(@Nonnull SlashCommandInteractionEvent event, @Nonnull EmbedBuilder eb) {
+    private static void tradePositionsPage(@NonNull SlashCommandInteractionEvent event, @NonNull EmbedBuilder eb) {
         PaperTradeAccount account = PaperTradingHandler.getAccount(event.getGuild().getIdLong(), event.getUser().getIdLong());
 
         if(account == null) {
@@ -417,13 +416,13 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         }
     }
 
-    private static void afterBuyOrSellPage(boolean isBuying, @Nonnull EmbedBuilder eb) {
+    private static void afterBuyOrSellPage(boolean isBuying, @NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setDescription("Choose the asset you want to " + (isBuying ? "buy": "sell"));
     }
 
-    private static void afterTradeAmountInputPage(@Nonnull SessionData<Object> sessionData, @Nonnull EmbedBuilder eb) {
+    private static void afterTradeAmountInputPage(@NonNull SessionData<Object> sessionData, @NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
@@ -454,29 +453,29 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
 
     }
 
-    private static void noAccountFoundResponse(@Nonnull EmbedBuilder eb) {
+    private static void noAccountFoundResponse(@NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
         eb.setDescription("You haven't registered an account yet! Run `/paper account open` to open a new account!");
     }
 
-    private static void invalidSessionFoundResponse(@Nonnull EmbedBuilder eb) {
+    private static void invalidSessionFoundResponse(@NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
         eb.setDescription("Invalid session. Did you run a new command?");
     }
 
-    private static void invalidInputResponse(@Nonnull EmbedBuilder eb) {
+    private static void invalidInputResponse(@NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
-        eb.setDescription("Input must be a numerical value!");
+        eb.setDescription("**Error**: Input must be a numerical value!");
     }
 
     // Misc
-    private static void promptModalForAmount(@Nonnull SessionData<Object> sessionData, @Nonnull ComponentInteraction interaction, long serverId, long userId) {
+    private static void promptModalForAmount(@NonNull SessionData<Object> sessionData, @NonNull ComponentInteraction interaction, long serverId, long userId) {
         NumberFormat instance = NumberFormat.getInstance();
         TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
         Modal modal = Modal.create(
@@ -495,7 +494,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         interaction.replyModal(modal).complete();
     }
 
-    private static IPaperTrade.Asset buttonLabelToAsset(@Nonnull String label) {
+    private static IPaperTrade.Asset buttonLabelToAsset(@NonNull String label) {
         switch(label) {
             case "USDC" -> {
                 return IPaperTrade.Asset.USDC;
@@ -513,7 +512,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         }
     }
 
-    private static double calculateMaxAmountToBuyOrSell(boolean isBuying, @Nonnull IPaperTrade.Asset asset, @Nonnull PaperTradeAccount account) {
+    private static double calculateMaxAmountToBuyOrSell(boolean isBuying, @NonNull IPaperTrade.Asset asset, @NonNull PaperTradeAccount account) {
         if(isBuying) {
             try {
                 PriceData priceData = PositionsDataHandler.getPriceData(

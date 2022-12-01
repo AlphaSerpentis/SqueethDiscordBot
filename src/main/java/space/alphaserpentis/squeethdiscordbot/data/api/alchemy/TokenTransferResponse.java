@@ -2,7 +2,8 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.api.alchemy;
 
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +11,7 @@ import java.util.List;
 public class TokenTransferResponse {
     public Result result = new Result();
 
-    @Nonnull
+    @NonNull
     public List<Result.Transfer> getData() {
         return result.transfers;
     }

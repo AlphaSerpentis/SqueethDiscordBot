@@ -4,12 +4,14 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import com.google.gson.Gson;
 import io.reactivex.Flowable;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import io.reactivex.disposables.Disposable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -43,8 +45,6 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandl
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -95,7 +95,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         public boolean rebalanceSoldOsqth;
         public long lastRun = 0, lastRebalanceRun = 0;
         public CrabVault(
-            @Nonnull String address
+            @NonNull String address
         ) {
             this.address = address;
         }
@@ -425,6 +425,11 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                                             Throwable::printStackTrace
                                     );
                                 sd.setLastCrabAuctionNotificationId(response.getIdLong());
+                                try {
+                                    ServerDataHandler.updateServerData();
+                                } catch (IOException ignored) {
+
+                                }
                             },
                             Throwable::printStackTrace
                     );
@@ -487,7 +492,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 },0,1,TimeUnit.MINUTES);
             }
 
-            private static void cleanBidMessages(@Nonnull ServerData sd) {
+            private static void cleanBidMessages(@NonNull ServerData sd) {
                 for(Long serverId: serversListening) {
                     TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
 
@@ -903,7 +908,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@NonNull ButtonInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         InteractionHook pending = event.deferEdit().complete();
 
@@ -919,9 +924,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
+    public Collection<ItemComponent> addButtons(@NonNull GenericCommandInteractionEvent event) {
         if(event.getSubcommandName().equalsIgnoreCase("bids") && event.getOptions().size() == 0) {
             return Arrays.asList(new ItemComponent[]{getButton("Refresh")});
         } else {
@@ -929,9 +934,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         CrabVault crab;
 
@@ -961,7 +966,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         SubcommandData stats = new SubcommandData("stats", "Regular statistics on Crab").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 stats", false);
         SubcommandGroupData rebalance = new SubcommandGroupData("rebalance", "Shows the rebalancing-related commands")
                 .addSubcommands(
@@ -975,8 +980,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    @Nonnull
-    public CommandResponse<MessageEmbed> beforeRunCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    @NonNull
+    public CommandResponse<MessageEmbed> beforeRunCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         if(event.getSubcommandName().equalsIgnoreCase("bids")) {
             return new CommandResponse<>(null, true);
         }
@@ -985,7 +990,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @SuppressWarnings("rawtypes")
-    private void statsPage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
+    private void statsPage(@NonNull EmbedBuilder eb, @NonNull CrabVault crab) {
         Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
         if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
@@ -1044,7 +1049,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         eb.setColor(Color.RED);
     }
 
-    private void rebalancePage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
+    private void rebalancePage(@NonNull EmbedBuilder eb, @NonNull CrabVault crab) {
         NumberFormat instance = NumberFormat.getInstance();
         DecimalFormat df = new DecimalFormat("#");
 
@@ -1094,7 +1099,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private static void bidsPage(@Nonnull EmbedBuilder eb, long id) {
+    private static void bidsPage(@NonNull EmbedBuilder eb, long id) {
         eb.setTitle("Crab v2 Auction");
         eb.setThumbnail("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
         try {

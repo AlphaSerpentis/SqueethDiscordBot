@@ -2,7 +2,8 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.api;
 
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
+
 import java.math.BigInteger;
 
 public class PriceData {
@@ -30,7 +31,7 @@ public class PriceData {
         );
     }
 
-    public static double convertToDouble(@Nonnull BigInteger value, int decimals) {
+    public static double convertToDouble(@NonNull BigInteger value, int decimals) {
         return value.doubleValue() / Math.pow(10,decimals);
     }
 }

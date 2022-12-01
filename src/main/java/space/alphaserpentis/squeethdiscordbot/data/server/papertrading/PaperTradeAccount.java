@@ -1,13 +1,13 @@
 package space.alphaserpentis.squeethdiscordbot.data.server.papertrading;
 
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.games.PaperTradingHandler;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -21,13 +21,13 @@ public class PaperTradeAccount {
 
     public record FinalizedTrade(
         long block,
-        @Nonnull IPaperTrade.Action action,
-        @Nonnull IPaperTrade.Asset asset,
+        @NonNull IPaperTrade.Action action,
+        @NonNull IPaperTrade.Asset asset,
         double amount
     ) {}
 
-    @Nonnull
-    public EmbedBuilder trade(@Nonnull IPaperTrade.Action action, @Nonnull IPaperTrade.Asset asset, double amount, @Nonnull EmbedBuilder eb) {
+    @NonNull
+    public EmbedBuilder trade(@NonNull IPaperTrade.Action action, @NonNull IPaperTrade.Asset asset, double amount, @NonNull EmbedBuilder eb) {
         final HashMap<IPaperTrade.Asset, Double> originalBalance = balance;
         final ArrayList<FinalizedTrade> originalHistory = history;
         double assetUsdValue;
@@ -124,7 +124,7 @@ public class PaperTradeAccount {
         return value;
     }
 
-    public static double assetPriceInUsd(@Nonnull IPaperTrade.Asset asset, @Nonnull PriceData priceData) {
+    public static double assetPriceInUsd(@NonNull IPaperTrade.Asset asset, @NonNull PriceData priceData) {
         switch(asset) {
             case ETH -> {
                 return PriceData.convertToDouble(priceData.ethUsdc, 18);
@@ -142,7 +142,7 @@ public class PaperTradeAccount {
         return -1;
     }
     
-    public double balanceInUsd(@Nonnull IPaperTrade.Asset asset) {
+    public double balanceInUsd(@NonNull IPaperTrade.Asset asset) {
         PriceData priceData = null;
         try {
             PriceData.Prices price = assetToPrices(asset);
@@ -172,7 +172,7 @@ public class PaperTradeAccount {
     }
 
     @Nullable
-    public static PriceData.Prices assetToPrices(@Nonnull IPaperTrade.Asset asset) {
+    public static PriceData.Prices assetToPrices(@NonNull IPaperTrade.Asset asset) {
         switch(asset) {
             case ETH -> {
                 return PriceData.Prices.ETHUSD;

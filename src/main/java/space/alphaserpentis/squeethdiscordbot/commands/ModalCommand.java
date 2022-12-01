@@ -1,9 +1,8 @@
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 
-import javax.annotation.Nonnull;
-
 public interface ModalCommand {
-    void runModalInteraction(@Nonnull ModalInteractionEvent event);
+    void runModalInteraction(@NonNull ModalInteractionEvent event);
 }

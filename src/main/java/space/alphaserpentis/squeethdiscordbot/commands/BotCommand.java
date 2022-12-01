@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
@@ -13,7 +14,6 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 
-import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.Instant;
 import java.util.Collection;
@@ -50,8 +50,8 @@ public abstract class BotCommand<T> {
         protected final TypeOfEphemeral defaultTypeOfEphemeral = TypeOfEphemeral.DEFAULT;
 
         public BotCommandOptions(
-                @Nonnull String name,
-                @Nonnull String description
+                @NonNull String name,
+                @NonNull String description
         ) {
             this.name = name;
             this.description = description;
@@ -67,11 +67,11 @@ public abstract class BotCommand<T> {
         }
 
         public BotCommandOptions(
-                @Nonnull String name,
-                @Nonnull String description,
+                @NonNull String name,
+                @NonNull String description,
                 boolean onlyEmbed,
                 boolean onlyEphemeral,
-                @Nonnull TypeOfEphemeral typeOfEphemeral
+                @NonNull TypeOfEphemeral typeOfEphemeral
         ) {
             this.name = name;
             this.description = description;
@@ -87,13 +87,13 @@ public abstract class BotCommand<T> {
         }
 
         public BotCommandOptions(
-                @Nonnull String name,
-                @Nonnull String description,
+                @NonNull String name,
+                @NonNull String description,
                 long ratelimitLength,
                 long messageExpirationLength,
                 boolean onlyEmbed,
                 boolean onlyEphemeral,
-                @Nonnull TypeOfEphemeral typeOfEphemeral,
+                @NonNull TypeOfEphemeral typeOfEphemeral,
                 boolean isActive,
                 boolean deferReplies,
                 boolean useRatelimits,
@@ -131,7 +131,7 @@ public abstract class BotCommand<T> {
         throw new UnsupportedOperationException("Unsupported constructor");
     }
 
-    public BotCommand(@Nonnull BotCommandOptions options) {
+    public BotCommand(@NonNull BotCommandOptions options) {
         name = options.name;
         description = options.description;
         ratelimitLength = options.ratelimitLength;
@@ -145,10 +145,10 @@ public abstract class BotCommand<T> {
         ephemeralType = options.typeOfEphemeral;
     }
 
-    @Nonnull
-    abstract public CommandResponse<T> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event);
+    @NonNull
+    abstract public CommandResponse<T> runCommand(long userId, @NonNull SlashCommandInteractionEvent event);
 
-    abstract public void updateCommand(@Nonnull JDA jda);
+    abstract public void updateCommand(@NonNull JDA jda);
 
     /**
      * A method that REQUIRES to be overridden if to be used for any BotCommand with an ephemeralType of TypeOfEphemeral.DYNAMIC.
@@ -158,19 +158,19 @@ public abstract class BotCommand<T> {
      * @param event is a SlashCommandInteractionEvent that contains the interaction
      * @return a nonnull CommandResponse containing either a MessageEmbed or Message
      */
-    @Nonnull
-    public CommandResponse<T> beforeRunCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    @NonNull
+    public CommandResponse<T> beforeRunCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         throw new UnsupportedOperationException("beforeRunCommand needs to be overridden!");
     }
 
     public void setCommandId(long id) {
         commandId = id;
     }
-    @Nonnull
+    @NonNull
     public String getName() {
         return name;
     }
-    @Nonnull
+    @NonNull
     public String getDescription() {
         return description;
     }
@@ -212,8 +212,8 @@ public abstract class BotCommand<T> {
         return ephemeralType;
     }
 
-    @Nonnull
-    public static Message handleReply(@Nonnull SlashCommandInteractionEvent event, @Nonnull BotCommand<?> cmd) {
+    @NonNull
+    public static Message handleReply(@NonNull SlashCommandInteractionEvent event, @NonNull BotCommand<?> cmd) {
         boolean sendAsEphemeral = cmd.isOnlyEphemeral();
         CommandResponse<?> responseFromCommand;
         Object response;
@@ -275,9 +275,7 @@ public abstract class BotCommand<T> {
 
                         event.deferReply(responseBeforeRunning.messageIsEphemeral()).complete();
                         if(responseBeforeRunning.messageResponse() != null) {
-                            Message message = (Message) responseBeforeRunning.messageResponse();
-
-                            event.reply(message).complete();
+                            event.reply((String) responseBeforeRunning.messageResponse()).complete();
                         }
                     }
 
@@ -306,9 +304,9 @@ public abstract class BotCommand<T> {
                 }
             } else {
                 if (!sendAsEphemeral && event.getGuild() != null) {
-                    reply = event.reply((Message) response).setEphemeral(false);
+                    reply = event.reply((String) response).setEphemeral(false);
                 } else {
-                    reply = event.reply((Message) response).setEphemeral(sendAsEphemeral);
+                    reply = event.reply((String) response).setEphemeral(sendAsEphemeral);
                 }
             }
 
@@ -325,7 +323,7 @@ public abstract class BotCommand<T> {
         }
     }
 
-    protected static void letMessageExpire(@Nonnull BotCommand<?> command, @Nonnull Message message) {
+    protected static void letMessageExpire(@NonNull BotCommand<?> command, @NonNull Message message) {
         if(command.doMessagesExpire()) {
             message.delete().queueAfter(command.getMessageExpirationLength(), TimeUnit.SECONDS,
                     (ignored) -> {},
@@ -336,8 +334,8 @@ public abstract class BotCommand<T> {
         }
     }
 
-    @Nonnull
-    protected static MessageEmbed handleError(@Nonnull Exception e) {
+    @NonNull
+    protected static MessageEmbed handleError(@NonNull Exception e) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle("Command Failed To Execute");
@@ -359,7 +357,7 @@ public abstract class BotCommand<T> {
         return eb.build();
     }
 
-    @Nonnull
+    @NonNull
     private static CommandResponse<MessageEmbed> inactiveCommandResponse() {
         return new CommandResponse<>(new EmbedBuilder().setDescription("This command is currently not active").build(), null);
     }

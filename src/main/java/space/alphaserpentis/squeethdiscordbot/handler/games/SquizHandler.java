@@ -5,7 +5,8 @@ package space.alphaserpentis.squeethdiscordbot.handler.games;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import net.dv8tion.jda.api.entities.TextChannel;
+import io.reactivex.annotations.NonNull;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import space.alphaserpentis.squeethdiscordbot.commands.Squiz;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.squiz.SquizLeaderboard;
@@ -17,7 +18,6 @@ import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizLeaderb
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.SquizQuestionsDeserializer;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -58,7 +58,7 @@ public class SquizHandler {
         );
     }
 
-    public static void init(@Nonnull Path squizLeaderboardJson, @Nonnull Path squizQuestionsJson, @Nonnull Path squizTrackingJson) throws IOException {
+    public static void init(@NonNull Path squizLeaderboardJson, @NonNull Path squizQuestionsJson, @NonNull Path squizTrackingJson) throws IOException {
         SquizHandler.squizLeaderboardJson = squizLeaderboardJson;
         SquizHandler.squizQuestionsJson = squizQuestionsJson;
         SquizHandler.squizTrackingJson = squizTrackingJson;
@@ -89,7 +89,7 @@ public class SquizHandler {
         if(squizTracking == null) squizTracking = new SquizTracking();
     }
 
-    public static void init(@Nonnull Path squizLeaderboardJson, @Nonnull Path squizQuestionsJson) throws IOException {
+    public static void init(@NonNull Path squizLeaderboardJson, @NonNull Path squizQuestionsJson) throws IOException {
         SquizHandler.squizLeaderboardJson = squizLeaderboardJson;
         SquizHandler.squizQuestionsJson = squizQuestionsJson;
 
@@ -212,14 +212,14 @@ public class SquizHandler {
         writeToJSON(squizTrackingJson, gson, squizTracking);
     }
 
-    public static void writeToJSON(@Nonnull Gson gson, @Nonnull Object data) throws IOException {
+    public static void writeToJSON(@NonNull Gson gson, @NonNull Object data) throws IOException {
         Path path = Paths.get(squizLeaderboardJson.toString());
         try (Writer writer = Files.newBufferedWriter(path)) {
             gson.toJson(data, writer);
         }
     }
 
-    public static void writeToJSON(@Nonnull Path path, @Nonnull Gson gson, @Nonnull Object data) throws IOException {
+    public static void writeToJSON(@NonNull Path path, @NonNull Gson gson, @NonNull Object data) throws IOException {
         try(Writer writer = Files.newBufferedWriter(path)) {
             gson.toJson(data, writer);
         }

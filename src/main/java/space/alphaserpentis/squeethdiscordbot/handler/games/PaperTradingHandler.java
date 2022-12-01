@@ -3,12 +3,12 @@ package space.alphaserpentis.squeethdiscordbot.handler.games;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.PaperTradeAccount;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.ServerPaperTrades;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PaperTradingDeserializer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -19,7 +19,7 @@ public class PaperTradingHandler {
     public static Path paperTradingJson;
     private static HashMap<Long, ServerPaperTrades> paperTradingLeaderboard = new HashMap<>();
 
-    public static void init(@Nonnull Path paperTradingJson) throws IOException {
+    public static void init(@NonNull Path paperTradingJson) throws IOException {
         PaperTradingHandler.paperTradingJson = paperTradingJson;
 
         Gson gson = new GsonBuilder()

@@ -2,10 +2,12 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -26,7 +28,6 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHand
 import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -117,9 +118,9 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         buttonHashMap.put("Cancel", Button.primary("squiz_cancel", "Cancel"));
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         SquizSession session = squizSessionHashMap.getOrDefault(userId, new SquizSession());
         EmbedBuilder eb = new EmbedBuilder();
 
@@ -266,7 +267,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         SubcommandData leaderboard = new SubcommandData("leaderboard", "Displays the leaderboard for the Squiz competitions");
         SubcommandData play = new SubcommandData("play", "Starts your personal Squiz questionairre");
         SubcommandData addPoint = new SubcommandData("add_point", "Adds a point for a user").addOption(OptionType.USER, "user", "Which user to add the point for", true);
@@ -282,7 +283,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@NonNull ButtonInteractionEvent event) {
         Collection<ItemComponent> buttons = null;
         EmbedBuilder eb = new EmbedBuilder();
         //noinspection ConstantConditions
@@ -483,8 +484,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    @Nonnull
-    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
+    @NonNull
+    public Collection<ItemComponent> addButtons(@NonNull GenericCommandInteractionEvent event) {
         SquizSession session = squizSessionHashMap.get(event.getUser().getIdLong());
         States state = session.currentState;
 
@@ -583,7 +584,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    public void randomSquizExpires(@Nonnull RandomSquizSession session) {
+    public void randomSquizExpires(@NonNull RandomSquizSession session) {
         session.expiringThread = new Thread(() -> {
             try {
                 Thread.sleep(15000);
@@ -663,7 +664,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         session.expiringThread.start();
     }
 
-    private boolean checkIfCorrectAnswer(char answer, char correctAnswer, @Nonnull SquizSession session) {
+    private boolean checkIfCorrectAnswer(char answer, char correctAnswer, @NonNull SquizSession session) {
         boolean response = answer == correctAnswer;
 
         if(!response) {
@@ -673,8 +674,8 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         return response;
     }
 
-    @Nonnull
-    private List<ItemComponent> handleNextQuestion(@Nonnull SquizSession session, @Nonnull EmbedBuilder eb) {
+    @NonNull
+    private List<ItemComponent> handleNextQuestion(@NonNull SquizSession session, @NonNull EmbedBuilder eb) {
         if(session.currentQuestion == session.questions.size()) {
             session.currentState = States.COMPLETE;
             eb.setDescription("You have ended the quiz.\n\n" +
@@ -749,7 +750,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    @Nonnull
+    @NonNull
     private ArrayList<SquizQuestions> getRandomQuestions(int size) {
         ArrayList<SquizQuestions> questions = new ArrayList<>();
 
@@ -764,7 +765,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         return questions;
     }
 
-    private String getPastebinUrl(@Nonnull String contentToPaste) throws Exception {
+    private String getPastebinUrl(@NonNull String contentToPaste) throws Exception {
         HttpsURLConnection con = (HttpsURLConnection) new URL("https://pastebin.com/api/api_post.php").openConnection();
         con.setRequestMethod("POST");
         con.setDoOutput(true);
@@ -786,7 +787,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         return url;
     }
 
-    private static void generateLeaderboard(@Nonnull EmbedBuilder eb, long serverId) {
+    private static void generateLeaderboard(@NonNull EmbedBuilder eb, long serverId) {
         eb.setTitle("Squiz Leaderboard");
         eb.setDescription("Shows the top 5 people on the leaderboard for the server plus where you are currently in the leaderboard");
         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(serverId, new SquizLeaderboard());
@@ -798,7 +799,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private static void generateLeaderboard(@Nonnull EmbedBuilder eb, long serverId, long userId) {
+    private static void generateLeaderboard(@NonNull EmbedBuilder eb, long serverId, long userId) {
         eb.setTitle("Squiz Leaderboard");
         eb.setDescription("Shows the top 5 people on the leaderboard for the server plus where you are currently in the leaderboard");
         SquizLeaderboard leaderboard = SquizHandler.squizLeaderboardHashMap.getOrDefault(serverId, new SquizLeaderboard());
@@ -829,7 +830,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private static char getAnswerChar(@Nonnull String buttonId) {
+    private static char getAnswerChar(@NonNull String buttonId) {
         switch(buttonId) {
             case "squiz_answer_a" -> {
                 return 'A';
@@ -853,7 +854,7 @@ public class Squiz extends ButtonCommand<MessageEmbed> {
         return 0;
     }
 
-    private static boolean verifyManageServerPerms(@Nonnull Member member) {
+    private static boolean verifyManageServerPerms(@NonNull Member member) {
         return member.hasPermission(Permission.MANAGE_SERVER);
     }
 }

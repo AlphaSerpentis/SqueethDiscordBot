@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -13,7 +14,6 @@ import space.alphaserpentis.squeethdiscordbot.commands.*;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -81,7 +81,7 @@ public class CommandsHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(@NonNull SlashCommandInteractionEvent event) {
         if(Launcher.isReady) {
             executor.submit(() -> {
                 BotCommand<?> cmd = mappingOfCommands.get(event.getName());
@@ -96,7 +96,7 @@ public class CommandsHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+    public void onButtonInteraction(@NonNull ButtonInteractionEvent event) {
         if(Launcher.isReady) {
             executor.submit(() -> {
                 BotCommand<?> cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
@@ -107,7 +107,7 @@ public class CommandsHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
+    public void onModalInteraction(@NonNull ModalInteractionEvent event) {
         if(Launcher.isReady) {
             executor.submit(() -> {
                 BotCommand<?> cmd = mappingOfCommands.get(event.getModalId().substring(0, event.getModalId().indexOf("_")));
