@@ -46,18 +46,18 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         final ButtonStates originalState;
         long messageId;
         ButtonStates buttonState;
-        SessionData<Object> sessionData;
+        ArrayList<Object> sessionData;
 
         protected PaperTradeSession(ButtonStates originalState) {
-            this.originalState = originalState;
+            this.originalState = this.buttonState = originalState;
         }
     }
 
-    protected record SessionData<T>(@NonNull ArrayList<T> data) {
-        public void addData(@NonNull T newData) {
-            data.add(newData);
-        }
-    }
+//    protected record SessionData<T>(@NonNull ArrayList<T> data) {
+//        public void addData(@NonNull T newData) {
+//            data.add(newData);
+//        }
+//    }
 
     public PaperTrade() {
         super(new BotCommandOptions(
@@ -101,6 +101,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
             case "open" -> openAccountPage(userId, eb);
             case "view" -> viewAccountPage(event, eb);
             case "trade" -> tradePositionsPage(event, eb);
+            case "history" -> historyPage(event, eb);
         }
 
         return new CommandResponse<>(eb.build(), onlyEphemeral);
@@ -155,9 +156,9 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     buttons.add(getButton("ETH"));
                     buttons.add(getButton("LONG_OSQTH"));
                     buttons.add(getButton("CRAB"));
-                    session.sessionData = new SessionData<>(new ArrayList<>(){{
-                        add(true);
-                    }});
+                    session.sessionData = new ArrayList<>(){{
+                            add(true);
+                    }};
                 }
                 case "paper_sell" -> {
                     pending = event.deferEdit().complete();
@@ -165,23 +166,81 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     buttons.add(getButton("ETH"));
                     buttons.add(getButton("LONG_OSQTH"));
                     buttons.add(getButton("CRAB"));
-                    session.sessionData = new SessionData<>(new ArrayList<>(){{
+                    session.sessionData = new ArrayList<>(){{
                         add(false);
-                    }});
+                    }};
                 }
                 case "paper_eth", "paper_long_osqth", "paper_crab" -> {
-                    SessionData<Object> sessionData = session.sessionData;
+                    ArrayList<Object> sessionData = session.sessionData;
 
-                    if(sessionData.data.size() < 2)
-                        sessionData.data.add(event.getButton().getLabel());
+                    if(sessionData.size() < 2)
+                        sessionData.add(event.getButton().getLabel());
                     else
-                        sessionData.data.set(1, event.getButton().getLabel());
+                        sessionData.set(1, event.getButton().getLabel());
                     promptModalForAmount(sessionData, event.getInteraction(), event.getGuild().getIdLong(), userId);
                     return;
                 }
                 case "paper_confirm_position" -> {
                     pending = event.deferEdit().complete();
                     confirmPositionButtonAction(event, eb);
+                }
+                case "paper_previous_history" -> {
+                    if(!((boolean) session.sessionData.get(2))) {
+                        session.sessionData.set(2, true);
+                        pending = event.deferEdit().complete();
+                        Button prev, page, next;
+
+                        session.sessionData.set(1, (int) session.sessionData.get(1) - 1);
+                        prev = getButton("Previous_History").asEnabled();
+                        page = getButton("Page_History").withLabel(session.sessionData.get(1) + "/" + session.sessionData.get(0));
+                        next = getButton("Next_History").asEnabled();
+
+                        if((int) session.sessionData.get(1) == 1)
+                            prev = prev.asDisabled();
+
+                        historyPage(
+                                (int) session.sessionData.get(1),
+                                PaperTradingHandler.getAccount(
+                                        event.getGuild().getIdLong(),
+                                        event.getUser().getIdLong()
+                                ),
+                                eb
+                        );
+
+                        buttons.add(prev);
+                        buttons.add(page);
+                        buttons.add(next);
+                        session.sessionData.set(2, false);
+                    }
+                }
+                case "paper_next_history" -> {
+                    if(!((boolean) session.sessionData.get(2))) {
+                        session.sessionData.set(2, true);
+                        pending = event.deferEdit().complete();
+                        Button prev, page, next;
+
+                        session.sessionData.set(1, (int) session.sessionData.get(1) + 1);
+                        prev = getButton("Previous_History").asEnabled();
+                        page = getButton("Page_History").withLabel(session.sessionData.get(1) + "/" + session.sessionData.get(0));
+                        next = getButton("Next_History").asEnabled();
+
+                        if ((int) session.sessionData.get(1) == (int) session.sessionData.get(0))
+                            next = next.asDisabled();
+
+                        historyPage(
+                                (int) session.sessionData.get(1),
+                                PaperTradingHandler.getAccount(
+                                        event.getGuild().getIdLong(),
+                                        event.getUser().getIdLong()
+                                ),
+                                eb
+                        );
+
+                        buttons.add(prev);
+                        buttons.add(page);
+                        buttons.add(next);
+                        session.sessionData.set(2, false);
+                    }
                 }
             }
 
@@ -210,7 +269,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
             Collection<ItemComponent> buttons = new ArrayList<>();
             PaperTradeSession session = sessions.get(userId);
 
-            session.sessionData.addData(event.getValues().get(0).getAsString());
+            session.sessionData.add(event.getValues().get(0).getAsString());
 
             switch(session.originalState) {
                 case SHOW_BUY_SELL -> {
@@ -266,11 +325,16 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
                     }
             );
         } else if(buttonState == ButtonStates.SHOW_HISTORY) {
+            Button next = getButton("Next_History");
+
+            if((int) session.sessionData.get(1) == (int) session.sessionData.get(0))
+                next = next.asDisabled();
+
             return Arrays.asList(
                     new ItemComponent[]{
                         getButton("Previous_History"),
-                        getButton("Page_History"),
-                        getButton("Next_History")
+                        getButton("Page_History").withLabel("1/" + (int) session.sessionData.get(0)),
+                        next
                     }
             );
         }
@@ -295,12 +359,12 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
 
     private void confirmPositionButtonAction(@NonNull ButtonInteractionEvent event, @NonNull EmbedBuilder eb) {
         PaperTradeAccount account = PaperTradingHandler.getAccount(event.getGuild().getIdLong(), event.getUser().getIdLong());
-        SessionData<Object> sessionData = sessions.get(event.getUser().getIdLong()).sessionData;
+        ArrayList<Object> sessionData = sessions.get(event.getUser().getIdLong()).sessionData;
 
         eb = account.trade(
-                (boolean) sessionData.data.get(0) ? IPaperTrade.Action.BUY : IPaperTrade.Action.SELL,
-                buttonLabelToAsset((String) sessionData.data.get(1)),
-                Double.parseDouble((String) sessionData.data.get(2)),
+                (boolean) sessionData.get(0) ? IPaperTrade.Action.BUY : IPaperTrade.Action.SELL,
+                buttonLabelToAsset((String) sessionData.get(1)),
+                Double.parseDouble((String) sessionData.get(2)),
                 eb
         );
 
@@ -422,7 +486,7 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         eb.setDescription("Choose the asset you want to " + (isBuying ? "buy": "sell"));
     }
 
-    private static void afterTradeAmountInputPage(@NonNull SessionData<Object> sessionData, @NonNull EmbedBuilder eb) {
+    private static void afterTradeAmountInputPage(@NonNull ArrayList<Object> sessionData, @NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
         eb.setFooter(defaultDisclaimer);
         eb.setColor(Color.RED);
@@ -430,18 +494,18 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
             PriceData priceData = PositionsDataHandler.getPriceData(
                     new PriceData.Prices[]{
                             PaperTradeAccount.assetToPrices(
-                                    buttonLabelToAsset((String) sessionData.data.get(1))
+                                    buttonLabelToAsset((String) sessionData.get(1))
                             ),
                             PriceData.Prices.ETHUSD
                     });
 
             eb.setDescription(
-                    "Confirm you want to " + ((boolean) sessionData.data.get(0) ? "buy " : "sell ")
-                            + sessionData.data.get(2) + " " + sessionData.data.get(1) + " for $"
+                    "Confirm you want to " + ((boolean) sessionData.get(0) ? "buy " : "sell ")
+                            + sessionData.get(2) + " " + sessionData.get(1) + " for $"
                             + NumberFormat.getInstance().format(
-                                    Double.parseDouble((String) sessionData.data.get(2)) * PaperTradeAccount.assetPriceInUsd(
+                                    Double.parseDouble((String) sessionData.get(2)) * PaperTradeAccount.assetPriceInUsd(
                                             buttonLabelToAsset(
-                                                    (String) sessionData.data.get(1)
+                                                    (String) sessionData.get(1)
                                             ), priceData
                                     )
                     ) + "?"
@@ -449,9 +513,47 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         } catch (ExecutionException | InterruptedException | IOException | IllegalArgumentException e) {
             throw new RuntimeException(e);
         }
-        eb.addField("Quantity", sessionData.data.get(2) + " " + sessionData.data.get(1), false);
-
+        eb.addField("Quantity", sessionData.get(2) + " " + sessionData.get(1), false);
     }
+
+    private static void historyPage(@NonNull SlashCommandInteractionEvent event, @NonNull EmbedBuilder eb) {
+        PaperTradeAccount account = PaperTradingHandler.getAccount(event.getGuild().getIdLong(), event.getUser().getIdLong());
+        ArrayList<PaperTradeAccount.FinalizedTrade> trades;
+
+        if(account == null) {
+            noAccountFoundResponse(eb);
+        } else {
+            trades = account.history;
+
+            for(int i = 0; i < 15 && i < trades.size(); i++) {
+                eb.addField("Trade #" + (i + 1), String.valueOf(trades.get(trades.size() - (1 + i))),false);
+            }
+
+            eb.setTitle(defaultTitle);
+            eb.setFooter(defaultDisclaimer);
+            eb.setColor(Color.CYAN);
+
+            PaperTradeSession newSession = new PaperTradeSession(ButtonStates.SHOW_HISTORY);
+            newSession.sessionData = new ArrayList<>() {{
+                add((int) Math.ceil(trades.size()/15d));
+                add(1);
+                add(false);
+            }};
+            sessions.put(event.getUser().getIdLong(), newSession);
+        }
+    }
+
+    private static void historyPage(int page, @NonNull PaperTradeAccount account, @NonNull EmbedBuilder eb) {
+        for(int i = (15 * (page - 1)); i < 15 + (15 * (page - 1)) && i < account.history.size(); i++) {
+            eb.addField("Trade #" + (i + 1), String.valueOf(account.history.get(account.history.size() - (1 + i))),false);
+        }
+
+        eb.setTitle(defaultTitle);
+        eb.setFooter(defaultDisclaimer);
+        eb.setColor(Color.CYAN);
+    }
+
+    // Responses
 
     private static void noAccountFoundResponse(@NonNull EmbedBuilder eb) {
         eb.setTitle(defaultTitle);
@@ -475,14 +577,14 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
     }
 
     // Misc
-    private static void promptModalForAmount(@NonNull SessionData<Object> sessionData, @NonNull ComponentInteraction interaction, long serverId, long userId) {
+    private static void promptModalForAmount(@NonNull ArrayList<Object> sessionData, @NonNull ComponentInteraction interaction, long serverId, long userId) {
         NumberFormat instance = NumberFormat.getInstance();
-        TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessionData.data.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
+        TextInput amount = TextInput.create("paper_amount_ti", "Amount to " + ((boolean) sessionData.get(0) ? "buy" : "sell"), TextInputStyle.SHORT).build();
         Modal modal = Modal.create(
                         "paper_asset_modal", "How much? (Maximum is " + instance.format(
                                 calculateMaxAmountToBuyOrSell(
-                                        (boolean) sessionData.data.get(0),
-                                        buttonLabelToAsset((String) sessionData.data.get(1)),
+                                        (boolean) sessionData.get(0),
+                                        buttonLabelToAsset((String) sessionData.get(1)),
                                         Objects.requireNonNull(
                                                 PaperTradingHandler.getAccount(serverId, userId)
                                         )
@@ -530,5 +632,9 @@ public class PaperTrade extends ButtonCommand<MessageEmbed> implements ModalComm
         } else {
             return account.balance.get(asset);
         }
+    }
+
+    private static boolean isSessionForHistory(@NonNull PaperTradeSession session) {
+        return session.originalState.equals(ButtonStates.SHOW_HISTORY);
     }
 }

@@ -8,6 +8,7 @@ public class ServerData {
 
     private boolean onlyEphemeral = true;
     private boolean doRandomSquizQuestions = false;
+    private boolean doPaperTrading = false;
     private ArrayList<Long> randomSquizQuestionsChannels = new ArrayList<>();
     private ArrayList<Long> disqualifiedUsers = new ArrayList<>();
     private long randomSquizBaseIntervals = 1800; // default is 30 minutes + random amount
@@ -17,6 +18,8 @@ public class ServerData {
     private long lastCrabAuctionNotificationId = 0;
     private long listenToCrabAuctionsRoleId = 0;
     private long lastCrabAuctionBidMessageId = 0;
+    private long paperTradingLeaderboardChannelId = 0;
+    private long lastPaperTradingLeaderboardMessageId = 0;
     private boolean listenToCrabAuctions = false;
 
     public void setOnlyEphemeral(boolean value) {
@@ -25,6 +28,11 @@ public class ServerData {
     public void setLeaderboardChannelId(long value) {
         leaderboardChannelId = value;
     }
+
+    public void setDoPaperTrading(boolean doPaperTrading) {
+        this.doPaperTrading = doPaperTrading;
+    }
+
     public void setDoRandomSquizQuestions(boolean value) {
         doRandomSquizQuestions = value;
     }
@@ -52,6 +60,12 @@ public class ServerData {
     public void setLastCrabAuctionBidMessageId(long lastCrabAuctionBidMessageId) {
         this.lastCrabAuctionBidMessageId = lastCrabAuctionBidMessageId;
     }
+    public void setPaperTradingLeaderboardChannelId(long paperTradingLeaderboardChannelId) {
+        this.paperTradingLeaderboardChannelId = paperTradingLeaderboardChannelId;
+    }
+    public void setLastPaperTradingLeaderboardMessageId(long lastPaperTradingLeaderboardMessageId) {
+        this.lastPaperTradingLeaderboardMessageId = lastPaperTradingLeaderboardMessageId;
+    }
     public void setListenToCrabAuctions(boolean listenToCrabAuctions) {
         this.listenToCrabAuctions = listenToCrabAuctions;
     }
@@ -62,6 +76,11 @@ public class ServerData {
     public long getLeaderboardChannelId() {
         return leaderboardChannelId;
     }
+
+    public boolean isDoPaperTrading() {
+        return doPaperTrading;
+    }
+
     public boolean doRandomSquizQuestions() {
         return doRandomSquizQuestions;
     }
@@ -88,6 +107,12 @@ public class ServerData {
     }
     public long getLastCrabAuctionBidMessageId(){
         return lastCrabAuctionBidMessageId;
+    }
+    public long getPaperTradingLeaderboardChannelId() {
+        return paperTradingLeaderboardChannelId;
+    }
+    public long getLastPaperTradingLeaderboardMessageId() {
+        return lastPaperTradingLeaderboardMessageId;
     }
     public boolean getListenToCrabAuctions() {
         return listenToCrabAuctions;

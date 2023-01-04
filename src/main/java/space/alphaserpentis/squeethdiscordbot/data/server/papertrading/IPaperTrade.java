@@ -7,9 +7,20 @@ public interface IPaperTrade {
     }
 
     enum Asset {
-        ETH,
-        USDC,
-        OSQTH,
-        CRAB
+        ETH ("ETH"),
+        USDC ("USDC"),
+        OSQTH ("oSQTH"),
+        CRAB ("Crab");
+
+        private final String properName;
+
+        Asset(String properName) {
+            this.properName = properName;
+        }
+
+        @Override
+        public String toString() {
+            return properName;
+        }
     }
 }

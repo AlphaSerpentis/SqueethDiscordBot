@@ -3,6 +3,7 @@ package space.alphaserpentis.squeethdiscordbot.data.server.papertrading;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.annotations.Nullable;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
@@ -23,8 +24,25 @@ public class PaperTradeAccount {
         long block,
         @NonNull IPaperTrade.Action action,
         @NonNull IPaperTrade.Asset asset,
+        double assetPriceInUsd,
         double amount
-    ) {}
+    ) {
+        @Override
+        public String toString() {
+            long timestampFromBlock;
+            try {
+                timestampFromBlock = EthereumRPCHandler.web3.ethGetBlockByNumber(
+                        new DefaultBlockParameterNumber(block),
+                        true
+                ).send().getBlock().getTimestamp().longValue();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            return "On <t:" + timestampFromBlock + ">, you "
+                    + (action.equals(IPaperTrade.Action.BUY) ? "bought " : "sold ") + amount + " " + asset;
+        }
+    }
 
     @NonNull
     public EmbedBuilder trade(@NonNull IPaperTrade.Action action, @NonNull IPaperTrade.Asset asset, double amount, @NonNull EmbedBuilder eb) {
@@ -80,6 +98,7 @@ public class PaperTradeAccount {
                     lastBlock,
                     action,
                     asset,
+                    assetUsdValue,
                     amount
                 )
         );
@@ -100,7 +119,7 @@ public class PaperTradeAccount {
                         amount + " " + asset + " for $" + instance.format(assetUsdValue * amount),false
                 )
                 .addField(asset + " Balance", instance.format(balance.get(asset)) + " " + asset, false)
-                .addField("USD Balance", "$" + instance.format(balance.get(IPaperTrade.Asset.USDC)), false);
+                .addField("USDC Balance", "$" + instance.format(balance.get(IPaperTrade.Asset.USDC)), false);
     }
 
     public void resetAccount() {

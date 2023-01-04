@@ -224,6 +224,10 @@ public class Vault extends BotCommand<MessageEmbed> {
             eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
             return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
+        if(event.getOptions().get(0).getAsLong() < 0) {
+            eb.setDescription("Invalid ID");
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
+        }
 
         // web3j stuff
         List<Type> vaultsResponse;
