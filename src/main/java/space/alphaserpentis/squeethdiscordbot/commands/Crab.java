@@ -101,7 +101,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
 
         public abstract void updateLastHedge() throws IOException;
-        private double calculateCollateralRatio() {
+        public double calculateCollateralRatio() {
             BigInteger debt = shortOsqth.multiply(priceOfEthInUsd).multiply(normFactor).divide(BigInteger.valueOf(10000));
             // Divide by 10^36 of debt to get the correctly scaled debt
             return ethCollateral.doubleValue() / (debt.doubleValue() / Math.pow(10,36)) * 100;
@@ -878,7 +878,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private static CrabVault crabV1, crabV2;
+    public static CrabVault crabV1, crabV2;
 
     public Crab() {
         super(new BotCommandOptions(
@@ -991,42 +991,15 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
     @SuppressWarnings("rawtypes")
     private void statsPage(@NonNull EmbedBuilder eb, @NonNull CrabVault crab) {
-        Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
         if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
-                PriceData priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
-
-                crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
-                BigInteger priceOfoSQTH = priceData.osqthEth;
-                crab.priceOfEthInUsd = priceData.ethUsdc;
-                crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, callTotalSupply).get(0).getValue();
-                crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
-
-                crab.normFactor = priceData.normFactor;
-
-                BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
-
-                crab.ethPerToken = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
-                crab.usdPerToken = netEth.multiply(crab.priceOfEthInUsd).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
-
-                crab.lastRun = Instant.now().getEpochSecond();
-
-                vaultGreeks = new Vault.VaultGreeks(
-                        crab.priceOfEthInUsd.doubleValue() / Math.pow(10,18),
-                        LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
-                        crab.normFactor.doubleValue() / Math.pow(10,18),
-                        LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility()/100,
-                        -(crab.shortOsqth.doubleValue() / Math.pow(10,18)),
-                        crab.ethCollateral.doubleValue() / Math.pow(10,18)
-                );
-                crab.lastRunVaultGreeks = vaultGreeks;
+                update(crab);
             } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
+        Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
         NumberFormat instance = NumberFormat.getInstance();
 
         eb.setTitle("Crab " + (crab instanceof v1 ? "v1" : "v2") + " Statistics");
@@ -1192,5 +1165,36 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         } catch (IOException | NullPointerException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void update(@NonNull CrabVault crab) throws IOException, ExecutionException, InterruptedException {
+        PriceData priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
+
+        crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
+        crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
+        BigInteger priceOfoSQTH = priceData.osqthEth;
+        crab.priceOfEthInUsd = priceData.ethUsdc;
+        crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, callTotalSupply).get(0).getValue();
+        crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
+
+        crab.normFactor = priceData.normFactor;
+
+        BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
+
+        crab.ethPerToken = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
+        crab.usdPerToken = netEth.multiply(crab.priceOfEthInUsd).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
+
+        crab.lastRun = Instant.now().getEpochSecond();
+
+        Vault.VaultGreeks vaultGreeks = new Vault.VaultGreeks(
+                crab.priceOfEthInUsd.doubleValue() / Math.pow(10, 18),
+                LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
+                crab.normFactor.doubleValue() / Math.pow(10, 18),
+                LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility() / 100,
+                -(crab.shortOsqth.doubleValue() / Math.pow(10, 18)),
+                crab.ethCollateral.doubleValue() / Math.pow(10, 18)
+        );
+        crab.lastRunVaultGreeks = vaultGreeks;
     }
 }

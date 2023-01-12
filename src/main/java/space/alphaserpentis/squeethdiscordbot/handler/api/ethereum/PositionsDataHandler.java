@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.annotations.Nullable;
 import org.web3j.abi.datatypes.Type;
+import space.alphaserpentis.squeethdiscordbot.commands.ZenBull;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PositionsDataDeserializer;
@@ -26,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Euler.dusdc;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Euler.eweth;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
@@ -126,6 +129,7 @@ public class PositionsDataHandler {
                         data.osqthEth = getOsqthEth(block);
                     data.crabV2Eth = getCrabv2Eth(block, data.osqthEth);
                 }
+                case ZENBULL -> data.zenbull = getZenBull(block);
                 case NORMFACTOR -> data.normFactor = getNormFactor(block);
             }
         }
@@ -289,6 +293,48 @@ public class PositionsDataHandler {
         ).get(0).getValue();
 
         return netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
+    }
+
+    private static BigInteger getZenBull(long block) throws ExecutionException, InterruptedException {
+        BigInteger crabValue = getCrabv2Eth(block, getOsqthEth(block));
+        BigInteger eulerDebt;
+        BigInteger eulerCollateral;
+        BigInteger zenBullSupply;
+
+        eulerDebt = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                dusdc,
+                balanceOf(
+                        zenbull
+                ),
+                block
+        ).get(0).getValue()).multiply(BigInteger.TEN.pow(30)).divide(getEthUsd(block));
+        eulerCollateral = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                eweth,
+                convertBalanceToUnderlying(
+                        (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                                eweth,
+                                balanceOf(zenbull),
+                                block
+                        ).get(0).getValue()
+                ),
+                block
+        ).get(0).getValue();
+        zenBullSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                zenbull,
+                callTotalSupply,
+                block
+        ).get(0).getValue();
+
+        ZenBull.updateZenBullVault(
+                new ZenBull.ZenBullData(
+                        crabValue,
+                        eulerDebt.multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply),
+                        eulerCollateral.multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply),
+                        zenBullSupply
+                )
+        );
+
+        return crabValue.add(eulerCollateral.subtract(eulerDebt).multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply));
     }
 
     private static BigInteger getNormFactor(long block) throws ExecutionException, InterruptedException {
