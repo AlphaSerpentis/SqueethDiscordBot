@@ -86,7 +86,7 @@ public class Launcher {
 
         SquizHandler.pastebinApiKey = settings.pastebinApiKey;
         // Initialize PaperTradingHandler
-        PaperTradingHandler.init(Path.of(settings.paperTradingLeaderboard));
+//        PaperTradingHandler.init(Path.of(settings.paperTradingLeaderboard));
 
         isReady = true;
     }
