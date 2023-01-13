@@ -112,9 +112,7 @@ public class ZenBull extends BotCommand<MessageEmbed> {
         }
 
         eb.setTitle("Zen Bull Statistics");
-
-        // ╞ ┼ ─ ├ ┬ ┴ └ │
-
+        eb.setThumbnail("https://media.tenor.com/P03vVwVx-_MAAAAd/bull-grazing-gordon-ramsay-makes-masa.gif");
         eb.setDescription("Get all of your Zen Bull stats here!\n\nhttps://squeeth.com/strategies/bull");
         eb.addField("**Price per Zen Bull Token**: " + instance.format(priceData.zenbull.doubleValue() / Math.pow(10,18)) + " Ξ",
                     "\n├ Euler Debt: " +  instance.format(-lastData.eulerDebt.doubleValue() / Math.pow(10,18)) + " Ξ" +
