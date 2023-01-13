@@ -2,7 +2,8 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.server.squiz;
 
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
+
 import java.util.*;
 
 @SuppressWarnings("CanBeFinal")
@@ -22,7 +23,7 @@ public class SquizLeaderboard {
         leaderboard.put(userId, points);
     }
 
-    @Nonnull
+    @NonNull
     public ArrayList<Long> getTopFive() {
         ArrayList<Long> topFive = new ArrayList<>();
 

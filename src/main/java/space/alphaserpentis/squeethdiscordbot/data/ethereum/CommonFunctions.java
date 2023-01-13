@@ -1,5 +1,6 @@
 package space.alphaserpentis.squeethdiscordbot.data.ethereum;
 
+import io.reactivex.annotations.NonNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -8,6 +9,7 @@ import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.abi.datatypes.generated.Uint32;
 import org.web3j.abi.datatypes.generated.Uint96;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -69,4 +71,28 @@ public interface CommonFunctions {
                     new TypeReference<Uint256>() {}
             )
     );
+
+    static Function balanceOf(@NonNull String address) {
+        return new Function(
+                "balanceOf",
+                List.of(
+                        new Address(address)
+                ),
+                List.of(
+                        new TypeReference<Uint256>() {}
+                )
+        );
+    }
+
+    static Function convertBalanceToUnderlying(@NonNull BigInteger balance) {
+        return new Function(
+                "convertBalanceToUnderlying",
+                List.of(
+                        new Uint256(balance)
+                ),
+                List.of(
+                        new TypeReference<Uint256>() {}
+                )
+        );
+    }
 }

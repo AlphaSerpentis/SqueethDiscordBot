@@ -2,9 +2,9 @@
 
 package space.alphaserpentis.squeethdiscordbot.data.server;
 
+import io.reactivex.annotations.NonNull;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -13,7 +13,7 @@ public class ServerCache {
     public static HashMap<Long, ArrayList<Long>> guildToChannelsMap = new HashMap<>();
     public static HashMap<Long, ArrayList<Long>> cachedMessages = new HashMap<>();
 
-    public static void addNewMessage(@Nonnull Long guildId, @Nonnull Long channelId, @Nonnull Long messageId) {
+    public static void addNewMessage(@NonNull Long guildId, @NonNull Long channelId, @NonNull Long messageId) {
         ArrayList<Long> messages = cachedMessages.get(channelId);
         ArrayList<Long> trackedChannels = guildToChannelsMap.getOrDefault(guildId, new ArrayList<>());
 
@@ -36,7 +36,7 @@ public class ServerCache {
         guildToChannelsMap.put(guildId, trackedChannels);
     }
 
-    public static void removeMessages(@Nonnull Long guildId) {
+    public static void removeMessages(@NonNull Long guildId) {
         if(cachedMessages.isEmpty()) {
             return;
         }

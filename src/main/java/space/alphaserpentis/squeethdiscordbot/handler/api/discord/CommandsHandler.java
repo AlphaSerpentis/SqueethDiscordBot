@@ -2,8 +2,10 @@
 
 package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -12,7 +14,6 @@ import space.alphaserpentis.squeethdiscordbot.commands.*;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,6 +37,8 @@ public class CommandsHandler extends ListenerAdapter {
             put("position", new Position());
             put("vault", new Vault());
             put("squiz", new Squiz());
+            put("zenbull", new ZenBull());
+//            put("paper", new PaperTrade());
         }};
     }
 
@@ -79,24 +82,39 @@ public class CommandsHandler extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
-        executor.submit(() -> {
-            BotCommand<?> cmd = mappingOfCommands.get(event.getName());
-            Message message;
-            message = BotCommand.handleReply(event, cmd);
+    public void onSlashCommandInteraction(@NonNull SlashCommandInteractionEvent event) {
+        if(Launcher.isReady) {
+            executor.submit(() -> {
+                BotCommand<?> cmd = mappingOfCommands.get(event.getName());
+                Message message;
+                message = BotCommand.handleReply(event, cmd);
 
-            if(event.getGuild() != null && !message.isEphemeral()) {
-                ServerCache.addNewMessage(message.getGuild().getIdLong(), message.getChannel().getIdLong(), message.getIdLong());
-            }
-        });
+                if(event.getGuild() != null && !message.isEphemeral()) {
+                    ServerCache.addNewMessage(message.getGuild().getIdLong(), message.getChannel().getIdLong(), message.getIdLong());
+                }
+            });
+        }
     }
 
     @Override
-    public void onButtonInteraction(@Nonnull ButtonInteractionEvent event) {
-        executor.submit(() -> {
-            BotCommand<?> cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
+    public void onButtonInteraction(@NonNull ButtonInteractionEvent event) {
+        if(Launcher.isReady) {
+            executor.submit(() -> {
+                BotCommand<?> cmd = mappingOfCommands.get(event.getButton().getId().substring(0, event.getButton().getId().indexOf("_")));
 
-            ((ButtonCommand<?>) cmd).runButtonInteraction(event);
-        });
+                ((ButtonCommand<?>) cmd).runButtonInteraction(event);
+            });
+        }
+    }
+
+    @Override
+    public void onModalInteraction(@NonNull ModalInteractionEvent event) {
+        if(Launcher.isReady) {
+            executor.submit(() -> {
+                BotCommand<?> cmd = mappingOfCommands.get(event.getModalId().substring(0, event.getModalId().indexOf("_")));
+
+                ((ModalCommand) cmd).runModalInteraction(event);
+            });
+        }
     }
 }

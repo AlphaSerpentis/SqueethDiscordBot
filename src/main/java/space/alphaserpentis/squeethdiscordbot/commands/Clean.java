@@ -11,8 +11,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.Command;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerCache;
-
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
 
 public class Clean extends BotCommand<MessageEmbed> {
 
@@ -26,9 +25,9 @@ public class Clean extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(event.getGuild() == null) {
@@ -47,13 +46,13 @@ public class Clean extends BotCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
     }
 
-    private boolean verifyServerPerms(@Nonnull Member member) {
+    private boolean verifyServerPerms(@NonNull Member member) {
         return member.hasPermission(
                 Permission.MESSAGE_MANAGE
         );

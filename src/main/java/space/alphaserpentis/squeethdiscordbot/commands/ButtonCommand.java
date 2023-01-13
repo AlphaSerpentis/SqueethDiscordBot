@@ -2,13 +2,13 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -19,18 +19,18 @@ public abstract class ButtonCommand<T> extends BotCommand<T> {
         super();
     }
 
-    public ButtonCommand(@Nonnull BotCommandOptions options) {
+    public ButtonCommand(@NonNull BotCommandOptions options) {
         super(options);
     }
 
-    abstract public void runButtonInteraction(@Nonnull ButtonInteractionEvent event);
-    @Nonnull
-    abstract public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event);
+    abstract public void runButtonInteraction(@NonNull ButtonInteractionEvent event);
+    @NonNull
+    abstract public Collection<ItemComponent> addButtons(@NonNull GenericCommandInteractionEvent event);
     @Nullable
     public Button getButton(String key) {
         return buttonHashMap.get(key);
     }
-    @Nonnull
+    @NonNull
     public HashMap<String, Button> getButtonHashMap() {
         return buttonHashMap;
     }

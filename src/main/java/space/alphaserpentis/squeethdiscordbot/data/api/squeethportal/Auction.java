@@ -1,6 +1,7 @@
 package space.alphaserpentis.squeethdiscordbot.data.api.squeethportal;
 
-import javax.annotation.Nonnull;
+import io.reactivex.annotations.NonNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,7 +29,7 @@ public class Auction {
             }
 
             @Override
-            public int compareTo(@Nonnull Order o) {
+            public int compareTo(@NonNull Order o) {
                 if(isBuying) {
                     if(o.price.compareTo(price) > 0) {
                         return 1;
@@ -77,7 +78,7 @@ public class Auction {
     public long nextAuctionId = 0;
     public BigInteger oSqthAmount = BigInteger.ZERO;
 
-    public static ArrayList<Bid> sortedBids(@Nonnull Auction auction) {
+    public static ArrayList<Bid> sortedBids(@NonNull Auction auction) {
         ArrayList<Bid> bids = new ArrayList<>(auction.bids.values());
         ArrayList<Bid> bidsNotIncluded;
 

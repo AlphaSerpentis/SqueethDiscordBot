@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -11,8 +12,11 @@ import space.alphaserpentis.squeethdiscordbot.data.api.SqueethData;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 
-import javax.annotation.Nonnull;
+import javax.net.ssl.HttpsURLConnection;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.text.NumberFormat;
 
 public class Stats extends BotCommand<MessageEmbed> {
@@ -27,9 +31,9 @@ public class Stats extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         SqueethData.Data data = LaevitasHandler.latestSqueethData.data;
@@ -48,6 +52,7 @@ public class Stats extends BotCommand<MessageEmbed> {
         eb.addField("Daily Funding", data.getDailyFundingValue() + "%", false);
         eb.addField("Current Implied Volatility", data.getCurrentImpliedVolatility() + "%", false);
         eb.addField("Daily Implied Volatility", data.getDailyImpliedVolatility() + "%", false);
+        eb.addField("Ref. Volatility", NumberFormat.getInstance().format(getRefVol()) + "%", false);
         eb.addField("Normalization Factor", Double.toString(data.getNormalizationFactor()), false);
         eb.setFooter("Last Updated at " + LaevitasHandler.latestSqueethData.data.getDate() + " | API Data by Laevitas");
         eb.setColor(new Color(14, 255, 212, 76));
@@ -56,9 +61,32 @@ public class Stats extends BotCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description).complete();
 
         commandId = cmd.getIdLong();
+    }
+
+    private double getRefVol() {
+        try {
+            HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeeth.opyn.co/api/currentsqueethvol").openConnection();
+            String response;
+
+            con.setRequestMethod("GET");
+            con.setInstanceFollowRedirects(true);
+            con.setDoOutput(true);
+
+            int responseCode = con.getResponseCode();
+
+            if(responseCode == HttpsURLConnection.HTTP_OK) {
+                response = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
+            } else {
+                return 0;
+            }
+
+            return Double.parseDouble(response) * 100;
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

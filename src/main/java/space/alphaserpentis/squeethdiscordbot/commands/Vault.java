@@ -1,5 +1,6 @@
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -16,7 +17,6 @@ import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 
-import javax.annotation.Nonnull;
 import java.awt.*;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
@@ -92,9 +92,9 @@ public class Vault extends BotCommand<MessageEmbed> {
 
         @SuppressWarnings("rawtypes")
         public BigInteger getAmount0Delta(
-                @Nonnull BigInteger sqrtRatioAX96, // uint160
-                @Nonnull BigInteger sqrtRatioBX96, // uint160
-                @Nonnull BigInteger liquidity, // uint128
+                @NonNull BigInteger sqrtRatioAX96, // uint160
+                @NonNull BigInteger sqrtRatioBX96, // uint160
+                @NonNull BigInteger liquidity, // uint128
                 boolean roundUp
         ) throws ExecutionException, InterruptedException {
             Function callGetAmount0Delta = new Function("getAmount0Delta",
@@ -117,9 +117,9 @@ public class Vault extends BotCommand<MessageEmbed> {
 
         @SuppressWarnings("rawtypes")
         public BigInteger getAmount1Delta(
-                @Nonnull BigInteger sqrtRatioAX96, // uint160
-                @Nonnull BigInteger sqrtRatioBX96, // uint160
-                @Nonnull BigInteger liquidity, // uint128
+                @NonNull BigInteger sqrtRatioAX96, // uint160
+                @NonNull BigInteger sqrtRatioBX96, // uint160
+                @NonNull BigInteger liquidity, // uint128
                 boolean roundUp
         ) throws ExecutionException, InterruptedException {
             Function callGetAmount1Delta = new Function("getAmount1Delta",
@@ -141,10 +141,10 @@ public class Vault extends BotCommand<MessageEmbed> {
         }
 
         public Amount0Amount1 getToken0Token1Balances(
-                @Nonnull BigInteger tickLower,
-                @Nonnull BigInteger tickUpper,
-                @Nonnull BigInteger tick,
-                @Nonnull BigInteger liquidity
+                @NonNull BigInteger tickLower,
+                @NonNull BigInteger tickUpper,
+                @NonNull BigInteger tick,
+                @NonNull BigInteger liquidity
         ) throws ExecutionException, InterruptedException {
             // Call the library because I am not transposing that voodoo magic to Java
             BigInteger sqrtPriceX96 = call_getSqrtRatioAtTick(tick); // uint160
@@ -183,7 +183,7 @@ public class Vault extends BotCommand<MessageEmbed> {
         }
 
         @SuppressWarnings("rawtypes")
-        private BigInteger call_getSqrtRatioAtTick(@Nonnull BigInteger tick) throws ExecutionException, InterruptedException {
+        private BigInteger call_getSqrtRatioAtTick(@NonNull BigInteger tick) throws ExecutionException, InterruptedException {
             Function getSqrtRatioAtTick = new Function("getSqrtRatioAtTick",
                     List.of(
                             new Int24(tick)
@@ -214,14 +214,18 @@ public class Vault extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @Nonnull
+    @NonNull
     @SuppressWarnings("rawtypes")
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
 
         if(isUserRatelimited(event.getUser().getIdLong())) {
             eb.setDescription("You are still rate limited. Expires in " + (ratelimitMap.get(event.getUser().getIdLong()) - Instant.now().getEpochSecond()) + " seconds.");
+            return new CommandResponse<>(eb.build(), onlyEphemeral);
+        }
+        if(event.getOptions().get(0).getAsLong() < 0) {
+            eb.setDescription("Invalid ID");
             return new CommandResponse<>(eb.build(), onlyEphemeral);
         }
 
@@ -382,14 +386,14 @@ public class Vault extends BotCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.INTEGER, "id", "ID of the short vault", true).complete();
 
         commandId = cmd.getIdLong();
     }
 
-    public double calculateCollateralRatio(@Nonnull BigInteger shortoSQTH, @Nonnull BigInteger ethCollateral, @Nonnull BigInteger priceOfETHinUSD, @Nonnull BigInteger normFactor) {
+    public double calculateCollateralRatio(@NonNull BigInteger shortoSQTH, @NonNull BigInteger ethCollateral, @NonNull BigInteger priceOfETHinUSD, @NonNull BigInteger normFactor) {
         BigInteger debt = shortoSQTH.multiply(priceOfETHinUSD).multiply(normFactor).divide(BigInteger.valueOf(10000));
         // Divide by 10^36 of debt to get the correctly scaled debt
         return ethCollateral.doubleValue() / (debt.doubleValue() / Math.pow(10,36)) * 100;

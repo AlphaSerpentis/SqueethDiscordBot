@@ -17,6 +17,7 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsData
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.CommandsHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.StatusHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.games.PaperTradingHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 
 import javax.security.auth.login.LoginException;
@@ -32,6 +33,7 @@ public class Launcher {
      * The JDA instance being utilized
      */
     public static JDA api;
+    public static boolean isReady = false;
 
     public Launcher(String[] args) throws LoginException, InterruptedException, IOException {
         Gson gson = new Gson();
@@ -83,6 +85,10 @@ public class Launcher {
         }
 
         SquizHandler.pastebinApiKey = settings.pastebinApiKey;
+        // Initialize PaperTradingHandler
+//        PaperTradingHandler.init(Path.of(settings.paperTradingLeaderboard));
+
+        isReady = true;
     }
 
     /**

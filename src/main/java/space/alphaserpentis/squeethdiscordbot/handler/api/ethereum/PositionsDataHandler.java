@@ -5,14 +5,15 @@ package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import org.web3j.abi.datatypes.Type;
+import space.alphaserpentis.squeethdiscordbot.commands.ZenBull;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PositionsDataDeserializer;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PriceDataDeserializer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -26,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Euler.dusdc;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Euler.eweth;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.*;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
@@ -37,7 +40,7 @@ public class PositionsDataHandler {
     public static Path cachedTransfersPath;
     public static Path cachedPricesPath;
 
-    public static void init(@Nonnull Path transfersJson, @Nonnull Path pricesJson) throws IOException {
+    public static void init(@NonNull Path transfersJson, @NonNull Path pricesJson) throws IOException {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(cachedTransfers.getClass(), new PositionsDataDeserializer())
                 .create();
@@ -62,8 +65,8 @@ public class PositionsDataHandler {
      * @param block A nonnull and non-negative block number to obtain the prices of all the assets
      * @return A PriceData object for a particular block
      */
-    @Nonnull
-    public static PriceData getPriceData(@Nonnull Long block) throws ExecutionException, InterruptedException {
+    @NonNull
+    public static PriceData getPriceData(@NonNull Long block) throws ExecutionException, InterruptedException {
         PriceData data = cachedPrices.get(block);
 
         if(data == null) {
@@ -101,13 +104,14 @@ public class PositionsDataHandler {
      * @param pricesToUpdate A nonnull and non-empty array to obtain the prices for
      * @return A PriceData object for a particular block
      */
-    @Nonnull
-    public static PriceData getPriceData(@Nonnull Long block, @Nonnull PriceData.Prices[] pricesToUpdate) throws ExecutionException, InterruptedException {
+    @NonNull
+    public static PriceData getPriceData(@NonNull Long block, @NonNull PriceData.Prices[] pricesToUpdate) throws ExecutionException, InterruptedException {
         PriceData data = cachedPrices.get(block);
 
         if(data == null) {
             data = new PriceData();
-        } else if(pricesToUpdate.length == 0) {
+        }
+        if(pricesToUpdate.length == 0) {
             throw new IllegalArgumentException("Requires a non-empty array of PriceData.Prices to update");
         }
 
@@ -125,6 +129,7 @@ public class PositionsDataHandler {
                         data.osqthEth = getOsqthEth(block);
                     data.crabV2Eth = getCrabv2Eth(block, data.osqthEth);
                 }
+                case ZENBULL -> data.zenbull = getZenBull(block);
                 case NORMFACTOR -> data.normFactor = getNormFactor(block);
             }
         }
@@ -137,7 +142,7 @@ public class PositionsDataHandler {
      * @param pricesToUpdate A nullable array to obtain the prices for. If not null, the array mustn't be empty.
      * @return A PriceData object for the specified prices to obtain for at the latest block
      */
-    @Nonnull
+    @NonNull
     public static PriceData getPriceData(@Nullable PriceData.Prices[] pricesToUpdate) throws ExecutionException, InterruptedException, IOException {
         long latestBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
 
@@ -147,7 +152,7 @@ public class PositionsDataHandler {
             return getPriceData(latestBlock, pricesToUpdate);
     }
 
-    public static void addNewData(@Nonnull String address, @Nonnull ArrayList<SimpleTokenTransferResponse> data) {
+    public static void addNewData(@NonNull String address, @NonNull ArrayList<SimpleTokenTransferResponse> data) {
         if(cachedTransfers.containsKey(address)) {
             for(SimpleTokenTransferResponse transfer: data) {
                 if(!cachedTransfers.get(address).contains(transfer)) {
@@ -166,7 +171,7 @@ public class PositionsDataHandler {
         }
     }
 
-    public static void addNewData(@Nonnull Long block, @Nonnull PriceData data) {
+    public static void addNewData(@NonNull Long block, @NonNull PriceData data) {
         cachedPrices.put(block, data);
 
         try {
@@ -176,7 +181,7 @@ public class PositionsDataHandler {
         }
     }
 
-    public static void removeData(@Nonnull String address, @Nonnull String tokenAddress) {
+    public static void removeData(@NonNull String address, @NonNull String tokenAddress) {
         ArrayList<SimpleTokenTransferResponse> originalList = cachedTransfers.get(address);
         if(originalList == null) return;
         ArrayList<SimpleTokenTransferResponse> filteredList = (ArrayList<SimpleTokenTransferResponse>) originalList.stream().filter(t -> !t.token.equalsIgnoreCase(tokenAddress)).collect(Collectors.toList());
@@ -222,7 +227,7 @@ public class PositionsDataHandler {
         writer.close();
     }
 
-    public static void writeDataToFile(@Nonnull Object data, @Nonnull Path path) throws IOException {
+    public static void writeDataToFile(@NonNull Object data, @NonNull Path path) throws IOException {
         Writer writer = Files.newBufferedWriter(path);
 
         new Gson().toJson(data, writer);
@@ -247,7 +252,7 @@ public class PositionsDataHandler {
     }
 
     @SuppressWarnings("rawtypes")
-    private static BigInteger getCrabv1Eth(long block, @Nonnull BigInteger osqthEth) throws ExecutionException, InterruptedException {
+    private static BigInteger getCrabv1Eth(long block, @NonNull BigInteger osqthEth) throws ExecutionException, InterruptedException {
         if(osqthEth.equals(BigInteger.ZERO))
             throw new IllegalArgumentException("osqthEth cannot be zero!");
 
@@ -269,7 +274,7 @@ public class PositionsDataHandler {
     }
 
     @SuppressWarnings("rawtypes")
-    private static BigInteger getCrabv2Eth(long block, @Nonnull BigInteger osqthEth) throws ExecutionException, InterruptedException {
+    private static BigInteger getCrabv2Eth(long block, @NonNull BigInteger osqthEth) throws ExecutionException, InterruptedException {
         if(osqthEth.equals(BigInteger.ZERO))
             throw new IllegalArgumentException("osqthEth cannot be zero!");
 
@@ -288,6 +293,48 @@ public class PositionsDataHandler {
         ).get(0).getValue();
 
         return netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply);
+    }
+
+    private static BigInteger getZenBull(long block) throws ExecutionException, InterruptedException {
+        BigInteger crabValue = getCrabv2Eth(block, getOsqthEth(block));
+        BigInteger eulerDebt;
+        BigInteger eulerCollateral;
+        BigInteger zenBullSupply;
+
+        eulerDebt = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                dusdc,
+                balanceOf(
+                        zenbull
+                ),
+                block
+        ).get(0).getValue()).multiply(BigInteger.TEN.pow(30)).divide(getEthUsd(block));
+        eulerCollateral = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                eweth,
+                convertBalanceToUnderlying(
+                        (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                                eweth,
+                                balanceOf(zenbull),
+                                block
+                        ).get(0).getValue()
+                ),
+                block
+        ).get(0).getValue();
+        zenBullSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                zenbull,
+                callTotalSupply,
+                block
+        ).get(0).getValue();
+
+        ZenBull.updateZenBullVault(
+                new ZenBull.ZenBullData(
+                        crabValue,
+                        eulerDebt.multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply),
+                        eulerCollateral.multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply),
+                        zenBullSupply
+                )
+        );
+
+        return crabValue.add(eulerCollateral.subtract(eulerDebt).multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply));
     }
 
     private static BigInteger getNormFactor(long block) throws ExecutionException, InterruptedException {

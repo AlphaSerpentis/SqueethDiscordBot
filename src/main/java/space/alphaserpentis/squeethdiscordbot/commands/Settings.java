@@ -2,12 +2,13 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -23,7 +24,6 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHand
 import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,9 +51,9 @@ public class Settings extends BotCommand<MessageEmbed> {
         ));
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         List<OptionMapping> optionMappingList = event.getOptions();
 
@@ -112,7 +112,7 @@ public class Settings extends BotCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         SubcommandData ephemeral = new SubcommandData("ephemeral", "Set messages to be ephemeral (private) or not (public)")
                 .addOption(OptionType.BOOLEAN, "setting", "Setting to set to");
         SubcommandGroupData squiz = new SubcommandGroupData("squiz", "Settings related to Squiz")
@@ -138,7 +138,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         commandId = cmd.getIdLong();
     }
 
-    private void setChangeOnlyEphemeral(long serverId, @Nonnull String input, @Nonnull EmbedBuilder eb) {
+    private void setChangeOnlyEphemeral(long serverId, @NonNull String input, @NonNull EmbedBuilder eb) {
         ServerDataHandler.serverDataHashMap.get(serverId).setOnlyEphemeral(Boolean.parseBoolean(input));
 
         try {
@@ -150,7 +150,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void setChangeLeaderboard(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
+    private void setChangeLeaderboard(long serverId, @NonNull GuildChannelUnion channel, @NonNull EmbedBuilder eb) {
         ServerDataHandler.serverDataHashMap.get(serverId).setLeaderboardChannelId(channel.getIdLong());
 
         try {
@@ -164,7 +164,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void enableRandomQuestions(long serverId, boolean setting, @Nonnull EmbedBuilder eb) {
+    private void enableRandomQuestions(long serverId, boolean setting, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
         sd.setDoRandomSquizQuestions(setting);
 
@@ -187,7 +187,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void addChannelFromEligibleChannels(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
+    private void addChannelFromEligibleChannels(long serverId, @NonNull GuildChannelUnion channel, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.getRandomSquizQuestionsChannels().add(channel.getIdLong());
@@ -207,7 +207,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void removeChannelFromEligibleChannels(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
+    private void removeChannelFromEligibleChannels(long serverId, @NonNull GuildChannelUnion channel, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         boolean result = sd.getRandomSquizQuestionsChannels().remove(channel.getIdLong());
@@ -225,7 +225,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void setRandomSquizBaseInterval(long serverId, long interval, @Nonnull EmbedBuilder eb) {
+    private void setRandomSquizBaseInterval(long serverId, long interval, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.setRandomSquizBaseIntervals(interval);
@@ -242,7 +242,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void setAuctionNotifications(long serverId, boolean setting, @Nonnull EmbedBuilder eb) {
+    private void setAuctionNotifications(long serverId, boolean setting, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.setListenToCrabAuctions(setting);
@@ -270,7 +270,7 @@ public class Settings extends BotCommand<MessageEmbed> {
          }
     }
 
-    private void setAuctionChannel(long serverId, @Nonnull GuildChannelUnion channel, @Nonnull EmbedBuilder eb) {
+    private void setAuctionChannel(long serverId, @NonNull GuildChannelUnion channel, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.setCrabAuctionChannelId(channel.getIdLong());
@@ -292,7 +292,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void disqualifyUser(long serverId, long userId, @Nonnull EmbedBuilder eb) {
+    private void disqualifyUser(long serverId, long userId, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.getDisqualifiedUsers().add(userId);
@@ -306,7 +306,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void removeDisqualifiedUser(long serverId, long userId, @Nonnull EmbedBuilder eb) {
+    private void removeDisqualifiedUser(long serverId, long userId, @NonNull EmbedBuilder eb) {
         ServerData sd = ServerDataHandler.serverDataHashMap.get(serverId);
 
         sd.getDisqualifiedUsers().remove(userId);
@@ -320,7 +320,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         }
     }
 
-    private void clearCache(@Nonnull EmbedBuilder eb) {
+    private void clearCache(@NonNull EmbedBuilder eb) {
         try {
             PositionsDataHandler.clearPrices();
             PositionsDataHandler.clearTransfers();
@@ -341,10 +341,10 @@ public class Settings extends BotCommand<MessageEmbed> {
         return userId == CommandsHandler.adminUserID;
     }
 
-    private boolean canBotSendMessages(@Nonnull GuildChannelUnion channel) {
+    private boolean canBotSendMessages(@NonNull GuildChannelUnion channel) {
         return channel.asTextChannel().canTalk();
     }
-    private boolean canBotSendMessages(@Nonnull TextChannel channel) {
+    private boolean canBotSendMessages(@NonNull TextChannel channel) {
         return channel.canTalk();
     }
 }

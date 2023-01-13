@@ -4,12 +4,14 @@ package space.alphaserpentis.squeethdiscordbot.commands;
 
 import com.google.gson.Gson;
 import io.reactivex.Flowable;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import io.reactivex.disposables.Disposable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -34,6 +36,8 @@ import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.Auction;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionByIdResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
@@ -41,8 +45,6 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandl
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -93,13 +95,13 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         public boolean rebalanceSoldOsqth;
         public long lastRun = 0, lastRebalanceRun = 0;
         public CrabVault(
-            @Nonnull String address
+            @NonNull String address
         ) {
             this.address = address;
         }
 
         public abstract void updateLastHedge() throws IOException;
-        private double calculateCollateralRatio() {
+        public double calculateCollateralRatio() {
             BigInteger debt = shortOsqth.multiply(priceOfEthInUsd).multiply(normFactor).divide(BigInteger.valueOf(10000));
             // Divide by 10^36 of debt to get the correctly scaled debt
             return ethCollateral.doubleValue() / (debt.doubleValue() / Math.pow(10,36)) * 100;
@@ -271,7 +273,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     }
                 }
 
-                TimeZone timeZone = TimeZone.getTimeZone("America/Los_Angeles");
+                TimeZone timeZone = TimeZone.getTimeZone("UTC");
                 Calendar calendar = Calendar.getInstance(timeZone);
                 TemporalAdjuster ta;
                 LocalDate today = LocalDate.now(timeZone.toZoneId());
@@ -284,43 +286,43 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     case Calendar.SATURDAY, Calendar.SUNDAY -> {
                         ta = TemporalAdjusters.next(DayOfWeek.MONDAY);
                         auctionDay = today.with(ta);
-                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                     }
                     case Calendar.MONDAY -> {
-                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = today.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
 
                         if(timeNow >= timeThen) {
                             ta = TemporalAdjusters.next(DayOfWeek.WEDNESDAY);
                             auctionDay = today.with(ta);
-                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                            timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                         }
                     }
                     case Calendar.TUESDAY -> {
                         ta = TemporalAdjusters.next(DayOfWeek.WEDNESDAY);
                         auctionDay = today.with(ta);
-                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                     }
                     case Calendar.WEDNESDAY -> {
-                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = today.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
 
                         if(timeNow >= timeThen) {
                             ta = TemporalAdjusters.next(DayOfWeek.FRIDAY);
                             auctionDay = today.with(ta);
-                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                            timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                         }
                     }
                     case Calendar.THURSDAY -> {
                         ta = TemporalAdjusters.next(DayOfWeek.FRIDAY);
                         auctionDay = today.with(ta);
-                        timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                     }
                     case Calendar.FRIDAY -> {
-                        timeThen = today.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                        timeThen = today.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
 
                         if(timeNow >= timeThen) {
                             ta = TemporalAdjusters.next(DayOfWeek.MONDAY);
                             auctionDay = today.with(ta);
-                            timeThen = auctionDay.atTime(9,30).atZone(timeZone.toZoneId()).toEpochSecond();
+                            timeThen = auctionDay.atTime(16,30).atZone(timeZone.toZoneId()).toEpochSecond();
                         }
                     }
                 }
@@ -423,6 +425,11 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                                             Throwable::printStackTrace
                                     );
                                 sd.setLastCrabAuctionNotificationId(response.getIdLong());
+                                try {
+                                    ServerDataHandler.updateServerData();
+                                } catch (IOException ignored) {
+
+                                }
                             },
                             Throwable::printStackTrace
                     );
@@ -439,8 +446,10 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 //                        scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
 //                    }
 
-                    if(getLatestActiveAuctionId() == -1)
+                    if(getLatestActiveAuctionId() == -1) {
                         scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
+                        return;
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -483,7 +492,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 },0,1,TimeUnit.MINUTES);
             }
 
-            private static void cleanBidMessages(@Nonnull ServerData sd) {
+            private static void cleanBidMessages(@NonNull ServerData sd) {
                 for(Long serverId: serversListening) {
                     TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
 
@@ -869,7 +878,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    private static CrabVault crabV1, crabV2;
+    public static CrabVault crabV1, crabV2;
 
     public Crab() {
         super(new BotCommandOptions(
@@ -899,7 +908,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void runButtonInteraction(@Nonnull ButtonInteractionEvent event) {
+    public void runButtonInteraction(@NonNull ButtonInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         InteractionHook pending = event.deferEdit().complete();
 
@@ -915,9 +924,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public Collection<ItemComponent> addButtons(@Nonnull GenericCommandInteractionEvent event) {
+    public Collection<ItemComponent> addButtons(@NonNull GenericCommandInteractionEvent event) {
         if(event.getSubcommandName().equalsIgnoreCase("bids") && event.getOptions().size() == 0) {
             return Arrays.asList(new ItemComponent[]{getButton("Refresh")});
         } else {
@@ -925,9 +934,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public CommandResponse<MessageEmbed> runCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    public CommandResponse<MessageEmbed> runCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         EmbedBuilder eb = new EmbedBuilder();
         CrabVault crab;
 
@@ -957,7 +966,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    public void updateCommand(@Nonnull JDA jda) {
+    public void updateCommand(@NonNull JDA jda) {
         SubcommandData stats = new SubcommandData("stats", "Regular statistics on Crab").addOption(OptionType.BOOLEAN, "v1", "True to toggle v1 stats", false);
         SubcommandGroupData rebalance = new SubcommandGroupData("rebalance", "Shows the rebalancing-related commands")
                 .addSubcommands(
@@ -971,8 +980,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @Override
-    @Nonnull
-    public CommandResponse<MessageEmbed> beforeRunCommand(long userId, @Nonnull SlashCommandInteractionEvent event) {
+    @NonNull
+    public CommandResponse<MessageEmbed> beforeRunCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         if(event.getSubcommandName().equalsIgnoreCase("bids")) {
             return new CommandResponse<>(null, true);
         }
@@ -981,43 +990,16 @@ public class Crab extends ButtonCommand<MessageEmbed> {
     }
 
     @SuppressWarnings("rawtypes")
-    private void statsPage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
-        Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
+    private void statsPage(@NonNull EmbedBuilder eb, @NonNull CrabVault crab) {
         if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
-                PriceData priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
-                List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
-
-                crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
-                BigInteger priceOfoSQTH = priceData.osqthEth;
-                crab.priceOfEthInUsd = priceData.ethUsdc;
-                crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, callTotalSupply).get(0).getValue();
-                crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
-
-                crab.normFactor = priceData.normFactor;
-
-                BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
-
-                crab.ethPerToken = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
-                crab.usdPerToken = netEth.multiply(crab.priceOfEthInUsd).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
-
-                crab.lastRun = Instant.now().getEpochSecond();
-
-                vaultGreeks = new Vault.VaultGreeks(
-                        crab.priceOfEthInUsd.doubleValue() / Math.pow(10,18),
-                        LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
-                        crab.normFactor.doubleValue() / Math.pow(10,18),
-                        LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility()/100,
-                        -(crab.shortOsqth.doubleValue() / Math.pow(10,18)),
-                        crab.ethCollateral.doubleValue() / Math.pow(10,18)
-                );
-                crab.lastRunVaultGreeks = vaultGreeks;
+                update(crab);
             } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
+        Vault.VaultGreeks vaultGreeks = crab.lastRunVaultGreeks;
         NumberFormat instance = NumberFormat.getInstance();
 
         eb.setTitle("Crab " + (crab instanceof v1 ? "v1" : "v2") + " Statistics");
@@ -1040,7 +1022,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         eb.setColor(Color.RED);
     }
 
-    private void rebalancePage(@Nonnull EmbedBuilder eb, @Nonnull CrabVault crab) {
+    private void rebalancePage(@NonNull EmbedBuilder eb, @NonNull CrabVault crab) {
         NumberFormat instance = NumberFormat.getInstance();
         DecimalFormat df = new DecimalFormat("#");
 
@@ -1059,17 +1041,21 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
         try {
             double timestamp = EthereumRPCHandler.web3.ethGetBlockByNumber(new DefaultBlockParameterNumber(crab.lastHedgeBlock), true).send().getBlock().getTimestamp().doubleValue();
+            double ethPriceAtRebalance = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(Addresses.Uniswap.oracle, CommonFunctions.getTwap_ethUsd, crab.lastHedgeBlock).get(0).getValue()).doubleValue() / Math.pow(10,18);
             eb.addField("Last Rebalance", "<t:" + df.format(timestamp) + ">", false);
             if(crab.rebalanceSoldOsqth) {
                 eb.addField("Sold", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
-                eb.addField("Received", instance.format(crab.rebalancedEth) + " ETH", false);
+                eb.addField("Received", instance.format(crab.rebalancedEth) + " Ξ", false);
             } else {
                 eb.addField("Bought", instance.format(crab.rebalancedOsqth) + " oSQTH", false);
-                eb.addField("Paid", instance.format(crab.rebalancedEth) + " ETH", false);
+                eb.addField("Paid", instance.format(crab.rebalancedEth) + " Ξ", false);
             }
+            eb.addField("Clearing Price", instance.format(crab.rebalancedEth/crab.rebalancedOsqth) + " Ξ", false);
             if(crab instanceof v2) {
                 eb.addField("Upcoming Auction", "<t:" + v2.FeedingTime.getAuctionTime() + ">", false);
             }
+            eb.addField("ETH Price at Rebalance", "$" + instance.format(ethPriceAtRebalance), false);
+            eb.addField("Price Hedge Threshold", "$" + instance.format(ethPriceAtRebalance * 0.8) + "/" + instance.format(ethPriceAtRebalance * 1.2), false);
             eb.addField("Δ Delta", "$" + instance.format(crab.preVaultGreeksAtHedge.delta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.delta), true);
             eb.addField("Γ Gamma", "$" + instance.format(crab.preVaultGreeksAtHedge.gamma) + " → $" + instance.format(crab.postVaultGreeksAtHedge.gamma), true);
             eb.addBlankField(true);
@@ -1077,13 +1063,16 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             eb.addField("Θ Theta", "$" + instance.format(crab.preVaultGreeksAtHedge.theta) + " → $" + instance.format(crab.postVaultGreeksAtHedge.theta), true);
             eb.addBlankField(true);
             eb.addField("Greeks Notice", "Greeks shown here go from pre-rebalance → post-rebalance", false);
+            eb.addField("Price Hedge Notice", "Price hedges will only be initiated if the price of Ethereum breaches the threshold and stays at or past it for a set amount of time.", false);
             eb.setColor(Color.RED);
         } catch (IOException e) {
             eb.setDescription("An unexpected error has occurred. Please try again later.");
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static void bidsPage(@Nonnull EmbedBuilder eb, long id) {
+    private static void bidsPage(@NonNull EmbedBuilder eb, long id) {
         eb.setTitle("Crab v2 Auction");
         eb.setThumbnail("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
         try {
@@ -1176,5 +1165,36 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         } catch (IOException | NullPointerException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void update(@NonNull CrabVault crab) throws IOException, ExecutionException, InterruptedException {
+        PriceData priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
+
+        crab.ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
+        crab.shortOsqth = (BigInteger) vaultDetails.get(3).getValue();
+        BigInteger priceOfoSQTH = priceData.osqthEth;
+        crab.priceOfEthInUsd = priceData.ethUsdc;
+        crab.tokenSupply = (BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, callTotalSupply).get(0).getValue();
+        crab.lastHedgeTime = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(crab.address, CrabVault.callTimeAtLastHedge).get(0).getValue()).longValue();
+
+        crab.normFactor = priceData.normFactor;
+
+        BigInteger netEth = crab.ethCollateral.subtract(crab.shortOsqth.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
+
+        crab.ethPerToken = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
+        crab.usdPerToken = netEth.multiply(crab.priceOfEthInUsd).divide(crab.tokenSupply).doubleValue() / Math.pow(10, 18);
+
+        crab.lastRun = Instant.now().getEpochSecond();
+
+        Vault.VaultGreeks vaultGreeks = new Vault.VaultGreeks(
+                crab.priceOfEthInUsd.doubleValue() / Math.pow(10, 18),
+                LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
+                crab.normFactor.doubleValue() / Math.pow(10, 18),
+                LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility() / 100,
+                -(crab.shortOsqth.doubleValue() / Math.pow(10, 18)),
+                crab.ethCollateral.doubleValue() / Math.pow(10, 18)
+        );
+        crab.lastRunVaultGreeks = vaultGreeks;
     }
 }

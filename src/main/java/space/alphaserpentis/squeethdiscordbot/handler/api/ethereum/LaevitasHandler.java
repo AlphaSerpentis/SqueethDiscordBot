@@ -3,9 +3,9 @@
 package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum;
 
 import com.google.gson.Gson;
+import io.reactivex.annotations.NonNull;
 import space.alphaserpentis.squeethdiscordbot.data.api.SqueethData;
 
-import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,7 +35,7 @@ public class LaevitasHandler {
         }, 0, 5, TimeUnit.MINUTES);
     }
 
-    public static boolean pollForData(@Nonnull String append) throws IOException {
+    public static boolean pollForData(@NonNull String append) throws IOException {
         URL fullURL = new URL(API_URL.toString() + append);
 
         HttpURLConnection connection = (HttpURLConnection) fullURL.openConnection();
@@ -69,7 +69,7 @@ public class LaevitasHandler {
         return Instant.now().getEpochSecond() - lastSuccessfulPoll > 600;
     }
 
-    private static void parseData(@Nonnull String data) {
+    private static void parseData(@NonNull String data) {
         Gson gson = new Gson();
 
         latestSqueethData = gson.fromJson(data, SqueethData.class);

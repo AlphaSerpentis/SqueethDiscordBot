@@ -10,6 +10,14 @@ public interface Addresses {
         String osqth = "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b";
         String crabv1 = "0xf205ad80bb86ac92247638914265887a8baa437d";
         String crabv2 = "0x3b960e47784150f5a63777201ee2b15253d713e8";
+        String zenbull = "0xb46Fb07b0c80DBC3F97cae3BFe168AcaD46dF507";
+    }
+
+    interface Euler {
+        String eweth = "0x1b808f49add4b8c6b5117d9681cf7312fcf0dc1d";
+        String dusdc = "0x84721a3db22eb852233aeae74f9bc8477f8bcc42";
+        String marketsProxy = "0x3520d5a913427E6F0D6A83E07ccD4A4da316e4d3";
+        String simpleLens = "0x5077b7642abf198b4a5b7c4bdce4f03016c7089c";
     }
 
     interface Uniswap {
