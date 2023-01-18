@@ -4,10 +4,7 @@ import io.reactivex.annotations.NonNull;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.generated.Uint128;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.abi.datatypes.generated.Uint96;
+import org.web3j.abi.datatypes.generated.*;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -21,6 +18,13 @@ import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.usd
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.weth;
 
 public interface CommonFunctions {
+    Function decimals = new Function(
+            "decimals",
+            List.of(),
+            List.of(
+                    new TypeReference<Uint8>() {}
+            )
+    );
     Function getTwap_ethUsd = new Function(
             "getTwap",
             Arrays.asList(

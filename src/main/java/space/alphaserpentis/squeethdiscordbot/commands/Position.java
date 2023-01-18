@@ -42,10 +42,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
     private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
 
+    public interface ShortVol {
+        double calculateVega();
+    }
+
     public abstract static class AbstractPositions {
 
         public ArrayList<SimpleTokenTransferResponse> transfers = new ArrayList<>();
-        public final HashMap<Integer, BigInteger> tokensAtBlock = new HashMap<>();
+        public final HashMap<Long, BigInteger> tokensAtBlock = new HashMap<>();
         public final String userAddress;
         public BigInteger costBasis = BigInteger.ZERO;
         public BigInteger costBasisInEth = BigInteger.ZERO;
@@ -81,14 +85,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 if(transfer.from.equalsIgnoreCase(userAddress)) { // leaves the account
                     if(tokensAtBlock.size() == 0) continue;
 
-                    int lowestBlock = tokensAtBlock.keySet().stream().min(Integer::compareTo).get();
+                    long lowestBlock = tokensAtBlock.keySet().stream().min(Long::compareTo).get();
                     BigInteger val = tokensAtBlock.get(lowestBlock).subtract(transfer.getBigIntegerValue());
 
                     while(val.compareTo(BigInteger.ZERO) < 0) { // if the value is negative, we need to remove the block and subtract the next lowest block's value and repeat until the lowest block is no longer negative
                         tokensAtBlock.remove(lowestBlock);
                         if(tokensAtBlock.size() == 0) break;
 
-                        lowestBlock = tokensAtBlock.keySet().stream().min(Integer::compareTo).get();
+                        lowestBlock = tokensAtBlock.keySet().stream().min(Long::compareTo).get();
                         val = tokensAtBlock.get(lowestBlock).subtract(val.abs());
 
                         if(val.compareTo(BigInteger.ZERO) > 0) { // value is no longer negative, therefore it is registered in the mapping
@@ -102,7 +106,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         tokensAtBlock.put(lowestBlock, val);
                     }
                 } else { // enters the account
-                    tokensAtBlock.put(transfer.getBlockNum(), transfer.getBigIntegerValue());
+                    tokensAtBlock.put((long) transfer.getBlockNum(), transfer.getBigIntegerValue());
                 }
             }
 
@@ -146,18 +150,18 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCostBasis() {
             DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
-            for(int block : tokensAtBlock.keySet().stream().sorted().toList()) {
+            for(long block : tokensAtBlock.keySet().stream().sorted().toList()) {
                 BigInteger priceOsqth, priceEth, transferCostBasis;
                 double earliestNormFactor;
                 try {
                     PriceData priceData = new PriceData();
 
-                    if(PositionsDataHandler.cachedPrices.containsKey((long) block)) {
-                        priceData = PositionsDataHandler.cachedPrices.get((long) block);
+                    if(PositionsDataHandler.cachedPrices.containsKey(block)) {
+                        priceData = PositionsDataHandler.cachedPrices.get(block);
                         priceOsqth = priceData.osqthEth;
                         priceEth = priceData.ethUsdc;
                     } else {
-                        PriceData tempPriceData = PositionsDataHandler.getPriceData((long) block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD});
+                        PriceData tempPriceData = PositionsDataHandler.getPriceData(block, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD});
                         priceOsqth = tempPriceData.osqthEth;
                         priceEth = tempPriceData.ethUsdc;
                         priceData.ethUsdc = priceEth;
@@ -165,7 +169,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     }
 
                     if(priceData.normFactor.equals(BigInteger.ZERO)) {
-                        priceData.normFactor = PositionsDataHandler.getPriceData((long) block, new PriceData.Prices[]{PriceData.Prices.NORMFACTOR}).normFactor;
+                        priceData.normFactor = PositionsDataHandler.getPriceData(block, new PriceData.Prices[]{PriceData.Prices.NORMFACTOR}).normFactor;
                     }
 
                     earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
@@ -223,7 +227,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    public static class CrabPositions extends AbstractPositions {
+    public static class CrabPositions extends AbstractPositions implements ShortVol {
         private final String crab;
         private final boolean isV2;
 
@@ -260,16 +264,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
         @SuppressWarnings("rawtypes")
         @Override
         public void calculateCostBasis() {
-            DecimalFormat df = new DecimalFormat("#");
             // Loop through all the blocks
-            for(int block : tokensAtBlock.keySet().stream().sorted().toList()) {
+            for(long block : tokensAtBlock.keySet().stream().sorted().toList()) {
                 BigInteger priceCrabEth;
                 try {
                     PriceData priceData = new PriceData();
                     boolean fetchPriceAtThisBlock = false;
 
-                    if(PositionsDataHandler.cachedPrices.containsKey((long) block)) {
-                        priceData = PositionsDataHandler.cachedPrices.get((long) block);
+                    if(PositionsDataHandler.cachedPrices.containsKey(block)) {
+                        priceData = PositionsDataHandler.cachedPrices.get(block);
                         if(!isV2) {
                             if(priceData.crabEth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
                                 fetchPriceAtThisBlock = true;
@@ -286,19 +289,19 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     if(fetchPriceAtThisBlock) {
                         BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
 
-                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, getVaultDetails, (long) block);
-                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, (long) block);
-                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, (long) block);
+                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, getVaultDetails, block);
+                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, block);
+                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, block);
 
                         ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
                         shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
                         priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
                         priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
-                        crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(crab, callTotalSupply, (long) block).get(0).getValue();
+                        crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(crab, callTotalSupply, block).get(0).getValue();
 
-                        BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.valueOf((long) Math.pow(10,18))));
+                        BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.TEN.pow(18)));
 
-                        priceCrabEth = netEth.multiply(BigInteger.valueOf((long) Math.pow(10,18))).divide(crabTotalSupply.subtract(tokensAtBlock.get(block)));
+                        priceCrabEth = netEth.multiply(BigInteger.TEN.pow(18)).divide(crabTotalSupply.subtract(tokensAtBlock.get(block)));
                         priceData.osqthEth = priceOfoSQTH;
                         if(!isV2) {
                             priceData.crabEth = priceCrabEth;
@@ -307,15 +310,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         }
                         priceData.ethUsdc = priceOfETHinUSD;
 
-                        PositionsDataHandler.addNewData((long) block, priceData);
+                        PositionsDataHandler.addNewData(block, priceData);
                     }
 
                     if(isV2) {
-                        costBasisInEth = costBasisInEth.add(priceData.crabV2Eth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
-                        costBasis = costBasis.add(priceData.crabV2Eth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
+                        costBasisInEth = costBasisInEth.add(priceData.crabV2Eth.multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(18)));
+                        costBasis = costBasis.add(priceData.crabV2Eth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(36)));
                     } else {
-                        costBasisInEth = costBasisInEth.add(priceData.crabEth.multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18))))));
-                        costBasis = costBasis.add(priceData.crabEth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36))))));
+                        costBasisInEth = costBasisInEth.add(priceData.crabEth.multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(18)));
+                        costBasis = costBasis.add(priceData.crabEth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(36)));
                     }
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
@@ -325,16 +328,85 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         @Override
         public void calculateCurrentValue() {
-            DecimalFormat df = new DecimalFormat("#");
-            currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,18)))));
-            currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(new BigInteger(String.valueOf(df.format(Math.pow(10,36)))));
+            currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(BigInteger.TEN.pow(18));
+            currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(BigInteger.TEN.pow(36));
+        }
+
+        @Override
+        public double calculateVega() {
+            return 0;
+        }
+    }
+
+    public static class ZenBullPositions extends AbstractPositions implements ShortVol {
+
+        public ZenBullPositions(@NonNull String userAddress) {
+            super(userAddress);
+        }
+
+        @Override
+        public void getAndSetPrices() {
+            try {
+                PriceData tempPriceData;
+                tempPriceData = PositionsDataHandler.getPriceData(
+                        EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                        new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD}
+                );
+                currentPriceInEth = tempPriceData.zenbull;
+                currentPriceInUsd = currentPriceInEth.multiply(tempPriceData.ethUsdc);
+            } catch (ExecutionException | InterruptedException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void calculateCostBasis() {
+            // Loop through all the blocks
+            for(long block : tokensAtBlock.keySet().stream().sorted().toList()) {
+                try {
+                    PriceData priceData = new PriceData();
+                    boolean fetchPriceAtThisBlock = false;
+
+                    if(PositionsDataHandler.cachedPrices.containsKey(block)) {
+                        priceData = PositionsDataHandler.cachedPrices.get(block);
+                        if(priceData.zenbull.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
+                            fetchPriceAtThisBlock = true;
+                        }
+                    } else {
+                        fetchPriceAtThisBlock = true;
+                    }
+
+                    if(fetchPriceAtThisBlock) {
+                        priceData = PositionsDataHandler.getPriceData(
+                                block,
+                                new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD}
+                        );
+                    }
+
+                    costBasisInEth = costBasisInEth.add(priceData.zenbull.multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(18)));
+                    costBasis = costBasis.add(priceData.zenbull.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(36)));
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        @Override
+        public void calculateCurrentValue() {
+            currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(BigInteger.TEN.pow(18));
+            currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(BigInteger.TEN.pow(36));
+        }
+
+        @Override
+        public double calculateVega() {
+            return 0;
         }
     }
 
     public Position() {
         super(new BotCommandOptions(
             "position",
-            "Checks your wallet's long Squeeth and Crab v1/v2 positions",
+            "Checks your wallet's long Squeeth, Crab v1/v2, and Zen Bull positions",
             30,
             0,
             true,
@@ -347,7 +419,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         ));
 
         buttonHashMap.put("Previous", Button.primary("position_previous", "Previous").asDisabled());
-        buttonHashMap.put("Page", Button.secondary("position_page", "1/3").asDisabled());
+        buttonHashMap.put("Page", Button.secondary("position_page", "1/4").asDisabled());
         buttonHashMap.put("Next", Button.primary("position_next", "Next"));
     }
 
@@ -379,12 +451,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
         AbstractPositions[] posArray = new AbstractPositions[]{
                 new LongPositions(userAddress),
                 new CrabPositions(userAddress, crabv1, false), // v1
-                new CrabPositions(userAddress, crabv2, true) // v2
+                new CrabPositions(userAddress, crabv2, true), // v2
+                new ZenBullPositions(userAddress)
         };
 
         posArray[0].getAndSetTransfers(osqth);
         posArray[1].getAndSetTransfers(((CrabPositions) posArray[1]).crab);
         posArray[2].getAndSetTransfers(((CrabPositions) posArray[2]).crab);
+        posArray[3].getAndSetTransfers(zenbull);
 
         for(AbstractPositions pos: posArray) {
             pos.getAndSetPrices();
@@ -403,7 +477,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
         if(
                 !(posArray[0].transfers.size() != 0 || !posArray[0].isValueDust(posArray[0].currentAmtHeld)) &&
                 !(posArray[1].transfers.size() != 0 || !posArray[1].isValueDust(posArray[1].currentAmtHeld)) &&
-                !(posArray[2].transfers.size() != 0 || !posArray[2].isValueDust(posArray[2].currentAmtHeld))
+                !(posArray[2].transfers.size() != 0 || !posArray[2].isValueDust(posArray[2].currentAmtHeld)) &&
+                !(posArray[3].transfers.size() != 0 || !posArray[3].isValueDust(posArray[3].currentAmtHeld))
         ) {
             cachedPositions.remove(event.getUser().getIdLong());
         }
@@ -434,16 +509,16 @@ public class Position extends ButtonCommand<MessageEmbed> {
             case "position_next" -> {
                 displayPositionPage(eb, currentPage, posArray);
                 pending = event.editMessageEmbeds(eb.build());
-                buttons.add(Button.secondary("position_page", currentPage++ + 1 + "/3").asDisabled());
+                buttons.add(Button.secondary("position_page", currentPage++ + 1 + "/4").asDisabled());
             }
             case "position_previous" -> {
                 displayPositionPage(eb, currentPage - 2, posArray);
                 pending = event.editMessageEmbeds(eb.build());
-                buttons.add(Button.secondary("position_page", currentPage-- - 1 + "/3").asDisabled());
+                buttons.add(Button.secondary("position_page", currentPage-- - 1 + "/4").asDisabled());
             }
         }
 
-        if(currentPage == 3) {
+        if(currentPage == 4) {
             buttons.add(0, Button.primary("position_previous", "Previous").asEnabled());
             buttons.add(Button.primary("position_next", "Next").asDisabled());
         } else if(currentPage == 1) {
@@ -511,7 +586,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                 }
             }
-            case 2 -> {
+            case 2 -> { // crab v2
                 if(posArray[2].transfers.size() == 0 || posArray[2].isValueDust(posArray[2].currentAmtHeld)) {
                     eb.setDescription("No Crab v2 position active (empty or dust)");
                 } else {
@@ -519,6 +594,19 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.setColor(Color.RED);
 //                    eb.addField("Crab Position", "Holding " + NumberFormat.getInstance().format(posArray[1].currentAmtHeld.doubleValue()/Math.pow(10,18)) + " Crab", false);
                     eb.addField("Price of Crab v2", "$" + priceInUsd, false);
+                    eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
+                    eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
+                    eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
+                }
+            }
+            case 3 -> { // zen bull
+                if(posArray[3].transfers.size() == 0 || posArray[3].isValueDust(posArray[3].currentAmtHeld)) {
+                    eb.setDescription("No Zen Bull position active (empty or dust)");
+                } else {
+                    eb.setThumbnail("https://media.tenor.com/P03vVwVx-_MAAAAd/bull-grazing-gordon-ramsay-makes-masa.gif");
+                    eb.setColor(Color.orange);
+//                    eb.addField("Crab Position", "Holding " + NumberFormat.getInstance().format(posArray[1].currentAmtHeld.doubleValue()/Math.pow(10,18)) + " Crab", false);
+                    eb.addField("Price of Zen Bull", "$" + priceInUsd, false);
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);

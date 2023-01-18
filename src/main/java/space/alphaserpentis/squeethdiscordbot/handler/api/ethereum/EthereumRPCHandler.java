@@ -75,21 +75,45 @@ public class EthereumRPCHandler {
 
             if(inbound.result.pageKey == null) {
                 TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                temp.result.transfers.forEach(transfer -> {
+                    try {
+                        listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             } else {
                 while(inbound.result.pageKey != null) {
                     TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                    temp.result.transfers.forEach(transfer -> {
+                        try {
+                            listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                        } catch (ExecutionException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                     inbound = temp;
                 }
             }
             if(outbound.result.pageKey == null) {
                 TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                temp.result.transfers.forEach(transfer -> {
+                    try {
+                        listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             } else {
                 while(outbound.result.pageKey != null) {
                     TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, startingBlock, endingBlock), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                    temp.result.transfers.forEach(transfer -> {
+                        try {
+                            listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                        } catch (ExecutionException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                     outbound = temp;
                 }
             }
@@ -117,21 +141,45 @@ public class EthereumRPCHandler {
 
             if(inbound.result.pageKey == null) {
                 TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1, -1), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                temp.result.transfers.forEach(transfer -> {
+                    try {
+                        listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             } else {
                 while(inbound.result.pageKey != null) {
                     TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers("", address, token, inbound.result.pageKey, -1, -1), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                    temp.result.transfers.forEach(transfer -> {
+                        try {
+                            listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                        } catch (ExecutionException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                     inbound = temp;
                 }
             }
             if(outbound.result.pageKey == null) {
                 TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1, -1), TokenTransferResponse.class);
-                temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                temp.result.transfers.forEach(transfer -> {
+                    try {
+                        listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             } else {
                 while(outbound.result.pageKey != null) {
                     TokenTransferResponse temp = new Gson().fromJson(alchemy_getAssetTransfers(address, "", token, outbound.result.pageKey, -1, -1), TokenTransferResponse.class);
-                    temp.result.transfers.forEach(transfer -> listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value)));
+                    temp.result.transfers.forEach(transfer -> {
+                        try {
+                            listOfTransfers.add(new SimpleTokenTransferResponse(token, transfer.getBlockNum(), transfer.from, transfer.value, transfer.rawContract.value));
+                        } catch (ExecutionException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                     outbound = temp;
                 }
             }
