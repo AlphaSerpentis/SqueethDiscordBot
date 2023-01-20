@@ -2,6 +2,7 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
+import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -13,15 +14,14 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.interactions.MessageEditCallbackAction;
-import org.web3j.abi.datatypes.Type;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 
-import io.reactivex.annotations.NonNull;
 import java.awt.*;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -41,10 +41,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
     private static final HashMap<Long, AbstractPositions[]> cachedPositions = new HashMap<>();
     private static final HashMap<String, String> cachedENSDomains = new HashMap<>();
-
-    public interface ShortVol {
-        double calculateVega();
-    }
 
     public abstract static class AbstractPositions {
 
@@ -117,8 +113,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
             }
         }
         public void calculatePnl() {
-            calculateCostBasis();
             currentAmtHeld = tokensAtBlock.values().stream().reduce(BigInteger.ZERO, BigInteger::add);
+            calculateCostBasis();
             calculateCurrentValue();
         }
         public abstract void getAndSetPrices();
@@ -126,6 +122,22 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public abstract void calculateCurrentValue();
         public boolean isValueDust(@NonNull BigInteger value) {
             return value.compareTo(BigInteger.TEN.pow(12)) < 0;
+        }
+    }
+
+    public abstract static class ShortVol extends AbstractPositions {
+        final static double fundingPeriod = 17.5/365;
+        double currentVol;
+        double averageVolEntry;
+        double averageVega;
+
+        public ShortVol(String userAddress) {
+            super(userAddress);
+        }
+        @SuppressWarnings("unused")
+        public abstract double calculateShortOsqthExposure(@NonNull BigInteger size, long block) throws ExecutionException, InterruptedException;
+        static double calculateVega(double vol, double osqthUsd) {
+            return 2 * vol * fundingPeriod * osqthUsd;
         }
     }
 
@@ -174,7 +186,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                     earliestNormFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
 
-                    PositionsDataHandler.addNewData((long) block, priceData);
+                    PositionsDataHandler.addNewData(block, priceData);
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -227,7 +239,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         }
     }
 
-    public static class CrabPositions extends AbstractPositions implements ShortVol {
+    public static class CrabPositions extends ShortVol {
         private final String crab;
         private final boolean isV2;
 
@@ -244,29 +256,28 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 if(!isV2) {
                     tempPriceData = PositionsDataHandler.getPriceData(
                             EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
-                            new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD}
+                            new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD, PriceData.Prices.SQUEETHVOL}
                     );
                     currentPriceInEth = tempPriceData.crabEth;
                 } else {
                     tempPriceData = PositionsDataHandler.getPriceData(
                             EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
-                            new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD}
+                            new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD, PriceData.Prices.SQUEETHVOL}
                     );
                     currentPriceInEth = tempPriceData.crabV2Eth;
                 }
 
                 currentPriceInUsd = currentPriceInEth.multiply(tempPriceData.ethUsdc);
+                currentVol = tempPriceData.squeethVol;
             } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
         public void calculateCostBasis() {
             // Loop through all the blocks
             for(long block : tokensAtBlock.keySet().stream().sorted().toList()) {
-                BigInteger priceCrabEth;
                 try {
                     PriceData priceData = new PriceData();
                     boolean fetchPriceAtThisBlock = false;
@@ -274,11 +285,11 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     if(PositionsDataHandler.cachedPrices.containsKey(block)) {
                         priceData = PositionsDataHandler.cachedPrices.get(block);
                         if(!isV2) {
-                            if(priceData.crabEth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
+                            if(priceData.crabEth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO) || priceData.osqthEth.equals(BigInteger.ZERO) || priceData.squeethVol == 0) {
                                 fetchPriceAtThisBlock = true;
                             }
                         } else {
-                            if(priceData.crabV2Eth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
+                            if(priceData.crabV2Eth.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO) || priceData.osqthEth.equals(BigInteger.ZERO) || priceData.squeethVol == 0) {
                                 fetchPriceAtThisBlock = true;
                             }
                         }
@@ -287,28 +298,17 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     }
 
                     if(fetchPriceAtThisBlock) {
-                        BigInteger ethCollateral, shortoSQTH, priceOfoSQTH, priceOfETHinUSD, crabTotalSupply;
-
-                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crab, getVaultDetails, block);
-                        List<Type> osqthEthPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_osqth, block);
-                        List<Type> ethUsdcPrice = EthereumRPCHandler.ethCallAtSpecificBlock(oracle, getTwap_ethUsd, block);
-
-                        ethCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                        shortoSQTH = (BigInteger) vaultDetails.get(3).getValue();
-                        priceOfoSQTH = (BigInteger) osqthEthPrice.get(0).getValue();
-                        priceOfETHinUSD = (BigInteger) ethUsdcPrice.get(0).getValue();
-                        crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(crab, callTotalSupply, block).get(0).getValue();
-
-                        BigInteger netEth = ethCollateral.subtract(shortoSQTH.multiply(priceOfoSQTH).divide(BigInteger.TEN.pow(18)));
-
-                        priceCrabEth = netEth.multiply(BigInteger.TEN.pow(18)).divide(crabTotalSupply.subtract(tokensAtBlock.get(block)));
-                        priceData.osqthEth = priceOfoSQTH;
                         if(!isV2) {
-                            priceData.crabEth = priceCrabEth;
+                            priceData = PositionsDataHandler.getPriceData(
+                                    block,
+                                    new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.SQUEETHVOL}
+                            );
                         } else {
-                            priceData.crabV2Eth = priceCrabEth;
+                            priceData = PositionsDataHandler.getPriceData(
+                                    block,
+                                    new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.SQUEETHVOL}
+                            );
                         }
-                        priceData.ethUsdc = priceOfETHinUSD;
 
                         PositionsDataHandler.addNewData(block, priceData);
                     }
@@ -320,6 +320,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
                         costBasisInEth = costBasisInEth.add(priceData.crabEth.multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(18)));
                         costBasis = costBasis.add(priceData.crabEth.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(36)));
                     }
+
+                    averageVolEntry += priceData.squeethVol * (tokensAtBlock.get(block).doubleValue() / Math.pow(10,18) / (currentAmtHeld.doubleValue() / Math.pow(10,18)));
+                    averageVega += calculateShortOsqthExposure(tokensAtBlock.get(block), block) * -calculateVega(priceData.squeethVol, (priceData.osqthEth.multiply(priceData.ethUsdc).divide(BigInteger.TEN.pow(18))).doubleValue() / Math.pow(10,18));
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -333,15 +336,58 @@ public class Position extends ButtonCommand<MessageEmbed> {
         }
 
         @Override
-        public double calculateVega() {
-            return 0;
+        public double calculateShortOsqthExposure(@NonNull BigInteger size, long block) throws ExecutionException, InterruptedException {
+            BigInteger crabTotalSupply, crabShortOsqth;
+
+            crabShortOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                    Addresses.Squeeth.crabv2,
+                    getVaultDetails,
+                    block
+            ).get(3).getValue();
+            crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                    Addresses.Squeeth.crabv2,
+                    callTotalSupply,
+                    block
+            ).get(0).getValue();
+
+            return (crabShortOsqth.doubleValue() / crabTotalSupply.doubleValue()) * (size.doubleValue() / Math.pow(10,18));
         }
     }
 
-    public static class ZenBullPositions extends AbstractPositions implements ShortVol {
+    public static class ZenBullPositions extends ShortVol {
 
         public ZenBullPositions(@NonNull String userAddress) {
             super(userAddress);
+        }
+
+        @Override
+        public double calculateShortOsqthExposure(@NonNull BigInteger size, long block) throws ExecutionException, InterruptedException {
+            BigInteger zenbullTotalSupply, crabBalance, crabTotalSupply, crabShortOsqth;
+
+            crabShortOsqth = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                    Addresses.Squeeth.crabv2,
+                    getVaultDetails,
+                    block
+            ).get(3).getValue();
+            crabBalance = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                    Addresses.Squeeth.crabv2,
+                    balanceOf(
+                            zenbull
+                    ),
+                    block
+            ).get(0).getValue());
+            zenbullTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                    zenbull,
+                    callTotalSupply,
+                    block
+            ).get(0).getValue();
+            crabTotalSupply = (BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                    Addresses.Squeeth.crabv2,
+                    callTotalSupply,
+                    block
+            ).get(0).getValue();
+
+            return (crabShortOsqth.doubleValue() / (crabTotalSupply.doubleValue() / crabBalance.doubleValue())) * (size.doubleValue() / zenbullTotalSupply.doubleValue()) / Math.pow(10,18);
         }
 
         @Override
@@ -350,10 +396,11 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 PriceData tempPriceData;
                 tempPriceData = PositionsDataHandler.getPriceData(
                         EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
-                        new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD}
+                        new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD, PriceData.Prices.SQUEETHVOL}
                 );
                 currentPriceInEth = tempPriceData.zenbull;
                 currentPriceInUsd = currentPriceInEth.multiply(tempPriceData.ethUsdc);
+                currentVol = tempPriceData.squeethVol;
             } catch (ExecutionException | InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
@@ -369,7 +416,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
                     if(PositionsDataHandler.cachedPrices.containsKey(block)) {
                         priceData = PositionsDataHandler.cachedPrices.get(block);
-                        if(priceData.zenbull.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO)) {
+                        if(priceData.zenbull.equals(BigInteger.ZERO) || priceData.ethUsdc.equals(BigInteger.ZERO) || priceData.squeethVol == 0) {
                             fetchPriceAtThisBlock = true;
                         }
                     } else {
@@ -379,12 +426,16 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     if(fetchPriceAtThisBlock) {
                         priceData = PositionsDataHandler.getPriceData(
                                 block,
-                                new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD}
+                                new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.SQUEETHVOL}
                         );
+
+                        PositionsDataHandler.addNewData(block, priceData);
                     }
 
                     costBasisInEth = costBasisInEth.add(priceData.zenbull.multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(18)));
                     costBasis = costBasis.add(priceData.zenbull.multiply(priceData.ethUsdc).multiply(tokensAtBlock.get(block)).divide(BigInteger.TEN.pow(36)));
+                    averageVolEntry += priceData.squeethVol * (tokensAtBlock.get(block).doubleValue() / Math.pow(10,18)) / (currentAmtHeld.doubleValue() / Math.pow(10,18));
+                    averageVega += calculateShortOsqthExposure(tokensAtBlock.get(block), block) * -calculateVega(priceData.squeethVol, (priceData.osqthEth.multiply(priceData.ethUsdc).divide(BigInteger.TEN.pow(18))).doubleValue() / Math.pow(10,18));
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -395,11 +446,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCurrentValue() {
             currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(BigInteger.TEN.pow(18));
             currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(BigInteger.TEN.pow(36));
-        }
-
-        @Override
-        public double calculateVega() {
-            return 0;
         }
     }
 
@@ -556,6 +602,20 @@ public class Position extends ButtonCommand<MessageEmbed> {
         String unrealizedPnlInEth = nf.format((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)));
         String unrealizedPnlInUsdPercentage = nf.format(((posArray[page].currentValueInUsd.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasis.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasis.doubleValue() / Math.pow(10,18)) * 100);
         String unrealizedPnlInEthPercentage = nf.format(((posArray[page].currentValueInEth.doubleValue() / Math.pow(10,18)) - (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18))) / (posArray[page].costBasisInEth.doubleValue() / Math.pow(10,18)) * 100);
+        String unrealizedPnlFromVega = null;
+
+        MessageEmbed.Field volatilityField = null;
+
+        if(page >= 1) {
+            unrealizedPnlFromVega = nf.format(
+                    ((ShortVol) posArray[page]).averageVega * (((ShortVol) posArray[page]).currentVol - ((ShortVol) posArray[page]).averageVolEntry)
+            );
+            volatilityField = new MessageEmbed.Field(
+                    "Volatility (Yours) → (Current)",
+                    nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "% → " + nf.format(((ShortVol) posArray[page]).currentVol * 100) + "% " + (((ShortVol) posArray[page]).averageVolEntry >= ((ShortVol) posArray[page]).currentVol ? "\uD83D\uDE0A\n\nPremiums earned are lower over time, but exit conditions are ideal at the moment" : "\uD83D\uDE13\n\nPremiums earned are higher over time, but exit conditions may not be ideal at the moment"),
+                    false
+            );
+        }
 
         switch(page) {
             case 0 -> { // long squeeth
@@ -584,6 +644,10 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
+                    eb.addField("Unrealized Vol. PNL", "$" + unrealizedPnlFromVega, false);
+                    eb.addField(volatilityField);
+//                    eb.addField("Avg. Volatility Entry", nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "%", true);
+//                    eb.addField("Current Volatility", nf.format(((ShortVol) posArray[page]).currentVol * 100) + "%", true);
                 }
             }
             case 2 -> { // crab v2
@@ -597,6 +661,10 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
+                    eb.addField("Unrealized Vol. PNL", "$" + unrealizedPnlFromVega, false);
+                    eb.addField(volatilityField);
+//                    eb.addField("Avg. Volatility Entry", nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "%", true);
+//                    eb.addField("Current Volatility", nf.format(((ShortVol) posArray[page]).currentVol * 100) + "%", true);
                 }
             }
             case 3 -> { // zen bull
@@ -610,6 +678,10 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
+                    eb.addField("Unrealized Vol. PNL", "$" + unrealizedPnlFromVega, false);
+                    eb.addField(volatilityField);
+//                    eb.addField("Avg. Volatility Entry", nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "%", true);
+//                    eb.addField("Current Volatility", nf.format(((ShortVol) posArray[page]).currentVol * 100) + "%", true);
                 }
             }
         }

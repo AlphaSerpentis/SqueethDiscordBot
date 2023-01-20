@@ -133,6 +133,7 @@ public class PositionsDataHandler {
                 }
                 case ZENBULL -> data.zenbull = getZenBull(block);
                 case NORMFACTOR -> data.normFactor = getNormFactor(block);
+                case SQUEETHVOL -> data.squeethVol = getSqueethVol(block);
             }
         }
 
@@ -356,11 +357,12 @@ public class PositionsDataHandler {
 
     private static double getSqueethVol(long block) throws ExecutionException, InterruptedException {
         double scaling = Math.pow(10,18);
+        double log = Math.log(
+                getOsqthEth(block).doubleValue() / scaling * 10000 / (getNormFactor(block).doubleValue() / scaling * getEthUsd(block).doubleValue() / scaling)
+        );
 
-        return Math.sqrt(
-                Math.log(
-                        getOsqthEth(block).doubleValue() / scaling * 10000 / (getNormFactor(block).doubleValue() / scaling * getEthUsd(block).doubleValue() / scaling)
-                ) / (17.5/365)
+        return StrictMath.sqrt(
+                log / (17.5/365)
         );
     }
 }
