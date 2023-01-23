@@ -3,9 +3,12 @@
 package space.alphaserpentis.squeethdiscordbot.data.api.alchemy;
 
 import io.reactivex.annotations.NonNull;
+import space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.util.concurrent.ExecutionException;
 
 @SuppressWarnings("CanBeFinal")
 public class SimpleTokenTransferResponse {
@@ -14,11 +17,20 @@ public class SimpleTokenTransferResponse {
     public String from;
     public double value;
 
-    public SimpleTokenTransferResponse(@NonNull String token, int blockNum, @NonNull String from, double value) {
+    public SimpleTokenTransferResponse(@NonNull String token, int blockNum, @NonNull String from, double value, String backupValue) throws ExecutionException, InterruptedException {
         this.token = token;
         this.blockNum = blockNum;
         this.from = from;
         this.value = value;
+
+        if(value == 0) {
+            int decimals = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
+                    token,
+                    CommonFunctions.decimals
+            ).get(0).getValue()).intValue();
+
+            this.value = (double) (new BigInteger(backupValue.substring(2), 16)).longValue() / Math.pow(10,decimals);
+        }
     }
 
     public int getBlockNum() {

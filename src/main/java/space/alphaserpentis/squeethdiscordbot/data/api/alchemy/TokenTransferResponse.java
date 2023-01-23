@@ -24,6 +24,12 @@ public class TokenTransferResponse {
             public String blockNum;
             public String from;
             public double value;
+            public RawContract rawContract;
+
+            public static class RawContract {
+                public String value;
+                public String decimal;
+            }
 
             public int getBlockNum() {
                 return Integer.parseInt(blockNum.substring(2), 16);

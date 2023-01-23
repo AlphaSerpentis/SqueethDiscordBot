@@ -82,6 +82,8 @@ public class PositionsDataHandler {
             data.crabV2Eth = getCrabv2Eth(block, data.osqthEth);
             // Get norm factor
             data.normFactor = getNormFactor(block);
+            // Get Squeeth vol
+            data.squeethVol = getSqueethVol(block);
         } else {
             if(data.ethUsdc.equals(BigInteger.ZERO))
                 data.ethUsdc = getEthUsd(block);
@@ -131,6 +133,7 @@ public class PositionsDataHandler {
                 }
                 case ZENBULL -> data.zenbull = getZenBull(block);
                 case NORMFACTOR -> data.normFactor = getNormFactor(block);
+                case SQUEETHVOL -> data.squeethVol = getSqueethVol(block);
             }
         }
 
@@ -296,11 +299,18 @@ public class PositionsDataHandler {
     }
 
     private static BigInteger getZenBull(long block) throws ExecutionException, InterruptedException {
-        BigInteger crabValue = getCrabv2Eth(block, getOsqthEth(block));
+        BigInteger crabValue;
         BigInteger eulerDebt;
         BigInteger eulerCollateral;
         BigInteger zenBullSupply;
 
+        crabValue = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
+                crabv2,
+                balanceOf(
+                        zenbull
+                ),
+                block
+        ).get(0).getValue()).multiply(getCrabv2Eth(block, getOsqthEth(block)));
         eulerDebt = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(
                 dusdc,
                 balanceOf(
@@ -327,14 +337,14 @@ public class PositionsDataHandler {
 
         ZenBull.updateZenBullVault(
                 new ZenBull.ZenBullData(
-                        crabValue,
+                        crabValue.divide(zenBullSupply),
                         eulerDebt.multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply),
                         eulerCollateral.multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply),
                         zenBullSupply
                 )
         );
 
-        return crabValue.add(eulerCollateral.subtract(eulerDebt).multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply));
+        return crabValue.divide(zenBullSupply).add(eulerCollateral.subtract(eulerDebt).multiply(BigInteger.TEN.pow(18)).divide(zenBullSupply));
     }
 
     private static BigInteger getNormFactor(long block) throws ExecutionException, InterruptedException {
@@ -343,5 +353,16 @@ public class PositionsDataHandler {
                 getExpectedNormFactor,
                 block
         ).get(0).getValue();
+    }
+
+    private static double getSqueethVol(long block) throws ExecutionException, InterruptedException {
+        double scaling = Math.pow(10,18);
+        double log = Math.log(
+                getOsqthEth(block).doubleValue() / scaling * 10000 / (getNormFactor(block).doubleValue() / scaling * getEthUsd(block).doubleValue() / scaling)
+        );
+
+        return StrictMath.sqrt(
+                log / (17.5/365)
+        );
     }
 }

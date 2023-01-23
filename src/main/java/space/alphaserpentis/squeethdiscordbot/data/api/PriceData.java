@@ -14,7 +14,8 @@ public class PriceData {
         CRABV1ETH,
         CRABV2ETH,
         ZENBULL,
-        NORMFACTOR
+        NORMFACTOR,
+        SQUEETHVOL
     }
 
     public BigInteger ethUsdc = BigInteger.ZERO;
@@ -23,6 +24,7 @@ public class PriceData {
     public BigInteger crabV2Eth = BigInteger.ZERO;
     public BigInteger zenbull = BigInteger.ZERO;
     public BigInteger normFactor = BigInteger.ZERO;
+    public double squeethVol = 0;
     public boolean isAllZero() {
         return (
                 ethUsdc.equals(BigInteger.ZERO) &&
@@ -30,7 +32,8 @@ public class PriceData {
                 crabEth.equals(BigInteger.ZERO) &&
                 crabV2Eth.equals(BigInteger.ZERO) &&
                 zenbull.equals(BigInteger.ZERO) &&
-                normFactor.equals(BigInteger.ZERO)
+                normFactor.equals(BigInteger.ZERO) &&
+                squeethVol == 0
         );
     }
 
