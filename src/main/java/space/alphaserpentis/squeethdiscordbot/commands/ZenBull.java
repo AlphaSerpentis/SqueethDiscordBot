@@ -201,17 +201,17 @@ public class ZenBull extends BotCommand<MessageEmbed> {
     }
 
     @NonNull
-    private ZenBullGreeks calculateGreeks() {
+    public static ZenBullGreeks calculateGreeks() {
         double delta, gamma, theta, vega, crabTotalSupply, crabBalance;
         delta = gamma = theta = vega = 0;
 
         try {
             crabTotalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
-                    crabv2.address,
+                    Addresses.Squeeth.crabv2,
                     CommonFunctions.callTotalSupply
             ).get(0).getValue()).doubleValue() / Math.pow(10,18);
             crabBalance = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
-                    crabv2.address,
+                    Addresses.Squeeth.crabv2,
                     CommonFunctions.balanceOf(Addresses.Squeeth.zenbull)
             ).get(0).getValue()).doubleValue() / Math.pow(10,18);
         } catch(Exception e) {
@@ -237,7 +237,7 @@ public class ZenBull extends BotCommand<MessageEmbed> {
         );
     }
 
-    private double getTotalEulerInterest() {
+    private static double getTotalEulerInterest() {
         BigInteger ethSupplyApy, usdcBorrowApy, ethUsdcPrice, ethCollateral, usdcDebt;
         double ethInterest, usdcInterest;
 

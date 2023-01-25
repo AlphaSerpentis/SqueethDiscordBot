@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.controller;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.oracle;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Uniswap.osqthEthPool;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.getTwap_ethUsd;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
 
 public class Vault extends BotCommand<MessageEmbed> {
 
@@ -66,11 +66,10 @@ public class Vault extends BotCommand<MessageEmbed> {
         public void setTheGreeks() {
             double deltaPerOsqth, gammaPerOsqth, vegaPerOsqth, thetaPerOsqth;
 
-            double fundingPeriod = 17.5 / 365;
-            double exp = Math.exp(Math.pow(impliedVol, 2) * fundingPeriod);
-            deltaPerOsqth = 2*normFactor*ethUsd*exp/10000;
-            gammaPerOsqth = 2*normFactor*exp/10000;
-            vegaPerOsqth = 2*impliedVol* fundingPeriod *osqthUsd;
+            double exp = Math.exp(Math.pow(impliedVol, 2) * FUNDING_PERIOD);
+            deltaPerOsqth = 2*normFactor*ethUsd*exp/SCALING_FACTOR;
+            gammaPerOsqth = 2*normFactor*exp/SCALING_FACTOR;
+            vegaPerOsqth = 2*impliedVol* FUNDING_PERIOD *osqthUsd;
             thetaPerOsqth = Math.pow(impliedVol, 2)*osqthUsd;
 
             delta = deltaPerOsqth*osqthHoldings+ethVaultCollateral;

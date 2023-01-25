@@ -989,7 +989,6 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         return new CommandResponse<>(null, false);
     }
 
-    @SuppressWarnings("rawtypes")
     private void statsPage(@NonNull EmbedBuilder eb, @NonNull CrabVault crab) {
         if(crab.lastRun + 60 < Instant.now().getEpochSecond()) {
             try {
@@ -1167,6 +1166,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     public static void update(@NonNull CrabVault crab) throws IOException, ExecutionException, InterruptedException {
         PriceData priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
         List<Type> vaultDetails = EthereumRPCHandler.ethCallAtLatestBlock(crab.address, getVaultDetails);
@@ -1187,7 +1187,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
         crab.lastRun = Instant.now().getEpochSecond();
 
-        Vault.VaultGreeks vaultGreeks = new Vault.VaultGreeks(
+        crab.lastRunVaultGreeks = new Vault.VaultGreeks(
                 crab.priceOfEthInUsd.doubleValue() / Math.pow(10, 18),
                 LaevitasHandler.latestSqueethData.data.getoSQTHPrice(),
                 crab.normFactor.doubleValue() / Math.pow(10, 18),
@@ -1195,6 +1195,5 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 -(crab.shortOsqth.doubleValue() / Math.pow(10, 18)),
                 crab.ethCollateral.doubleValue() / Math.pow(10, 18)
         );
-        crab.lastRunVaultGreeks = vaultGreeks;
     }
 }

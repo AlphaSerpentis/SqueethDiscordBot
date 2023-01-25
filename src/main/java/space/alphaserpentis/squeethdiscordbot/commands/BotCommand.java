@@ -3,6 +3,7 @@
 package space.alphaserpentis.squeethdiscordbot.commands;
 
 import io.reactivex.annotations.NonNull;
+import io.reactivex.annotations.Nullable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
@@ -161,6 +162,26 @@ public abstract class BotCommand<T> {
     @NonNull
     public CommandResponse<T> beforeRunCommand(long userId, @NonNull SlashCommandInteractionEvent event) {
         throw new UnsupportedOperationException("beforeRunCommand needs to be overridden!");
+    }
+
+    /**
+     * A method that checks and handles a potentially rate-limited user
+     * Commands not using embeds must override this method to return a CommandResponse containing Message
+     * @param userId is a long ID provided by Discord for the user calling the command
+     * @return a nullable CommandResponse that by default returns a MessageEmbed
+     */
+    @Nullable
+    public CommandResponse<?> checkAndHandleRateLimitedUser(long userId) {
+        if(isUserRatelimited(userId)) {
+            return new CommandResponse<>(
+                    new EmbedBuilder().setDescription(
+                            "You are still rate limited. Expires in " + (ratelimitMap.get(userId) - Instant.now().getEpochSecond()) + " seconds."
+                    ).build(),
+                    onlyEphemeral
+            );
+        } else {
+            return null;
+        }
     }
 
     public void setCommandId(long id) {

@@ -18,6 +18,9 @@ import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.usd
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.weth;
 
 public interface CommonFunctions {
+    double FUNDING_PERIOD = 17.5/365;
+    double SCALING_FACTOR = 10000;
+
     Function decimals = new Function(
             "decimals",
             List.of(),

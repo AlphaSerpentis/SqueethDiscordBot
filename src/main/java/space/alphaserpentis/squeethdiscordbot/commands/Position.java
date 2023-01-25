@@ -69,7 +69,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     transfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, tokenAddress);
                 } else {
                     transfers = (ArrayList<SimpleTokenTransferResponse>) PositionsDataHandler.cachedTransfers.get(userAddress).stream().filter(t -> t.token.equalsIgnoreCase(tokenAddress)).collect(Collectors.toList());
-                    int highestBlock = transfers.get(transfers.size() - 1).blockNum;
+                    long highestBlock = transfers.get(transfers.size() - 1).blockNum;
                     ArrayList<SimpleTokenTransferResponse> newTransfers = EthereumRPCHandler.getAssetTransfersOfUser(userAddress, tokenAddress, highestBlock + 1, -1);
                     transfers.addAll(newTransfers);
                 }
@@ -126,7 +126,6 @@ public class Position extends ButtonCommand<MessageEmbed> {
     }
 
     public abstract static class ShortVol extends AbstractPositions {
-        final static double fundingPeriod = 17.5/365;
         double currentVol;
         double averageVolEntry;
         double averageVega;
@@ -137,7 +136,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         @SuppressWarnings("unused")
         public abstract double calculateShortOsqthExposure(@NonNull BigInteger size, long block) throws ExecutionException, InterruptedException;
         static double calculateVega(double vol, double osqthUsd) {
-            return 2 * vol * fundingPeriod * osqthUsd;
+            return 2 * vol * FUNDING_PERIOD * osqthUsd;
         }
     }
 
