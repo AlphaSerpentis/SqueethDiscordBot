@@ -135,7 +135,7 @@ public class Simulate extends BotCommand<MessageEmbed> {
                 ":chart_with_upwards_trend: Long",
                 "Total PnL: " + nf.format(((osqthPrice + longPnl.totalPnl()) - osqthPrice)/(osqthPrice) * 100) + "%" +
                 "\n├ Price Movement: " + nf.format(((osqthPrice + longPnl.deltaPnl) - osqthPrice)/(osqthPrice) * 100) + "%" +
-                "\n├ Gamma: " + nf.format(((osqthPrice + longPnl.gammaPnl) - osqthPrice)/(osqthPrice) * 100) + "%" +
+                "\n├ Speed of Price Movement: " + nf.format(((osqthPrice + longPnl.gammaPnl) - osqthPrice)/(osqthPrice) * 100) + "%" +
                 "\n├ Volatility: " + nf.format(((osqthPrice + longPnl.vegaPnl) - osqthPrice)/(osqthPrice) * 100) + "%" +
                 "\n└ Time: " + nf.format(((osqthPrice + longPnl.thetaPnl) - osqthPrice)/(osqthPrice) * 100) + "%",
                 false
@@ -144,7 +144,7 @@ public class Simulate extends BotCommand<MessageEmbed> {
                 ":crab: Crab",
                 "Total PnL: " + nf.format(((crabPrice + crabPnl.totalPnl()) - crabPrice)/(crabPrice) * 100) + "%" +
                         "\n├ Price Movement: " + nf.format(((crabPrice + crabPnl.deltaPnl) - crabPrice)/(crabPrice) * 100) + "%" +
-                        "\n├ Gamma: " + nf.format(((crabPrice + crabPnl.gammaPnl) - crabPrice)/(crabPrice) * 100) + "%" +
+                        "\n├ Speed of Price Movement: " + nf.format(((crabPrice + crabPnl.gammaPnl) - crabPrice)/(crabPrice) * 100) + "%" +
                         "\n├ Volatility: " + nf.format(((crabPrice + crabPnl.vegaPnl) - crabPrice)/(crabPrice) * 100) + "%" +
                         "\n└ Time: " + nf.format(((crabPrice + crabPnl.thetaPnl) - crabPrice)/(crabPrice) * 100) + "%",
                 false
@@ -153,19 +153,12 @@ public class Simulate extends BotCommand<MessageEmbed> {
                 ":person_in_lotus_position: :ox:  Zen Bull",
                 "Total PnL: " + nf.format(((zenBullPrice + zenBullPnl.totalPnl()) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
                         "\n├ Price Movement: " + nf.format(((zenBullPrice + zenBullPnl.deltaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
-                        "\n├ Gamma: " + nf.format(((zenBullPrice + zenBullPnl.gammaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
+                        "\n├ Speed of Price Movement: " + nf.format(((zenBullPrice + zenBullPnl.gammaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
                         "\n├ Volatility: " + nf.format(((zenBullPrice + zenBullPnl.vegaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
                         "\n└ Time: " + nf.format(((zenBullPrice + zenBullPnl.thetaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%",
                 false
         );
-
-        System.out.println(calculateLong(input, priceData));
-        System.out.println(calculateCrab(input, priceData));
-        System.out.println(calculateZenBull(input, priceData));
-        System.out.println(osqthPrice);
-        System.out.println(crabPrice);
-        System.out.println(zenBullPrice);
-
+        
         return eb;
     }
 

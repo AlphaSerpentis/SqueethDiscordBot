@@ -129,12 +129,14 @@ public class Position extends ButtonCommand<MessageEmbed> {
         double currentVol;
         double averageVolEntry;
         double averageVega;
+        double[] breakevenPoints;
 
         public ShortVol(String userAddress) {
             super(userAddress);
         }
         @SuppressWarnings("unused")
         public abstract double calculateShortOsqthExposure(@NonNull BigInteger size, long block) throws ExecutionException, InterruptedException;
+        public abstract double[] calculatePriceBands();
         static double calculateVega(double vol, double osqthUsd) {
             return 2 * vol * FUNDING_PERIOD * osqthUsd;
         }
@@ -231,10 +233,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
             double breakevenOsqthPrice = osqthPrice + difference;
             double impliedVol = LaevitasHandler.latestSqueethData.data.getCurrentImpliedVolatility() / 100;
             double normFactor = LaevitasHandler.latestSqueethData.data.getNormalizationFactor();
-            final double fundingPeriod = 0.04794520548;
-            final double scalingFactor = 10000;
 
-            return Math.sqrt((breakevenOsqthPrice * scalingFactor)/(normFactor*Math.exp(Math.pow(impliedVol,2) * fundingPeriod)));
+            return Math.sqrt((breakevenOsqthPrice * SCALING_FACTOR)/(normFactor*Math.exp(Math.pow(impliedVol,2) * FUNDING_PERIOD)));
         }
     }
 
@@ -332,6 +332,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCurrentValue() {
             currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(BigInteger.TEN.pow(18));
             currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(BigInteger.TEN.pow(36));
+            breakevenPoints = calculatePriceBands();
         }
 
         @Override
@@ -350,6 +351,52 @@ public class Position extends ButtonCommand<MessageEmbed> {
             ).get(0).getValue();
 
             return (crabShortOsqth.doubleValue() / crabTotalSupply.doubleValue()) * (size.doubleValue() / Math.pow(10,18));
+        }
+
+        @Override
+        public double[] calculatePriceBands() {
+            PriceData priceData;
+
+            double delta, gamma;
+            double ethUsd;
+            double sharePercentage;
+            double crabTotalSupply;
+            double[] breakevenPoints = new double[2];
+            double pnl = (currentValueInUsd.doubleValue() - costBasis.doubleValue()) / Math.pow(10,18);
+
+            try {
+                Crab.update(Crab.crabV2);
+                priceData = PositionsDataHandler.getPriceData(
+                        new PriceData.Prices[]{PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.NORMFACTOR, PriceData.Prices.SQUEETHVOL}
+                );
+                crabTotalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
+                        Addresses.Squeeth.crabv2,
+                        callTotalSupply
+                ).get(0).getValue()).doubleValue() / Math.pow(10,18);
+            } catch (IOException | ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            ethUsd = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
+            sharePercentage = currentAmtHeld.doubleValue() / Math.pow(10,18) / crabTotalSupply;
+
+            Vault.VaultGreeks crab = new Vault.VaultGreeks(
+                    ethUsd,
+                    priceData.osqthEth.doubleValue() / Math.pow(10,18) * ethUsd,
+                    priceData.normFactor.doubleValue() / Math.pow(10,18),
+                    priceData.squeethVol,
+                    -Crab.crabV2.shortOsqth.doubleValue() / Math.pow(10,18) * sharePercentage,
+                    Crab.crabV2.ethCollateral.doubleValue() / Math.pow(10,18) * sharePercentage
+            );
+
+            delta = crab.delta;
+            gamma = crab.gamma;
+
+            for(short i = 0; i < 2; i++) {
+                breakevenPoints[i] = ethUsd + ((-gamma + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(gamma, 2) - 4 * delta * pnl))/(2 * delta));
+            }
+
+            return breakevenPoints;
         }
     }
 
@@ -387,6 +434,11 @@ public class Position extends ButtonCommand<MessageEmbed> {
             ).get(0).getValue();
 
             return (crabShortOsqth.doubleValue() / (crabTotalSupply.doubleValue() / crabBalance.doubleValue())) * (size.doubleValue() / zenbullTotalSupply.doubleValue()) / Math.pow(10,18);
+        }
+
+        @Override
+        public double[] calculatePriceBands() {
+            return new double[0];
         }
 
         @Override
@@ -604,6 +656,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         String unrealizedPnlFromVega = null;
 
         MessageEmbed.Field volatilityField = null;
+        MessageEmbed.Field priceBandsField = null;
 
         if(page >= 1) {
             unrealizedPnlFromVega = nf.format(
@@ -614,6 +667,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "% → " + nf.format(((ShortVol) posArray[page]).currentVol * 100) + "% " + (((ShortVol) posArray[page]).averageVolEntry >= ((ShortVol) posArray[page]).currentVol ? "\uD83D\uDE0A\n\nPremiums earned are lower over time, but exit conditions are ideal at the moment" : "\uD83D\uDE13\n\nPremiums earned are higher over time, but exit conditions may not be ideal at the moment"),
                     false
             );
+            if(((ShortVol) posArray[page]).breakevenPoints != null)
+                priceBandsField = new MessageEmbed.Field(
+                        "Your Breakeven Points",
+                        "$" + nf.format(((ShortVol) posArray[page]).breakevenPoints[0]) + "/$" + nf.format(((ShortVol) posArray[page]).breakevenPoints[1]) + "\n\nBased on current market conditions and your PnL, these are your breakeven points. These breakeven points may change over time, especially as the market moves around.",
+                        false
+                );
         }
 
         switch(page) {
@@ -662,6 +721,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                     eb.addField("Unrealized Vol. PNL", "$" + unrealizedPnlFromVega, false);
                     eb.addField(volatilityField);
+                    eb.addField(priceBandsField);
 //                    eb.addField("Avg. Volatility Entry", nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "%", true);
 //                    eb.addField("Current Volatility", nf.format(((ShortVol) posArray[page]).currentVol * 100) + "%", true);
                 }

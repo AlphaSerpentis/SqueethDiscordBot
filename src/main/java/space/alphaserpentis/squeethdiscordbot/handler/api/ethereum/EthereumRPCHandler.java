@@ -13,7 +13,10 @@ import org.web3j.ens.EnsResolver;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.DefaultBlockParameterNumber;
+import org.web3j.protocol.core.Request;
 import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.response.EthCall;
+import org.web3j.protocol.exceptions.ClientConnectionException;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.AlchemyRequest;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.TokenTransferResponse;
@@ -38,24 +41,56 @@ public class EthereumRPCHandler {
 
     @SuppressWarnings("rawtypes")
     public static List<Type> ethCallAtSpecificBlock(@NonNull String address, @NonNull Function function, @NonNull Long block) throws ExecutionException, InterruptedException {
-        return FunctionReturnDecoder.decode(
-                web3.ethCall(Transaction.createEthCallTransaction(
-                        Addresses.zeroAddress,
-                        address,
-                        FunctionEncoder.encode(function)
-                ), new DefaultBlockParameterNumber(block)).sendAsync().get().getResult(),
+        Request<?, EthCall> ethCallRequest = web3.ethCall(Transaction.createEthCallTransaction(
+                Addresses.zeroAddress,
+                address,
+                FunctionEncoder.encode(function)
+        ), new DefaultBlockParameterNumber(block));
+
+        for(int i = 0; i < 3; i++) {
+            try {
+                if(i != 0)
+                    Thread.sleep(1500);
+
+                return FunctionReturnDecoder.decode(
+                        ethCallRequest.sendAsync().get().getResult(),
+                        function.getOutputParameters()
+                );
+            } catch(ClientConnectionException ignored) {
+
+            }
+        }
+
+        return FunctionReturnDecoder.decode( // last attempt
+                ethCallRequest.sendAsync().get().getResult(),
                 function.getOutputParameters()
         );
     }
 
     @SuppressWarnings("rawtypes")
     public static List<Type> ethCallAtLatestBlock(@NonNull String address, @NonNull Function function) throws ExecutionException, InterruptedException {
-        return FunctionReturnDecoder.decode(
-                web3.ethCall(Transaction.createEthCallTransaction(
-                        Addresses.zeroAddress,
-                        address,
-                        FunctionEncoder.encode(function)
-                ), DefaultBlockParameterName.LATEST).sendAsync().get().getResult(),
+        Request<?, EthCall> ethCallRequest = web3.ethCall(Transaction.createEthCallTransaction(
+                Addresses.zeroAddress,
+                address,
+                FunctionEncoder.encode(function)
+        ), DefaultBlockParameterName.LATEST);
+
+        for(int i = 0; i < 3; i++) {
+            try {
+                if(i != 0)
+                    Thread.sleep(1500);
+
+                return FunctionReturnDecoder.decode(
+                        ethCallRequest.sendAsync().get().getResult(),
+                        function.getOutputParameters()
+                );
+            } catch(ClientConnectionException ignored) {
+
+            }
+        }
+
+        return FunctionReturnDecoder.decode( // last attempt
+                ethCallRequest.sendAsync().get().getResult(),
                 function.getOutputParameters()
         );
     }
