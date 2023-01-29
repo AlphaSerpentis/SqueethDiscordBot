@@ -438,7 +438,40 @@ public class Position extends ButtonCommand<MessageEmbed> {
 
         @Override
         public double[] calculatePriceBands() {
-            return new double[0];
+            PriceData priceData;
+
+            double delta, gamma;
+            double ethUsd;
+            double sharePercentage;
+            double zenbullTotalSupply;
+            double[] breakevenPoints = new double[2];
+            double pnl = (currentValueInUsd.doubleValue() - costBasis.doubleValue()) / Math.pow(10,18);
+
+            try {
+                priceData = PositionsDataHandler.getPriceData(
+                        new PriceData.Prices[]{PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.NORMFACTOR, PriceData.Prices.SQUEETHVOL}
+                );
+                zenbullTotalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
+                        zenbull,
+                        callTotalSupply
+                ).get(0).getValue()).doubleValue() / Math.pow(10,18);
+            } catch (IOException | ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            ethUsd = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
+            sharePercentage = currentAmtHeld.doubleValue() / Math.pow(10,18) / zenbullTotalSupply;
+
+           ZenBull.ZenBullGreeks greeks = ZenBull.calculateGreeks();
+
+           delta = greeks.delta() * sharePercentage;
+           gamma = greeks.gamma() * sharePercentage;
+
+            for(short i = 0; i < 2; i++) {
+                breakevenPoints[i] = ethUsd + ((-gamma + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(gamma, 2) - 4 * delta * pnl))/(2 * delta));
+            }
+
+            return breakevenPoints;
         }
 
         @Override
@@ -497,6 +530,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public void calculateCurrentValue() {
             currentValueInEth = currentAmtHeld.multiply(currentPriceInEth).divide(BigInteger.TEN.pow(18));
             currentValueInUsd = currentAmtHeld.multiply(currentPriceInUsd).divide(BigInteger.TEN.pow(36));
+//            breakevenPoints = calculatePriceBands();
         }
     }
 
@@ -667,12 +701,24 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "% → " + nf.format(((ShortVol) posArray[page]).currentVol * 100) + "% " + (((ShortVol) posArray[page]).averageVolEntry >= ((ShortVol) posArray[page]).currentVol ? "\uD83D\uDE0A\n\nPremiums earned are lower over time, but exit conditions are ideal at the moment" : "\uD83D\uDE13\n\nPremiums earned are higher over time, but exit conditions may not be ideal at the moment"),
                     false
             );
-            if(((ShortVol) posArray[page]).breakevenPoints != null)
-                priceBandsField = new MessageEmbed.Field(
-                        "Your Breakeven Points",
-                        "$" + nf.format(((ShortVol) posArray[page]).breakevenPoints[0]) + "/$" + nf.format(((ShortVol) posArray[page]).breakevenPoints[1]) + "\n\nBased on current market conditions and your PnL, these are your breakeven points. These breakeven points may change over time, especially as the market moves around.",
-                        false
-                );
+            if(((ShortVol) posArray[page]).breakevenPoints != null) {
+                double[] breakevenPoints = ((ShortVol) posArray[page]).breakevenPoints;
+
+                if(Double.isNaN(breakevenPoints[0]) && Double.isNaN(breakevenPoints[1])) {
+                    priceBandsField = new MessageEmbed.Field(
+                            "Your Breakeven Points",
+                            "No breakeven points could be calculated. Please reach out to AlphaSerpentis#3203 for further evaluation.",
+                            false
+                    );
+                } else {
+                    priceBandsField = new MessageEmbed.Field(
+                            "Your Breakeven Points",
+                            "$" + nf.format(((ShortVol) posArray[page]).breakevenPoints[0]) + "/$" + nf.format(((ShortVol) posArray[page]).breakevenPoints[1]) + "\n\nBased on current market conditions and your PnL, these are your breakeven points. These breakeven points may change over time, especially as the market moves around.",
+                            false
+                    );
+                }
+            }
+
         }
 
         switch(page) {
@@ -739,6 +785,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
                     eb.addField("Unrealized Vol. PNL", "$" + unrealizedPnlFromVega, false);
                     eb.addField(volatilityField);
+                    eb.addField(priceBandsField);
 //                    eb.addField("Avg. Volatility Entry", nf.format(((ShortVol) posArray[page]).averageVolEntry * 100) + "%", true);
 //                    eb.addField("Current Volatility", nf.format(((ShortVol) posArray[page]).currentVol * 100) + "%", true);
                 }

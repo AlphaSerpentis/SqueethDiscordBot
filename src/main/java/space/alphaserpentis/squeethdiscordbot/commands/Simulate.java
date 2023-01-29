@@ -58,9 +58,9 @@ public class Simulate extends BotCommand<MessageEmbed> {
         if(response != null)
             return (CommandResponse<MessageEmbed>) response;
 
-        double days = 7d;
-        double priceMove = 0.1;
-        double volBump = 0.1;
+        double days = 2d;
+        double priceMove = 0.02;
+        double volBump = 0.01;
 
         // Pull the options if any
         if(event.getOptions().size() != 0) {

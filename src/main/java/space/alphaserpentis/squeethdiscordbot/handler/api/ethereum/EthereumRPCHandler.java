@@ -56,7 +56,7 @@ public class EthereumRPCHandler {
                         ethCallRequest.sendAsync().get().getResult(),
                         function.getOutputParameters()
                 );
-            } catch(ClientConnectionException ignored) {
+            } catch(ExecutionException ignored) {
 
             }
         }
@@ -84,7 +84,7 @@ public class EthereumRPCHandler {
                         ethCallRequest.sendAsync().get().getResult(),
                         function.getOutputParameters()
                 );
-            } catch(ClientConnectionException ignored) {
+            } catch(ExecutionException ignored) {
 
             }
         }
