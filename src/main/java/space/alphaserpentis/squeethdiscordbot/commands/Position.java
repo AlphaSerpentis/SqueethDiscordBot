@@ -392,8 +392,10 @@ public class Position extends ButtonCommand<MessageEmbed> {
             delta = crab.delta;
             gamma = crab.gamma;
 
+//            System.out.println("CRAB\nDelta: " + delta + "\nGamma: " + gamma + "\nETHUSD: " + ethUsd + "\nPNL: " + pnl + "\nEND OF CRAB");
+
             for(short i = 0; i < 2; i++) {
-                breakevenPoints[i] = ethUsd + ((-gamma + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(gamma, 2) - 4 * delta * pnl))/(2 * delta));
+                breakevenPoints[i] = ethUsd + ((-delta + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(delta, 2) - 4 * gamma * pnl))/(2 * gamma));
             }
 
             return breakevenPoints;
@@ -441,15 +443,15 @@ public class Position extends ButtonCommand<MessageEmbed> {
             PriceData priceData;
 
             double delta, gamma;
-            double ethUsd;
-            double sharePercentage;
+            double ethUsd, zenBullEth;
+            double sharePercentage, userBalance;
             double zenbullTotalSupply;
             double[] breakevenPoints = new double[2];
             double pnl = (currentValueInUsd.doubleValue() - costBasis.doubleValue()) / Math.pow(10,18);
 
             try {
                 priceData = PositionsDataHandler.getPriceData(
-                        new PriceData.Prices[]{PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.NORMFACTOR, PriceData.Prices.SQUEETHVOL}
+                        new PriceData.Prices[]{PriceData.Prices.ETHUSD, PriceData.Prices.ZENBULL, PriceData.Prices.NORMFACTOR, PriceData.Prices.SQUEETHVOL}
                 );
                 zenbullTotalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
                         zenbull,
@@ -460,12 +462,17 @@ public class Position extends ButtonCommand<MessageEmbed> {
             }
 
             ethUsd = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
-            sharePercentage = currentAmtHeld.doubleValue() / Math.pow(10,18) / zenbullTotalSupply;
+            zenBullEth = priceData.zenbull.doubleValue() / Math.pow(10,18);
+            userBalance = currentAmtHeld.doubleValue() / Math.pow(10,18);
+            sharePercentage = userBalance / zenbullTotalSupply;
 
            ZenBull.ZenBullGreeks greeks = ZenBull.calculateGreeks();
 
-           delta = greeks.delta() * sharePercentage;
-           gamma = greeks.gamma() * sharePercentage;
+           delta = greeks.delta() * sharePercentage / userBalance / zenBullEth;
+           gamma = greeks.gamma() * sharePercentage / userBalance / zenBullEth;
+
+
+           System.out.println("Delta: " + delta + "\nGamma: " + gamma + "\nETHUSD: " + ethUsd + "\nCost Basis in ETH: " + costBasisInEth.doubleValue() / Math.pow(10,18) + "\nCurrent Value: " + currentValueInEth + "\nShare %: " + sharePercentage * 100 + "%");
 
             for(short i = 0; i < 2; i++) {
                 breakevenPoints[i] = ethUsd + ((-gamma + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(gamma, 2) - 4 * delta * pnl))/(2 * delta));
@@ -707,7 +714,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 if(Double.isNaN(breakevenPoints[0]) && Double.isNaN(breakevenPoints[1])) {
                     priceBandsField = new MessageEmbed.Field(
                             "Your Breakeven Points",
-                            "No breakeven points could be calculated. Please reach out to AlphaSerpentis#3203 for further evaluation.",
+                            "No breakeven points could be calculated. Your current situation isn't yet covered. Reach out to AlphaSerpentis#3203 for further evaluation",
                             false
                     );
                 } else {
