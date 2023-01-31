@@ -69,7 +69,7 @@ public class Stats extends BotCommand<MessageEmbed> {
 
     private double getRefVol() {
         try {
-            HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeeth.opyn.co/api/currentsqueethvol").openConnection();
+            HttpsURLConnection con = (HttpsURLConnection) new URL("https://opyn.co/api/currentsqueethvol").openConnection();
             String response;
 
             con.setRequestMethod("GET");
@@ -79,6 +79,12 @@ public class Stats extends BotCommand<MessageEmbed> {
             int responseCode = con.getResponseCode();
 
             if(responseCode == HttpsURLConnection.HTTP_OK) {
+                response = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
+            } else if(responseCode == 308) {
+                URL newUrl = new URL(con.getHeaderField("Location"));
+                con = (HttpsURLConnection) newUrl.openConnection();
+                con.setDoOutput(true);
+
                 response = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
             } else {
                 return 0;
