@@ -125,6 +125,7 @@ public class Simulate extends BotCommand<MessageEmbed> {
         // Set the embed builder
 
         eb.setTitle("Position Simulator");
+        eb.setThumbnail("https://media.tenor.com/y2JXkY1pXkwAAAAC/cat-computer.gif");
         eb.setDescription("Simulate various strategies within the Squeethcosystem.\n\n**Disclaimer**: These are estimates based on current data and or values provided by you. Rebalances are not priced in.");
         eb.addField(
                 "Parameters",

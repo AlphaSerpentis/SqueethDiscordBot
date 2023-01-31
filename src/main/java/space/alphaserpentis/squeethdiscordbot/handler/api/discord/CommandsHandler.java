@@ -29,7 +29,7 @@ public class CommandsHandler extends ListenerAdapter {
             put("greeks", new Greeks());
             put("stats", new Stats());
             put("help", new Help());
-            put("funding", new Funding());
+            put("premium", new Premium());
             put("settings", new Settings());
             put("resources", new Resources());
             put("clean", new Clean());

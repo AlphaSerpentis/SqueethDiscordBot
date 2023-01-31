@@ -16,12 +16,12 @@ import io.reactivex.annotations.NonNull;
 import java.text.NumberFormat;
 import java.util.List;
 
-public class Funding extends BotCommand<MessageEmbed> {
+public class Premium extends BotCommand<MessageEmbed> {
 
-    public Funding() {
+    public Premium() {
         super(new BotCommandOptions(
-            "funding",
-            "Calculates the estimated amount of funding you would pay (or receive)",
+            "premium",
+            "Calculates the estimated amount of premiums you would pay (or receive)",
             true,
             false,
             TypeOfEphemeral.DEFAULT
@@ -54,12 +54,12 @@ public class Funding extends BotCommand<MessageEmbed> {
         breakevenEthChange = -(thetaCalculated + gammaCalculated)/deltaCalculated;
         currentEthPrice = LaevitasHandler.latestSqueethData.data.getUnderlyingPrice();
 
-        eb.setTitle("Funding Calculator");
-        eb.setDescription("**Disclaimer**: The following values are estimates! Funding rates are dynamic and other factors like volatility will affect a position's profitability!");
-        eb.addField("Estimated Funding", "With $" + instance.format(amt) +
+        eb.setTitle("Premiums Calculator");
+        eb.setDescription("**Disclaimer**: The following values are estimates! Implied premiums are dynamic and other factors like volatility will affect a position's profitability!");
+        eb.addField("Estimated Premiums", "With $" + instance.format(amt) +
                 " (" + instance.format(amtHeld) + " oSQTH) worth of oSQTH, at " + funding +
-                "% current implied funding, and holding for " + days + " days, you might pay $" +
-                instance.format(-thetaCalculated) + " in funding. ETH needs to move up by $" +
+                "% current implied premium, and holding for " + days + " days, you might pay $" +
+                instance.format(-thetaCalculated) + " in premiums. ETH needs to move up by $" +
                 instance.format(breakevenEthChange) + " to breakeven.",
                 false
         );
@@ -74,7 +74,7 @@ public class Funding extends BotCommand<MessageEmbed> {
         Command cmd = jda.upsertCommand(name, description)
                 .addOption(OptionType.NUMBER, "amount", "The amount of oSQTH in USD you have", true)
                 .addOption(OptionType.INTEGER, "days", "The amount of days you will maintain this position", true)
-                .addOption(OptionType.NUMBER, "funding", "The funding rate in %", false)
+                .addOption(OptionType.NUMBER, "funding", "The premium rate in %", false)
                 .complete();
 
         commandId = cmd.getIdLong();

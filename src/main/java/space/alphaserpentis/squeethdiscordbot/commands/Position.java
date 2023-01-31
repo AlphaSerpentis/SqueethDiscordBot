@@ -357,12 +357,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public double[] calculatePriceBands() {
             PriceData priceData;
 
-            double delta, gamma;
+            double delta, gammaPnl;
             double ethUsd;
             double sharePercentage;
             double crabTotalSupply;
             double[] breakevenPoints = new double[2];
-            double pnl = (currentValueInUsd.doubleValue() - costBasis.doubleValue()) / Math.pow(10,18);
+            double pnl = currentValueInUsd.subtract(costBasis).doubleValue() / Math.pow(10,18);
 
             try {
                 Crab.update(Crab.crabV2);
@@ -390,12 +390,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
             );
 
             delta = crab.delta;
-            gamma = crab.gamma;
+            gammaPnl = crab.gamma * 0.5;
 
-//            System.out.println("CRAB\nDelta: " + delta + "\nGamma: " + gamma + "\nETHUSD: " + ethUsd + "\nPNL: " + pnl + "\nEND OF CRAB");
+            System.out.println("CRAB\nDelta: " + delta + "\nGamma: " + gammaPnl*2 + "\nETHUSD: " + ethUsd + "\nPNL: " + pnl + "\nShare %: " + sharePercentage * 100 + "\nEND OF CRAB");
 
             for(short i = 0; i < 2; i++) {
-                breakevenPoints[i] = ethUsd + ((-delta + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(delta, 2) - 4 * gamma * pnl))/(2 * gamma));
+                breakevenPoints[i] = ethUsd + ((-delta + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(delta, 2) - 4 * gammaPnl * pnl))/(2 * gammaPnl));
             }
 
             return breakevenPoints;
@@ -442,7 +442,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         public double[] calculatePriceBands() {
             PriceData priceData;
 
-            double delta, gamma;
+            double delta, gammaPnl;
             double ethUsd, zenBullEth;
             double sharePercentage, userBalance;
             double zenbullTotalSupply;
@@ -469,13 +469,12 @@ public class Position extends ButtonCommand<MessageEmbed> {
            ZenBull.ZenBullGreeks greeks = ZenBull.calculateGreeks();
 
            delta = greeks.delta() * sharePercentage / userBalance / zenBullEth;
-           gamma = greeks.gamma() * sharePercentage / userBalance / zenBullEth;
+           gammaPnl = greeks.gamma() * sharePercentage / userBalance / zenBullEth * 0.5;
 
-
-           System.out.println("Delta: " + delta + "\nGamma: " + gamma + "\nETHUSD: " + ethUsd + "\nCost Basis in ETH: " + costBasisInEth.doubleValue() / Math.pow(10,18) + "\nCurrent Value: " + currentValueInEth + "\nShare %: " + sharePercentage * 100 + "%");
+//           System.out.println("Delta: " + delta + "\nGamma: " + gammaPnl*2 + "\nETHUSD: " + ethUsd + "\nCost Basis in ETH: " + costBasisInEth.doubleValue() / Math.pow(10,18) + "\nCurrent Value: " + currentValueInEth + "\nShare %: " + sharePercentage * 100 + "%");
 
             for(short i = 0; i < 2; i++) {
-                breakevenPoints[i] = ethUsd + ((-gamma + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(gamma, 2) - 4 * delta * pnl))/(2 * delta));
+                breakevenPoints[i] = ethUsd + ((-delta + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(delta, 2) - 4 * gammaPnl * pnl))/(2 * gammaPnl));
             }
 
             return breakevenPoints;
@@ -740,7 +739,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
                     eb.addField("Cost Basis", "$" + costBasisInUsd + " (" + costBasisInEth + " Ξ)", false);
                     eb.addField("Position Value", "$" + positionValueInUsd + " (" + positionValueInEth + " Ξ)", false);
                     eb.addField("Unrealized PNL", "$" + unrealizedPnlInUsd + " (" + unrealizedPnlInUsdPercentage + "%)\n" + unrealizedPnlInEth + " Ξ (" + unrealizedPnlInEthPercentage + "%)", false);
-                    eb.addField("Estimated Funding Paid", "$" + nf.format(((LongPositions) posArray[0]).estimatedFunding), false);
+                    eb.addField("Estimated Premiums Paid", "$" + nf.format(((LongPositions) posArray[0]).estimatedFunding), false);
                     eb.addField("Estimated Breakeven", "$" + nf.format(((LongPositions) posArray[0]).calculateEstimatedBreakeven()), false);
                 }
             }
@@ -799,5 +798,9 @@ public class Position extends ButtonCommand<MessageEmbed> {
             }
         }
 
+    }
+
+    public static void clearEnsCache() {
+        cachedENSDomains.clear();
     }
 }

@@ -48,8 +48,8 @@ public class Stats extends BotCommand<MessageEmbed> {
         eb.addField("ETH Price", "$" + NumberFormat.getInstance().format(data.getUnderlyingPrice()), false);
         eb.addField("Index Price", "$" + NumberFormat.getInstance().format(data.getIndex()), false);
         eb.addField("Mark Price", "$" + NumberFormat.getInstance().format(data.getMark()), false);
-        eb.addField("Current Implied Funding", data.getCurrentImpliedFundingValue() + "%", false);
-        eb.addField("Daily Funding", data.getDailyFundingValue() + "%", false);
+        eb.addField("Current Implied Premium", data.getCurrentImpliedFundingValue() + "%", false);
+        eb.addField("Daily Premium", data.getDailyFundingValue() + "%", false);
         eb.addField("Current Implied Volatility", data.getCurrentImpliedVolatility() + "%", false);
         eb.addField("Daily Implied Volatility", data.getDailyImpliedVolatility() + "%", false);
         eb.addField("Ref. Volatility", NumberFormat.getInstance().format(getRefVol()) + "%", false);

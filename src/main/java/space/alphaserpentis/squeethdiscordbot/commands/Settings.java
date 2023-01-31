@@ -324,6 +324,7 @@ public class Settings extends BotCommand<MessageEmbed> {
         try {
             PositionsDataHandler.clearPrices();
             PositionsDataHandler.clearTransfers();
+            Position.clearEnsCache();
         } catch(IOException e) {
             throw new RuntimeException(e);
         }
