@@ -11,6 +11,7 @@ public interface Addresses {
         String crabv1 = "0xf205ad80bb86ac92247638914265887a8baa437d";
         String crabv2 = "0x3b960e47784150f5a63777201ee2b15253d713e8";
         String zenbull = "0xb46Fb07b0c80DBC3F97cae3BFe168AcaD46dF507";
+        String crabNetting = "0x6e536addb53d1b47d357cdca83bcf460194a395f";
     }
 
     interface Euler {

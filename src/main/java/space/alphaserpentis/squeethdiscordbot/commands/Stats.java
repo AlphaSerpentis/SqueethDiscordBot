@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.Command;
 import space.alphaserpentis.squeethdiscordbot.data.api.SqueethData;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.awt.*;

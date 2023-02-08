@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum;
+package space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth;
 
 import com.google.gson.Gson;
 import io.reactivex.annotations.NonNull;

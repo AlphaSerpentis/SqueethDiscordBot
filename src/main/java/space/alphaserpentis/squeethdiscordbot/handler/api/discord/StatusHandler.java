@@ -3,7 +3,7 @@
 package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
 
 import net.dv8tion.jda.api.entities.Activity;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
 import java.text.NumberFormat;

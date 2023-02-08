@@ -15,7 +15,7 @@ import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.*;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 
 import java.awt.*;
 import java.math.BigInteger;

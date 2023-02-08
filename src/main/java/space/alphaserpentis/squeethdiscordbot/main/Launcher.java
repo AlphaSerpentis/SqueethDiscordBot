@@ -12,12 +12,11 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import space.alphaserpentis.squeethdiscordbot.data.server.BotSettings;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.CommandsHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.StatusHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.games.PaperTradingHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 
 import javax.security.auth.login.LoginException;

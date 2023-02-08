@@ -39,6 +39,7 @@ public class CommandsHandler extends ListenerAdapter {
             put("squiz", new Squiz());
             put("zenbull", new ZenBull());
             put("simulate", new Simulate());
+            put("jumbo", new Jumbo());
 //            put("paper", new PaperTrade());
         }};
     }

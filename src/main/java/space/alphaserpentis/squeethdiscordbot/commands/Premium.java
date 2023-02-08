@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import io.reactivex.annotations.NonNull;
 
 import java.text.NumberFormat;

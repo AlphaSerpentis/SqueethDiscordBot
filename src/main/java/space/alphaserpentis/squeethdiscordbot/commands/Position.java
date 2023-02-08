@@ -19,7 +19,7 @@ import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransf
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.LaevitasHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 
 import java.awt.*;
