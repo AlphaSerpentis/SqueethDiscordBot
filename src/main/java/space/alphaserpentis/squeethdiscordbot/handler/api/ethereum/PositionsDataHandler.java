@@ -97,6 +97,8 @@ public class PositionsDataHandler {
                 data.normFactor = getNormFactor(block);
         }
 
+        addNewData(block, data);
+
         return data;
     }
 
@@ -136,6 +138,8 @@ public class PositionsDataHandler {
                 case SQUEETHVOL -> data.squeethVol = getSqueethVol(block);
             }
         }
+
+        addNewData(block, data);
 
         return data;
     }

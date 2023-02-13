@@ -2,10 +2,8 @@
 
 package space.alphaserpentis.squeethdiscordbot.commands;
 
-import com.google.gson.Gson;
 import io.reactivex.Flowable;
 import io.reactivex.annotations.NonNull;
-import io.reactivex.annotations.Nullable;
 import io.reactivex.disposables.Disposable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -33,7 +31,6 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.Log;
 import space.alphaserpentis.squeethdiscordbot.data.api.PriceData;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.Auction;
-import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.GetAuctionByIdResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.squeethportal.LatestCrabAuctionResponse;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
@@ -41,18 +38,14 @@ import space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.AuctionHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
-import javax.net.ssl.HttpsURLConnection;
 import java.awt.*;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigInteger;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.DayOfWeek;
@@ -383,8 +376,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     scheduledExecutor.schedule(FeedingTime::prepareNotification, timeDiff + 600, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_ACTIVE;
                 } else {
-                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
                     notificationPhase = NotificationPhase.AUCTION_NOT_ACTIVE;
+                    scheduledExecutor.schedule(FeedingTime::prepareNotification, timeUntilNextAuction() - 3600, TimeUnit.SECONDS);
                 }
 
                 if(originalPhase != null || notificationPhase == NotificationPhase.AUCTION_NOT_ACTIVE) { // Skips notifying if the bot started up during auction
@@ -395,6 +388,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
             public static void notifyAboutAuction() {
                 EmbedBuilder eb = new EmbedBuilder();
                 NumberFormat format = NumberFormat.getInstance();
+                NumberFormat cf = NumberFormat.getCurrencyInstance(Locale.US);
                 double[] sizeOfAuction = estimateSizeOfAuction();
                 String auctionTypeTitle;
                 String approxSizeOfAuction = null;
@@ -414,10 +408,12 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 }
 
                 if(notificationPhase != NotificationPhase.AUCTION_ACTIVE && notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
+                    PriceData priceData;
                     double deltaTraded, gammaTraded, vegaTraded, ethPrice;
 
                     try {
-                        ethPrice = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.ETHUSD}).ethUsdc.doubleValue() / Math.pow(10,18);
+                        priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.NORMFACTOR, PriceData.Prices.SQUEETHVOL});
+                        ethPrice = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
                     } catch (ExecutionException | InterruptedException | IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -426,9 +422,9 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     gammaTraded = sizeOfAuction[2] * Math.pow(ethPrice, 2) / 100;
                     vegaTraded = sizeOfAuction[3];
 
-                    greeksTradedSection = "Delta Traded: $" + format.format(deltaTraded) +
-                            "\nGamma Traded: $" + format.format(gammaTraded) +
-                            "\nVega Traded: $" + format.format(vegaTraded);
+                    greeksTradedSection = "Delta Traded: " + cf.format(deltaTraded) +
+                            "\nGamma Traded: " + cf.format(gammaTraded) +
+                            "\nVega Traded: " + cf.format(vegaTraded);
 
                     if(sizeOfAuction[0] < 0) { // Buying oSQTH, Selling ETH
                         approxSizeOfAuction = "Approximately, " + auctionType + " is buying " + format.format(sizeOfAuction[1]) + " oSQTH for " + format.format(-1 * sizeOfAuction[0]) + " ETH\n\n" + greeksTradedSection;
@@ -479,7 +475,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 //                        scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
 //                    }
 
-                    if(getLatestActiveAuctionId() == -1) {
+                    if(AuctionHandler.getLatestActiveAuctionId() == -1) {
                         scheduledExecutor.schedule(FeedingTime::updateMessageForBids, 10, TimeUnit.SECONDS);
                         return;
                     }
@@ -511,8 +507,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                             if(previousBidMessageId == 0) { // make new bid message
                                 channel.sendMessageEmbeds(eb.build()).queue(
-                                        (response) -> sd.setLastCrabAuctionBidMessageId(response.getIdLong()),
-                                        Throwable::printStackTrace
+                                        (response) -> sd.setLastCrabAuctionBidMessageId(response.getIdLong())
                                 );
                             } else { // edit bid message
                                 channel.editMessageEmbedsById(previousBidMessageId, eb.build()).queue(
@@ -529,10 +524,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 for(Long serverId: serversListening) {
                     TextChannel channel = Launcher.api.getTextChannelById(ServerDataHandler.serverDataHashMap.get(serverId).getCrabAuctionChannelId());
 
-                    channel.deleteMessageById(sd.getLastCrabAuctionBidMessageId()).queue(
-                            (ignored) -> {},
-                            (ignored) -> {}
-                    );
+                    channel.deleteMessageById(sd.getLastCrabAuctionBidMessageId()).queue();
                     sd.setLastCrabAuctionBidMessageId(0);
                 }
 
@@ -610,14 +602,10 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 // Get info
                 BigInteger ethUsd, osqthEth, osqthUsd, normFactor, osqthHoldings, ethVaultCollateral;
                 long currentBlock;
-                try {
-                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
                 double impliedVol;
 
                 try {
+                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
                     PriceData priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
                     List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock);
 
@@ -630,7 +618,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     osqthUsd = osqthEth.multiply(ethUsd).divide(BigInteger.valueOf((long) Math.pow(10,18)));
                     impliedVol = Math.sqrt(Math.log(osqthEth.doubleValue() / Math.pow(10,18) * 10000/(normFactor.doubleValue() / Math.pow(10,18) * (ethUsd.doubleValue() / Math.pow(10,18))))/(17.5/365));
 
-                } catch (ExecutionException | InterruptedException e) {
+                } catch (ExecutionException | InterruptedException | IOException e) {
                     throw new RuntimeException(e);
                 }
 
@@ -648,172 +636,13 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                 sizes[0] = delta;
                 sizes[1] = -delta/(osqthEth.doubleValue() / Math.pow(10,18));
-                sizes[2] = greeks.gamma;
-                sizes[3] = greeks.vega / 100;
+
+                double v = sizes[1] / (osqthHoldings.doubleValue() / Math.pow(10, 18));
+
+                sizes[2] = greeks.gamma * v;
+                sizes[3] = greeks.vega * v / 100;
 
                 return sizes;
-            }
-
-            public static long getLatestActiveAuctionId() throws IOException {
-                HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
-                con.setRequestMethod("GET");
-                con.setInstanceFollowRedirects(true);
-                con.setDoOutput(true);
-
-                int responseCode = con.getResponseCode();
-
-                if(responseCode == HttpURLConnection.HTTP_OK) {
-                    Gson gson = new Gson();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    String inputLine;
-                    StringBuilder response = new StringBuilder();
-                    LatestCrabAuctionResponse responseConverted;
-
-                    while((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-
-                    in.close();
-                    con.disconnect();
-
-                    responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-
-                    if(!responseConverted.isLive) return -1;
-
-                    return responseConverted.auction.currentAuctionId;
-                } else {
-                    if(responseCode == 308) {
-                        URL newUrl = new URL(con.getHeaderField("Location"));
-                        con = (HttpsURLConnection) newUrl.openConnection();
-                        con.setDoOutput(true);
-
-                        Gson gson = new Gson();
-                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                        String inputLine;
-                        StringBuilder response = new StringBuilder();
-                        LatestCrabAuctionResponse responseConverted;
-
-                        while((inputLine = in.readLine()) != null) {
-                            response.append(inputLine);
-                        }
-
-                        in.close();
-                        con.disconnect();
-
-                        responseConverted = gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-
-                        if(!responseConverted.isLive) return -1;
-
-                        return responseConverted.auction.currentAuctionId;
-                    } else {
-                        con.disconnect();
-                        return -1;
-                    }
-                }
-            }
-
-            @Nullable
-            public static LatestCrabAuctionResponse getLatestAuction() throws IOException {
-                HttpsURLConnection con = (HttpsURLConnection) new URL("https://squeethportal.xyz/api/auction/getLatestAuction").openConnection();
-                con.setRequestMethod("GET");
-                con.setInstanceFollowRedirects(true);
-                con.setDoOutput(true);
-
-                int responseCode = con.getResponseCode();
-
-                if(responseCode == HttpURLConnection.HTTP_OK) {
-                    Gson gson = new Gson();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    String inputLine;
-                    StringBuilder response = new StringBuilder();
-
-                    while((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-
-                    in.close();
-                    con.disconnect();
-
-                    return gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-                } else {
-                    if(responseCode == 308) {
-                        URL newUrl = new URL(con.getHeaderField("Location"));
-                        con = (HttpsURLConnection) newUrl.openConnection();
-                        con.setDoOutput(true);
-
-                        Gson gson = new Gson();
-                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                        String inputLine;
-                        StringBuilder response = new StringBuilder();
-
-                        while((inputLine = in.readLine()) != null) {
-                            response.append(inputLine);
-                        }
-
-                        in.close();
-                        con.disconnect();
-
-                        return gson.fromJson(String.valueOf(response), LatestCrabAuctionResponse.class);
-                    } else {
-                        con.disconnect();
-                        return null;
-                    }
-                }
-            }
-
-            @Nullable
-            public static Auction getAuction(@Nullable Long id) throws IOException {
-                HttpURLConnection con = (HttpURLConnection) new URL("https://squeethportal.xyz/api/auction/getAuctionById?id=" + id).openConnection();
-                con.setRequestMethod("GET");
-                con.setInstanceFollowRedirects(true);
-                con.setDoOutput(true);
-
-                int responseCode = con.getResponseCode();
-
-                if(responseCode == HttpURLConnection.HTTP_OK) {
-                    Gson gson = new Gson();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    String inputLine;
-                    StringBuilder response = new StringBuilder();
-                    GetAuctionByIdResponse responseConverted;
-
-                    while((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-
-                    in.close();
-                    con.disconnect();
-
-                    responseConverted = gson.fromJson(response.toString(), GetAuctionByIdResponse.class);
-
-                    return responseConverted.auction;
-                } else {
-                    if(responseCode == 308) {
-                        URL newUrl = new URL(con.getHeaderField("Location"));
-                        con = (HttpsURLConnection) newUrl.openConnection();
-                        con.setDoOutput(true);
-
-                        Gson gson = new Gson();
-                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                        String inputLine;
-                        StringBuilder response = new StringBuilder();
-                        GetAuctionByIdResponse responseConverted;
-
-                        while((inputLine = in.readLine()) != null) {
-                            response.append(inputLine);
-                        }
-
-                        in.close();
-                        con.disconnect();
-
-                        responseConverted = gson.fromJson(response.toString(), GetAuctionByIdResponse.class);
-
-                        return responseConverted.auction;
-                    } else {
-                        con.disconnect();
-                        return null;
-                    }
-                }
             }
 
             public static long getAuctionTime() {
@@ -1113,7 +942,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
         eb.setThumbnail("https://c.tenor.com/e7FR3EW1CUYAAAAC/trading-places-buy.gif");
         try {
             if (id == -1) {
-                LatestCrabAuctionResponse auctionResponse = v2.FeedingTime.getLatestAuction();
+                LatestCrabAuctionResponse auctionResponse = AuctionHandler.getLatestAuction();
                 Auction auction;
                 ArrayList<Auction.Bid> bids;
                 double clearingPrice = -1;
@@ -1123,7 +952,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     eb.setColor(Color.RED);
                     return;
                 } else if (!auctionResponse.isLive) {
-                    auction = v2.FeedingTime.getAuction(auctionResponse.auction.currentAuctionId - 1);
+                    auction = AuctionHandler.getAuction(auctionResponse.auction.currentAuctionId - 1);
                     if (auction == null) {
                         eb.setDescription("Something went wrong trying to get the latest auction. Report this issue!");
                         eb.setColor(Color.RED);
@@ -1164,7 +993,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     );
                 }
             } else {
-                Auction specificAuction = v2.FeedingTime.getAuction(id);
+                Auction specificAuction = AuctionHandler.getAuction(id);
                 ArrayList<Auction.Bid> bids;
 
                 if (specificAuction == null) {

@@ -78,6 +78,8 @@ public class Auction {
     public BigInteger price = BigInteger.ZERO;
     public int type = 0;
     public long nextAuctionId = 0;
+    public double osqthRefVol = 0;
+    public String tx = "";
     public BigInteger oSqthAmount = BigInteger.ZERO;
 
     public static ArrayList<Bid> sortedBids(@NonNull Auction auction) {
