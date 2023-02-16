@@ -151,7 +151,7 @@ public class PositionsDataHandler {
      */
     @NonNull
     public static PriceData getPriceData(@Nullable PriceData.Prices[] pricesToUpdate) throws ExecutionException, InterruptedException, IOException {
-        long latestBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
+        long latestBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
 
         if(pricesToUpdate == null)
             return getPriceData(latestBlock);

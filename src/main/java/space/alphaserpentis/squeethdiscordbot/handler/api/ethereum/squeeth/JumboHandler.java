@@ -48,6 +48,12 @@ public class JumboHandler {
             long time
     ) {}
 
+    public record JumboCrabNettingEstimates(
+            boolean isPossible,
+            double usdcAmountNetted,
+            double crabAmountNetted
+    ) {}
+
     public record JumboCrabAuctionResults(
             double amountCleared,
             double crabPrice,
@@ -214,5 +220,36 @@ public class JumboHandler {
 
     public static JumboCrabAuctionResults getLastJumboCrabAuction(int auctionId) {
         return null;
+    }
+
+    public static JumboCrabNettingEstimates getNettingEstimates(
+            @NonNull JumboCrabStatistics stats,
+            double crabUsd
+    ) {
+        double crabQueuedUsdValue = stats.pendingCrabTokens() * crabUsd;
+
+        if(stats.pendingCrabTokens() > 0.01 && stats.pendingUsdc() > 1) {
+            double difference = stats.pendingUsdc() - crabQueuedUsdValue;
+            double crabTokensNetted, usdcNetted;
+
+            if(difference > 0)
+                usdcNetted = crabQueuedUsdValue;
+            else
+                usdcNetted = stats.pendingUsdc();
+
+            crabTokensNetted = usdcNetted/crabUsd;
+
+            return new JumboCrabNettingEstimates(
+                    true,
+                    usdcNetted,
+                    crabTokensNetted
+            );
+        } else {
+            return new JumboCrabNettingEstimates(
+                    false,
+                    0,
+                    0
+            );
+        }
     }
 }

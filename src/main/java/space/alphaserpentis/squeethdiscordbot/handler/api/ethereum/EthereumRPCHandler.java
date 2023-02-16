@@ -16,7 +16,6 @@ import org.web3j.protocol.core.DefaultBlockParameterNumber;
 import org.web3j.protocol.core.Request;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.EthCall;
-import org.web3j.protocol.exceptions.ClientConnectionException;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.AlchemyRequest;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.SimpleTokenTransferResponse;
 import space.alphaserpentis.squeethdiscordbot.data.api.alchemy.TokenTransferResponse;
@@ -26,6 +25,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -313,5 +313,9 @@ public class EthereumRPCHandler {
         } catch (Exception e) {
             throw new Exception(e);
         }
+    }
+
+    public static BigInteger getLatestBlockNumber() throws IOException {
+        return web3.ethBlockNumber().send().getBlockNumber();
     }
 }

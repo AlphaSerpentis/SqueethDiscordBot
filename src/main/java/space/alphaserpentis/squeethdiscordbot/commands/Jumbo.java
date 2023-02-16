@@ -29,7 +29,8 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
                         "View statistics on Jumbo Crab & Zen Bull",
                         true,
                         false,
-                        TypeOfEphemeral.DEFAULT
+                        TypeOfEphemeral.DEFAULT,
+                        true
                 )
         );
     }
@@ -41,7 +42,7 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
 
         if(subcommandGroup.equalsIgnoreCase("crab")) {
             eb.setColor(Color.RED);
-            switch(subcommand.toLowerCase()) {
+            switch(subcommand) {
                 case "stats" -> statsPage(eb);
                 case "netting" -> nettingPage(eb);
                 case "auction" -> auctionPage(eb);
@@ -74,20 +75,14 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
             NumberFormat cf = NumberFormat.getCurrencyInstance(Locale.US);
             MessageEmbed.Field nettingEstimates = null;
             double crabUsd = priceData.ethUsdc.multiply(priceData.crabV2Eth).doubleValue() / Math.pow(10,36);
-            double crabQueuedUsdValue = jumboCrabStats.pendingCrabTokens() * crabUsd;
+            JumboHandler.JumboCrabNettingEstimates nettingEstimate = JumboHandler.getNettingEstimates(jumboCrabStats, crabUsd);
 
             // Check if netting is possible
-            if(jumboCrabStats.pendingCrabTokens() > 0.01 && jumboCrabStats.pendingUsdc() > 1) {
-                double difference = Math.abs(jumboCrabStats.pendingUsdc() - crabQueuedUsdValue);
-                double crabTokensNetted, usdcNetted;
-
-                usdcNetted = crabQueuedUsdValue - difference;
-                crabTokensNetted = usdcNetted/crabUsd;
-
+            if(nettingEstimate.isPossible()) {
                 nettingEstimates = new MessageEmbed.Field(
                         "Netting Estimate",
-                        "**Crab Tokens**: " + nf.format(crabTokensNetted) +
-                                "\n**USDC**: " + cf.format(usdcNetted),
+                        "**Crab Tokens**: " + nf.format(nettingEstimate.crabAmountNetted()) +
+                                "\n**USDC**: " + cf.format(nettingEstimate.usdcAmountNetted()),
                         false
                 );
             }
@@ -138,8 +133,8 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
             } else {
                 eb.addField("Amount of Crab Tokens Auctioned Off", nf.format(jumboAuctionResults.amountCleared()), false);
             }
-            eb.addField("Squeeth Vol. at Clearing", nf.format(jumboAuctionResults.squeethVol()), false);
-            eb.addField("Squeeth Ref. Vol.", nf.format(jumboAuctionResults.auction().osqthRefVol), false);
+            eb.addField("Squeeth Vol. at Clearing", nf.format(jumboAuctionResults.squeethVol() * 100) + "%", false);
+            eb.addField("Squeeth Ref. Vol.", nf.format(jumboAuctionResults.auction().osqthRefVol) + "%", false);
             eb.addField("Time of Auction", "<t:" + jumboAuctionResults.time() + ">", false);
         } catch (IOException | ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);

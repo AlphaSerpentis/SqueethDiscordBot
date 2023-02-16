@@ -53,7 +53,7 @@ public class PaperTradeAccount {
 
         try {
             PriceData.Prices price = assetToPrices(asset);
-            lastBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
+            lastBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
             if(price != null)
                 priceData = PositionsDataHandler.getPriceData(
                         lastBlock,

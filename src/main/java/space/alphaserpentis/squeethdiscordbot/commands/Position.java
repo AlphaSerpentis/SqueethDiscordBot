@@ -254,13 +254,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 PriceData tempPriceData;
                 if(!isV2) {
                     tempPriceData = PositionsDataHandler.getPriceData(
-                            EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                            EthereumRPCHandler.getLatestBlockNumber().longValue(),
                             new PriceData.Prices[]{PriceData.Prices.CRABV1ETH, PriceData.Prices.ETHUSD, PriceData.Prices.SQUEETHVOL}
                     );
                     currentPriceInEth = tempPriceData.crabEth;
                 } else {
                     tempPriceData = PositionsDataHandler.getPriceData(
-                            EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                            EthereumRPCHandler.getLatestBlockNumber().longValue(),
                             new PriceData.Prices[]{PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD, PriceData.Prices.SQUEETHVOL}
                     );
                     currentPriceInEth = tempPriceData.crabV2Eth;
@@ -471,7 +471,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
            delta = greeks.delta() * sharePercentage / userBalance / zenBullEth;
            gammaPnl = greeks.gamma() * sharePercentage / userBalance / zenBullEth * 0.5;
 
-//           System.out.println("Delta: " + delta + "\nGamma: " + gammaPnl*2 + "\nETHUSD: " + ethUsd + "\nCost Basis in ETH: " + costBasisInEth.doubleValue() / Math.pow(10,18) + "\nCurrent Value: " + currentValueInEth + "\nShare %: " + sharePercentage * 100 + "%");
+           System.out.println("Delta: " + delta + "\nGamma: " + gammaPnl*2 + "\nETHUSD: " + ethUsd + "\nCost Basis in ETH: " + costBasisInEth.doubleValue() / Math.pow(10,18) + "\nCurrent Value: " + currentValueInEth + "\nShare %: " + sharePercentage * 100 + "%");
 
             for(short i = 0; i < 2; i++) {
                 breakevenPoints[i] = ethUsd + ((-delta + (i == 0 ? 1 : -1) * Math.sqrt(Math.pow(delta, 2) - 4 * gammaPnl * pnl))/(2 * gammaPnl));
@@ -485,7 +485,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
             try {
                 PriceData tempPriceData;
                 tempPriceData = PositionsDataHandler.getPriceData(
-                        EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue(),
+                        EthereumRPCHandler.getLatestBlockNumber().longValue(),
                         new PriceData.Prices[]{PriceData.Prices.ZENBULL, PriceData.Prices.ETHUSD, PriceData.Prices.SQUEETHVOL}
                 );
                 currentPriceInEth = tempPriceData.zenbull;

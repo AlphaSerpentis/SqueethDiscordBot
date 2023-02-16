@@ -40,6 +40,7 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHand
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.AuctionHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.JumboHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 
@@ -62,8 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.crabv1;
 import static space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses.Squeeth.crabv2;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.callTotalSupply;
-import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.getVaultDetails;
+import static space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions.*;
 
 public class Crab extends ButtonCommand<MessageEmbed> {
 
@@ -389,10 +389,16 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 EmbedBuilder eb = new EmbedBuilder();
                 NumberFormat format = NumberFormat.getInstance();
                 NumberFormat cf = NumberFormat.getCurrencyInstance(Locale.US);
-                double[] sizeOfAuction = estimateSizeOfAuction();
+                double[] sizeOfAuction;
                 String auctionTypeTitle;
                 String approxSizeOfAuction = null;
                 String greeksTradedSection;
+
+                try {
+                    sizeOfAuction = estimateSizeOfAuction(auctionType);
+                } catch(IllegalStateException e) {
+                    throw new RuntimeException();
+                }
 
                 auctionTypeTitle = auctionType + " Auction";
 
@@ -419,8 +425,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     }
 
                     deltaTraded = Math.abs(2 * sizeOfAuction[0] * ethPrice);
-                    gammaTraded = sizeOfAuction[2] * Math.pow(ethPrice, 2) / 100;
-                    vegaTraded = sizeOfAuction[3];
+                    gammaTraded = Math.abs(sizeOfAuction[2] * Math.pow(ethPrice, 2) / 100);
+                    vegaTraded = Math.abs(sizeOfAuction[3]);
 
                     greeksTradedSection = "Delta Traded: " + cf.format(deltaTraded) +
                             "\nGamma Traded: " + cf.format(gammaTraded) +
@@ -596,52 +602,102 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 //            }
 
             @SuppressWarnings("rawtypes")
-            public static double[] estimateSizeOfAuction() {
+            public static double[] estimateSizeOfAuction(@NonNull AuctionType auctionType) {
                 double[] sizes = new double[4];
-
-                // Get info
-                BigInteger ethUsd, osqthEth, osqthUsd, normFactor, osqthHoldings, ethVaultCollateral;
                 long currentBlock;
-                double impliedVol;
+                double impliedVol, ethUsd, osqthEth, osqthUsd, normFactor;
+                PriceData priceData;
 
-                try {
-                    currentBlock = EthereumRPCHandler.web3.ethBlockNumber().send().getBlockNumber().longValue();
-                    PriceData priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
-                    List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock);
+                if(auctionType == AuctionType.CRAB) {
+                    // Get info
+                    BigInteger osqthHoldings, ethVaultCollateral;
 
-                    ethVaultCollateral = (BigInteger) vaultDetails.get(2).getValue();
-                    osqthHoldings = (BigInteger) vaultDetails.get(3).getValue();
-                    osqthEth = priceData.osqthEth;
-                    ethUsd = priceData.ethUsdc;
-                    normFactor = priceData.normFactor;
+                    try {
+                        currentBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
+                        priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock);
 
-                    osqthUsd = osqthEth.multiply(ethUsd).divide(BigInteger.valueOf((long) Math.pow(10,18)));
-                    impliedVol = Math.sqrt(Math.log(osqthEth.doubleValue() / Math.pow(10,18) * 10000/(normFactor.doubleValue() / Math.pow(10,18) * (ethUsd.doubleValue() / Math.pow(10,18))))/(17.5/365));
+                        ethVaultCollateral = (BigInteger) vaultDetails.get(2).getValue();
+                        osqthHoldings = (BigInteger) vaultDetails.get(3).getValue();
+                        osqthEth = priceData.osqthEth.doubleValue() / Math.pow(10,18);
+                        ethUsd = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
+                        normFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
+                        osqthUsd = osqthEth * ethUsd;
+                        impliedVol = Math.sqrt(Math.log(osqthEth * SCALING_FACTOR/(normFactor * (ethUsd)))/FUNDING_PERIOD);
 
-                } catch (ExecutionException | InterruptedException | IOException e) {
-                    throw new RuntimeException(e);
+                    } catch (ExecutionException | InterruptedException | IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    // Calculate delta
+                    Vault.VaultGreeks greeks = new Vault.VaultGreeks(
+                            ethUsd,
+                            osqthUsd,
+                            normFactor,
+                            impliedVol,
+                            -osqthHoldings.doubleValue() / Math.pow(10,18),
+                            ethVaultCollateral.doubleValue() / Math.pow(10,18)
+                    );
+
+                    double delta = greeks.delta;
+
+                    sizes[0] = delta;
+                    sizes[1] = -delta/(osqthEth / Math.pow(10,18));
+
+                    double v = sizes[1] / (osqthHoldings.doubleValue() / Math.pow(10, 18));
+
+                    sizes[2] = greeks.gamma * v;
+                    sizes[3] = greeks.vega * v / 100;
+                } else if(auctionType == AuctionType.JUMBO_CRAB) {
+                    try {
+                        currentBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
+                        priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
+                        double remainingUsdc, remainingCrab, crabUsd, osqthHoldings, crabTotalSupply;
+                        JumboHandler.JumboCrabStatistics jumboCrabStatistics = JumboHandler.getCurrentJumboCrabStatistics();
+                        JumboHandler.JumboCrabNettingEstimates nettingEstimates = JumboHandler.getNettingEstimates(
+                                jumboCrabStatistics,
+                                priceData.crabV2Eth.multiply(priceData.ethUsdc).doubleValue() / Math.pow(10,36)
+                        );
+                        List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock);
+
+                        remainingUsdc = Math.round(jumboCrabStatistics.pendingUsdc() - nettingEstimates.usdcAmountNetted());
+                        remainingCrab = Math.round(jumboCrabStatistics.pendingCrabTokens() - nettingEstimates.crabAmountNetted());
+                        osqthHoldings = ((BigInteger) vaultDetails.get(3).getValue()).doubleValue() / Math.pow(10,18);
+                        crabTotalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, callTotalSupply, currentBlock).get(0).getValue()).doubleValue() / Math.pow(10,18);
+                        osqthEth = priceData.osqthEth.doubleValue() / Math.pow(10,18);
+                        ethUsd = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
+                        normFactor = priceData.normFactor.doubleValue() / Math.pow(10,18);
+                        osqthUsd = osqthEth * ethUsd;
+                        crabUsd = priceData.crabV2Eth.doubleValue() / Math.pow(10,18) * ethUsd;
+                        impliedVol = Math.sqrt(Math.log(osqthEth * SCALING_FACTOR/(normFactor * (ethUsd)))/FUNDING_PERIOD);
+
+                        if(remainingUsdc > 0) {
+                            sizes[0] = osqthHoldings * ((remainingUsdc / crabUsd) / crabTotalSupply);
+                        } else if(remainingCrab > 0) {
+                            sizes[0] = osqthHoldings * remainingCrab / crabTotalSupply;
+                        } else {
+                            throw new IllegalStateException("No remaining USDC or Crab");
+                        }
+
+                        sizes[1] = sizes[0] * osqthEth;
+
+                        Vault.VaultGreeks greeks = new Vault.VaultGreeks(
+                                ethUsd,
+                                osqthUsd,
+                                normFactor,
+                                impliedVol,
+                                sizes[0],
+                                sizes[0] * osqthEth
+                        );
+
+                        sizes[2] = greeks.gamma;
+                        sizes[3] = greeks.vega / 100;
+                    } catch(ExecutionException | InterruptedException | IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    throw new IllegalStateException("No remaining");
                 }
-
-                // Calculate delta
-                Vault.VaultGreeks greeks = new Vault.VaultGreeks(
-                        ethUsd.doubleValue() / Math.pow(10,18),
-                        osqthUsd.doubleValue() / Math.pow(10,18),
-                        normFactor.doubleValue() / Math.pow(10,18),
-                        impliedVol,
-                        -osqthHoldings.doubleValue() / Math.pow(10,18),
-                        ethVaultCollateral.doubleValue() / Math.pow(10,18)
-                );
-
-                double delta = greeks.delta;
-
-                sizes[0] = delta;
-                sizes[1] = -delta/(osqthEth.doubleValue() / Math.pow(10,18));
-
-                double v = sizes[1] / (osqthHoldings.doubleValue() / Math.pow(10, 18));
-
-                sizes[2] = greeks.gamma * v;
-                sizes[3] = greeks.vega * v / 100;
-
                 return sizes;
             }
 

@@ -90,6 +90,27 @@ public abstract class BotCommand<T> {
         public BotCommandOptions(
                 @NonNull String name,
                 @NonNull String description,
+                boolean onlyEmbed,
+                boolean onlyEphemeral,
+                @NonNull TypeOfEphemeral typeOfEphemeral,
+                boolean deferReplies
+        ) {
+            this.name = name;
+            this.description = description;
+            this.onlyEmbed = onlyEmbed;
+            this.onlyEphemeral = onlyEphemeral;
+            this.typeOfEphemeral = typeOfEphemeral;
+            this.deferReplies = deferReplies;
+            ratelimitLength = defaultRatelimitLength;
+            messageExpirationLength = defaultMessageExpirationLength;
+            isActive = defaultIsActive;
+            useRatelimits = defaultUseRatelimits;
+            messagesExpire = defaultMessagesExpire;
+        }
+
+        public BotCommandOptions(
+                @NonNull String name,
+                @NonNull String description,
                 long ratelimitLength,
                 long messageExpirationLength,
                 boolean onlyEmbed,
