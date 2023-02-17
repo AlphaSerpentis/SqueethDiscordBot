@@ -75,7 +75,7 @@ public class Vault extends BotCommand<MessageEmbed> {
             delta = deltaPerOsqth*osqthHoldings+ethVaultCollateral;
             gamma = gammaPerOsqth*osqthHoldings;
             vega = vegaPerOsqth*osqthHoldings;
-            theta = -thetaPerOsqth*osqthHoldings/365;
+            theta = -thetaPerOsqth*osqthHoldings/365.25;
         }
     }
 

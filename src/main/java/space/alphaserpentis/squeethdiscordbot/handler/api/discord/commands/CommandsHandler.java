@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
+package space.alphaserpentis.squeethdiscordbot.handler.api.discord.commands;
 
 import io.reactivex.annotations.NonNull;
 import net.dv8tion.jda.api.JDA;

@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
-import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.servers.ServerDataHandler;
 
 import java.awt.*;
 import java.time.Instant;

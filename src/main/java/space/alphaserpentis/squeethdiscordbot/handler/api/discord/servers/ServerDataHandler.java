@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-package space.alphaserpentis.squeethdiscordbot.handler.api.discord;
+package space.alphaserpentis.squeethdiscordbot.handler.api.discord.servers;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

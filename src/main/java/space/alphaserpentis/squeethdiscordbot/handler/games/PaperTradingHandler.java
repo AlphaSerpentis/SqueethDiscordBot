@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.PaperTradeAccount;
 import space.alphaserpentis.squeethdiscordbot.data.server.papertrading.ServerPaperTrades;
-import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.servers.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.serialization.PaperTradingDeserializer;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 

@@ -18,9 +18,9 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
-import space.alphaserpentis.squeethdiscordbot.handler.api.discord.CommandsHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.commands.CommandsHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
-import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.servers.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.games.SquizHandler;
 import space.alphaserpentis.squeethdiscordbot.main.Launcher;
 

@@ -36,7 +36,7 @@ import space.alphaserpentis.squeethdiscordbot.data.bot.CommandResponse;
 import space.alphaserpentis.squeethdiscordbot.data.ethereum.Addresses;
 import space.alphaserpentis.squeethdiscordbot.data.ethereum.CommonFunctions;
 import space.alphaserpentis.squeethdiscordbot.data.server.ServerData;
-import space.alphaserpentis.squeethdiscordbot.handler.api.discord.ServerDataHandler;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.servers.ServerDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.AuctionHandler;
@@ -608,12 +608,17 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 double impliedVol, ethUsd, osqthEth, osqthUsd, normFactor;
                 PriceData priceData;
 
+                try {
+                    currentBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
                 if(auctionType == AuctionType.CRAB) {
                     // Get info
                     BigInteger osqthHoldings, ethVaultCollateral;
 
                     try {
-                        currentBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
                         priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
                         List<Type> vaultDetails = EthereumRPCHandler.ethCallAtSpecificBlock(crabV2.address, getVaultDetails, currentBlock);
 
@@ -625,7 +630,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                         osqthUsd = osqthEth * ethUsd;
                         impliedVol = Math.sqrt(Math.log(osqthEth * SCALING_FACTOR/(normFactor * (ethUsd)))/FUNDING_PERIOD);
 
-                    } catch (ExecutionException | InterruptedException | IOException e) {
+                    } catch (ExecutionException | InterruptedException e) {
                         throw new RuntimeException(e);
                     }
 
@@ -642,7 +647,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     double delta = greeks.delta;
 
                     sizes[0] = delta;
-                    sizes[1] = -delta/(osqthEth / Math.pow(10,18));
+                    sizes[1] = -delta/(osqthEth);
 
                     double v = sizes[1] / (osqthHoldings.doubleValue() / Math.pow(10, 18));
 
@@ -650,7 +655,6 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                     sizes[3] = greeks.vega * v / 100;
                 } else if(auctionType == AuctionType.JUMBO_CRAB) {
                     try {
-                        currentBlock = EthereumRPCHandler.getLatestBlockNumber().longValue();
                         priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
                         double remainingUsdc, remainingCrab, crabUsd, osqthHoldings, crabTotalSupply;
                         JumboHandler.JumboCrabStatistics jumboCrabStatistics = JumboHandler.getCurrentJumboCrabStatistics();
