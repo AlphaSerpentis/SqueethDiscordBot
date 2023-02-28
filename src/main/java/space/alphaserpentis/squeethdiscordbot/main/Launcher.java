@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import space.alphaserpentis.squeethdiscordbot.data.server.BotSettings;
+import space.alphaserpentis.squeethdiscordbot.handler.api.discord.notify.NotifyHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.EthereumRPCHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.squeeth.LaevitasHandler;
 import space.alphaserpentis.squeethdiscordbot.handler.api.ethereum.PositionsDataHandler;
@@ -64,6 +65,9 @@ public class Launcher {
         // Initialize the server data and load them
         ServerDataHandler.init(Path.of(settings.serverData));
         PositionsDataHandler.init(Path.of(settings.transfersData), Path.of(settings.pricesData));
+
+        // Initialize handlers that need to be loaded before commands
+        NotifyHandler.init(Path.of(settings.notificationsData));
 
         // Add Event Listeners
         CommandsHandler.adminUserID = settings.botAdmin;

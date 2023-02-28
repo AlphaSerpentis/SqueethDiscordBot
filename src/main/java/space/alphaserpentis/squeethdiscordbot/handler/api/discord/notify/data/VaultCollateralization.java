@@ -5,6 +5,10 @@ import space.alphaserpentis.squeethdiscordbot.handler.api.discord.notify.Conditi
 
 public class VaultCollateralization extends TrackedData<Double> {
 
+    public VaultCollateralization() {
+        super("Vault Collateralization", "VaultCollateralization", "%");
+    }
+
     @Override
     public void update() {
 

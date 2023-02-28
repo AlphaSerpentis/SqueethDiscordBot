@@ -240,6 +240,14 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 }
             }
 
+            public record EstimateSizeOfAuction(
+                    double ethSize,
+                    double osqthSize,
+                    double gamma,
+                    double vega,
+                    boolean isBuyingOsqth
+            ) {}
+
             public static final ArrayList<Long> serversListening = new ArrayList<>();
             private static ScheduledExecutorService scheduledExecutor;
 //            private static ScheduledFuture<?> notificationFuture = null;
@@ -389,7 +397,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 EmbedBuilder eb = new EmbedBuilder();
                 NumberFormat format = NumberFormat.getInstance();
                 NumberFormat cf = NumberFormat.getCurrencyInstance(Locale.US);
-                double[] sizeOfAuction;
+                EstimateSizeOfAuction sizeOfAuction;
                 String auctionTypeTitle;
                 String approxSizeOfAuction = null;
                 String greeksTradedSection;
@@ -416,6 +424,7 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 if(notificationPhase != NotificationPhase.AUCTION_ACTIVE && notificationPhase != NotificationPhase.AUCTION_NOT_ACTIVE) {
                     PriceData priceData;
                     double deltaTraded, gammaTraded, vegaTraded, ethPrice;
+                    short multiplier;
 
                     try {
                         priceData = PositionsDataHandler.getPriceData(new PriceData.Prices[]{PriceData.Prices.ETHUSD, PriceData.Prices.OSQTHETH, PriceData.Prices.NORMFACTOR, PriceData.Prices.SQUEETHVOL});
@@ -424,18 +433,26 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                         throw new RuntimeException(e);
                     }
 
-                    deltaTraded = Math.abs(2 * sizeOfAuction[0] * ethPrice);
-                    gammaTraded = Math.abs(sizeOfAuction[2] * Math.pow(ethPrice, 2) / 100);
-                    vegaTraded = Math.abs(sizeOfAuction[3]);
+                    deltaTraded = Math.abs(2 * sizeOfAuction.ethSize * ethPrice);
+                    gammaTraded = Math.abs(sizeOfAuction.gamma * Math.pow(ethPrice, 2) / 100);
+                    vegaTraded = Math.abs(sizeOfAuction.vega);
 
                     greeksTradedSection = "Delta Traded: " + cf.format(deltaTraded) +
                             "\nGamma Traded: " + cf.format(gammaTraded) +
                             "\nVega Traded: " + cf.format(vegaTraded);
 
-                    if(sizeOfAuction[0] < 0) { // Buying oSQTH, Selling ETH
-                        approxSizeOfAuction = "Approximately, " + auctionType + " is buying " + format.format(sizeOfAuction[1]) + " oSQTH for " + format.format(-1 * sizeOfAuction[0]) + " ETH\n\n" + greeksTradedSection;
+                    if(auctionType == AuctionType.CRAB) {
+                        multiplier = -1;
+                    } else if(auctionType == AuctionType.JUMBO_CRAB) {
+                        multiplier = 1;
+                    } else {
+                        multiplier = 0;
+                    }
+
+                    if(sizeOfAuction.isBuyingOsqth) { // Buying oSQTH, Selling ETH
+                        approxSizeOfAuction = "Approximately, " + auctionType + " is buying " + format.format(sizeOfAuction.osqthSize) + " oSQTH for " + format.format(multiplier * sizeOfAuction.ethSize) + " ETH\n\n" + greeksTradedSection;
                     } else { // Selling oSQTH, Buying ETH
-                        approxSizeOfAuction = "Approximately, " + auctionType + " is selling " + format.format(-1 * sizeOfAuction[1]) + " oSQTH for " + format.format(sizeOfAuction[0]) + " ETH\n\n" + greeksTradedSection;
+                        approxSizeOfAuction = "Approximately, " + auctionType + " is selling " + format.format(multiplier * sizeOfAuction.osqthSize) + " oSQTH for " + format.format(sizeOfAuction.ethSize) + " ETH\n\n" + greeksTradedSection;
                     }
                 }
 
@@ -602,10 +619,11 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 //            }
 
             @SuppressWarnings("rawtypes")
-            public static double[] estimateSizeOfAuction(@NonNull AuctionType auctionType) {
+            public static EstimateSizeOfAuction estimateSizeOfAuction(@NonNull AuctionType auctionType) {
                 double[] sizes = new double[4];
                 long currentBlock;
                 double impliedVol, ethUsd, osqthEth, osqthUsd, normFactor;
+                boolean isBuyingOsqth;
                 PriceData priceData;
 
                 try {
@@ -653,6 +671,8 @@ public class Crab extends ButtonCommand<MessageEmbed> {
 
                     sizes[2] = greeks.gamma * v;
                     sizes[3] = greeks.vega * v / 100;
+
+                    isBuyingOsqth = sizes[0] < 0;
                 } else if(auctionType == AuctionType.JUMBO_CRAB) {
                     try {
                         priceData = PositionsDataHandler.getPriceData(currentBlock, new PriceData.Prices[]{PriceData.Prices.OSQTHETH, PriceData.Prices.CRABV2ETH, PriceData.Prices.ETHUSD, PriceData.Prices.NORMFACTOR});
@@ -676,22 +696,24 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                         impliedVol = Math.sqrt(Math.log(osqthEth * SCALING_FACTOR/(normFactor * (ethUsd)))/FUNDING_PERIOD);
 
                         if(remainingUsdc > 0) {
-                            sizes[0] = osqthHoldings * ((remainingUsdc / crabUsd) / crabTotalSupply);
+                            sizes[1] = osqthHoldings * ((remainingUsdc / crabUsd) / crabTotalSupply);
+                            isBuyingOsqth = false;
                         } else if(remainingCrab > 0) {
-                            sizes[0] = osqthHoldings * remainingCrab / crabTotalSupply;
+                            sizes[1] = osqthHoldings * remainingCrab / crabTotalSupply;
+                            isBuyingOsqth = true;
                         } else {
                             throw new IllegalStateException("No remaining USDC or Crab");
                         }
 
-                        sizes[1] = sizes[0] * osqthEth;
+                        sizes[0] = sizes[1] * osqthEth;
 
                         Vault.VaultGreeks greeks = new Vault.VaultGreeks(
                                 ethUsd,
                                 osqthUsd,
                                 normFactor,
                                 impliedVol,
-                                sizes[0],
-                                sizes[0] * osqthEth
+                                sizes[1],
+                                sizes[1] * osqthEth
                         );
 
                         sizes[2] = greeks.gamma;
@@ -702,7 +724,13 @@ public class Crab extends ButtonCommand<MessageEmbed> {
                 } else {
                     throw new IllegalStateException("No remaining");
                 }
-                return sizes;
+                return new EstimateSizeOfAuction(
+                        sizes[0],
+                        sizes[1],
+                        sizes[2],
+                        sizes[3],
+                        isBuyingOsqth
+                );
             }
 
             public static long getAuctionTime() {

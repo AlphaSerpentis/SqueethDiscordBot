@@ -235,10 +235,11 @@ public class PositionsDataHandler {
     }
 
     public static void writeDataToFile(@NonNull Object data, @NonNull Path path) throws IOException {
+        Gson gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .create();
         Writer writer = Files.newBufferedWriter(path);
-
-        new Gson().toJson(data, writer);
-
+        gson.toJson(data, writer);
         writer.close();
     }
 

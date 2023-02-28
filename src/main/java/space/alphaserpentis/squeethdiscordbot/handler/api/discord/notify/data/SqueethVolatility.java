@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutionException;
 public class SqueethVolatility extends TrackedData<Double> {
 
     public SqueethVolatility() {
-        name = "Squeeth Volatility";
+        super("Squeeth Volatility", "SqueethVol", "%");
     }
 
     @Override
@@ -21,7 +21,7 @@ public class SqueethVolatility extends TrackedData<Double> {
                     new PriceData.Prices[]{PriceData.Prices.SQUEETHVOL}
             );
 
-            currentData = priceData.squeethVol;
+            currentData = priceData.squeethVol * 100;
         } catch (ExecutionException | InterruptedException | IOException e) {
             throw new RuntimeException(e);
         }
@@ -29,11 +29,11 @@ public class SqueethVolatility extends TrackedData<Double> {
 
     @Override
     public boolean checkCondition(@NonNull Condition<Double> condition) {
-        return switch (condition.typeOfCondition) {
-            case GREATER_THAN -> currentData > condition.condition;
-            case LESS_THAN -> currentData < condition.condition;
-            case EQUALS -> currentData.equals(condition.condition);
-            case NOT_EQUALS -> !currentData.equals(condition.condition);
+        return switch (condition.comparisonOperator) {
+            case GREATER_THAN -> currentData > condition.value;
+            case LESS_THAN -> currentData < condition.value;
+            case EQUALS -> currentData.equals(condition.value);
+            case NOT_EQUALS -> !currentData.equals(condition.value);
         };
     }
 }

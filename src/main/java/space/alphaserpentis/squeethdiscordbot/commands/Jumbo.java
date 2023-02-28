@@ -73,7 +73,7 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
             JumboHandler.JumboCrabStatistics jumboCrabStats = JumboHandler.getCurrentJumboCrabStatistics();
             NumberFormat nf = NumberFormat.getInstance();
             NumberFormat cf = NumberFormat.getCurrencyInstance(Locale.US);
-            MessageEmbed.Field nettingEstimates = null;
+            MessageEmbed.Field nettingEstimates = null, postNettingEstimates = null;
             double crabUsd = priceData.ethUsdc.multiply(priceData.crabV2Eth).doubleValue() / Math.pow(10,36);
             JumboHandler.JumboCrabNettingEstimates nettingEstimate = JumboHandler.getNettingEstimates(jumboCrabStats, crabUsd);
 
@@ -85,6 +85,12 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
                                 "\n**USDC**: " + cf.format(nettingEstimate.usdcAmountNetted()),
                         false
                 );
+                postNettingEstimates = new MessageEmbed.Field(
+                        "Remaining Tokens",
+                        "**Crab Tokens**: " + nf.format(jumboCrabStats.pendingCrabTokens() - nettingEstimate.crabAmountNetted()) +
+                                "\n**USDC**: " + cf.format(jumboCrabStats.pendingUsdc() - nettingEstimate.usdcAmountNetted()),
+                        false
+                );
             }
 
             eb.setTitle("Jumbo Crab Statistics");
@@ -92,8 +98,10 @@ public class Jumbo extends BotCommand<MessageEmbed>  {
             eb.addField("Queued USDC", cf.format(jumboCrabStats.pendingUsdc()), false);
             eb.addField("Queued Crab Tokens", nf.format(jumboCrabStats.pendingCrabTokens()), false);
             eb.addField("Netting Possible?", (nettingEstimates == null ? "No" : "Yes"), false);
-            if(nettingEstimates != null)
+            if(nettingEstimates != null) {
                 eb.addField(nettingEstimates);
+                eb.addField(postNettingEstimates);
+            }
             eb.addField("Last Netting", "<t:" + jumboCrabStats.lastNet().time() + ">", false);
             eb.addField("Last Auction", "<t:" + jumboCrabStats.lastAuction().time() + ">", false);
             eb.setFooter("Jumbo Crab Auctions occur every Tuesday 16:30 UTC");

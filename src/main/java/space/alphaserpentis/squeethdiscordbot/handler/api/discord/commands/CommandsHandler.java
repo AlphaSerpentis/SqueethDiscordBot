@@ -40,6 +40,7 @@ public class CommandsHandler extends ListenerAdapter {
             put("zenbull", new ZenBull());
             put("simulate", new Simulate());
             put("jumbo", new Jumbo());
+            put("notify", new Notify());
 //            put("paper", new PaperTrade());
         }};
     }

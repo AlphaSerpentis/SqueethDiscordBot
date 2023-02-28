@@ -10,6 +10,7 @@ public class BotSettings {
     public String serverData;
     public String transfersData;
     public String pricesData;
+    public String notificationsData;
     public String squizQuestions;
     public String squizLeaderboard;
     public String squizTracking;
