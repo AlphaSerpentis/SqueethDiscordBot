@@ -3,6 +3,11 @@ A Discord bot based on [JDA](https://github.com/DV8FromTheWorld/JDA) that provid
 
 [**Invite the Squeeth Discord Bot to your server!**](https://discord.com/oauth2/authorize?client_id=966062130472304681&permissions=0&scope=applications.commands%20bot)
 
+## Notice
+As of April 5, 2023, the bot will not be updated further indefinitely. Exceptions are bug fixes and other maintenance updates as needed. Issues + PRs can still be raised and I'm open to merging a PR if necessary.
+
+Check out [Coffee Core](https://github.com/AlphaSerpentis/CoffeeCore), a Discord bot framework that is heavily based on this very same bot!
+
 # How to Use
 
 Run `/help` to get a list of commands in a server it is in OR in the bot's DMs!
