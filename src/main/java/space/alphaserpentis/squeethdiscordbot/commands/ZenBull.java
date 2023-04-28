@@ -62,7 +62,7 @@ public class ZenBull extends BotCommand<MessageEmbed> {
            true,
            false,
            TypeOfEphemeral.DYNAMIC,
-           true,
+           false,
            true,
            false,
            false

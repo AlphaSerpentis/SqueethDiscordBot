@@ -556,7 +556,7 @@ public class Position extends ButtonCommand<MessageEmbed> {
         ));
 
         buttonHashMap.put("Previous", Button.primary("position_previous", "Previous").asDisabled());
-        buttonHashMap.put("Page", Button.secondary("position_page", "1/4").asDisabled());
+        buttonHashMap.put("Page", Button.secondary("position_page", "1/3").asDisabled());
         buttonHashMap.put("Next", Button.primary("position_next", "Next"));
     }
 
@@ -589,13 +589,13 @@ public class Position extends ButtonCommand<MessageEmbed> {
                 new LongPositions(userAddress),
                 new CrabPositions(userAddress, crabv1, false), // v1
                 new CrabPositions(userAddress, crabv2, true), // v2
-                new ZenBullPositions(userAddress)
+//                new ZenBullPositions(userAddress)
         };
 
         posArray[0].getAndSetTransfers(osqth);
         posArray[1].getAndSetTransfers(((CrabPositions) posArray[1]).crab);
         posArray[2].getAndSetTransfers(((CrabPositions) posArray[2]).crab);
-        posArray[3].getAndSetTransfers(zenbull);
+//        posArray[3].getAndSetTransfers(zenbull);
 
         for(AbstractPositions pos: posArray) {
             pos.getAndSetPrices();
@@ -614,8 +614,8 @@ public class Position extends ButtonCommand<MessageEmbed> {
         if(
                 !(posArray[0].transfers.size() != 0 || !posArray[0].isValueDust(posArray[0].currentAmtHeld)) &&
                 !(posArray[1].transfers.size() != 0 || !posArray[1].isValueDust(posArray[1].currentAmtHeld)) &&
-                !(posArray[2].transfers.size() != 0 || !posArray[2].isValueDust(posArray[2].currentAmtHeld)) &&
-                !(posArray[3].transfers.size() != 0 || !posArray[3].isValueDust(posArray[3].currentAmtHeld))
+                !(posArray[2].transfers.size() != 0 || !posArray[2].isValueDust(posArray[2].currentAmtHeld)) // &&
+//                !(posArray[3].transfers.size() != 0 || !posArray[3].isValueDust(posArray[3].currentAmtHeld))
         ) {
             cachedPositions.remove(event.getUser().getIdLong());
         }
@@ -646,16 +646,16 @@ public class Position extends ButtonCommand<MessageEmbed> {
             case "position_next" -> {
                 displayPositionPage(eb, currentPage, posArray);
                 pending = event.editMessageEmbeds(eb.build());
-                buttons.add(Button.secondary("position_page", currentPage++ + 1 + "/4").asDisabled());
+                buttons.add(Button.secondary("position_page", currentPage++ + 1 + "/3").asDisabled());
             }
             case "position_previous" -> {
                 displayPositionPage(eb, currentPage - 2, posArray);
                 pending = event.editMessageEmbeds(eb.build());
-                buttons.add(Button.secondary("position_page", currentPage-- - 1 + "/4").asDisabled());
+                buttons.add(Button.secondary("position_page", currentPage-- - 1 + "/3").asDisabled());
             }
         }
 
-        if(currentPage == 4) {
+        if(currentPage == 3) {
             buttons.add(0, Button.primary("position_previous", "Previous").asEnabled());
             buttons.add(Button.primary("position_next", "Next").asDisabled());
         } else if(currentPage == 1) {

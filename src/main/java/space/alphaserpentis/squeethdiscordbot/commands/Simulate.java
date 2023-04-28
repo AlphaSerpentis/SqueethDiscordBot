@@ -116,11 +116,11 @@ public class Simulate extends BotCommand<MessageEmbed> {
         // Get the prices
         osqthPrice = priceData.osqthEth.multiply(priceData.ethUsdc).divide(BigInteger.TEN.pow(18)).doubleValue() / Math.pow(10,18);
         crabPrice = priceData.crabV2Eth.multiply(priceData.ethUsdc).divide(BigInteger.TEN.pow(18)).doubleValue() / Math.pow(10,18);
-        zenBullPrice = priceData.zenbull.multiply(priceData.ethUsdc).divide(BigInteger.TEN.pow(18)).doubleValue() / Math.pow(10,18);
+//        zenBullPrice = priceData.zenbull.multiply(priceData.ethUsdc).divide(BigInteger.TEN.pow(18)).doubleValue() / Math.pow(10,18);
 
         longPnl = calculateLong(input, priceData);
         crabPnl = calculateCrab(input, priceData);
-        zenBullPnl = calculateZenBull(input, priceData);
+//        zenBullPnl = calculateZenBull(input, priceData);
 
         // Set the embed builder
 
@@ -150,15 +150,15 @@ public class Simulate extends BotCommand<MessageEmbed> {
                         "\n└ Time: " + nf.format(((crabPrice + crabPnl.thetaPnl) - crabPrice)/(crabPrice) * 100) + "%",
                 false
         );
-        eb.addField(
-                ":person_in_lotus_position: :ox:  Zen Bull",
-                "Total PnL: " + nf.format(((zenBullPrice + zenBullPnl.totalPnl()) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
-                        "\n├ Price Movement: " + nf.format(((zenBullPrice + zenBullPnl.deltaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
-                        "\n├ Speed of Price Movement: " + nf.format(((zenBullPrice + zenBullPnl.gammaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
-                        "\n├ Volatility: " + nf.format(((zenBullPrice + zenBullPnl.vegaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
-                        "\n└ Time: " + nf.format(((zenBullPrice + zenBullPnl.thetaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%",
-                false
-        );
+//        eb.addField(
+//                ":person_in_lotus_position: :ox:  Zen Bull",
+//                "Total PnL: " + nf.format(((zenBullPrice + zenBullPnl.totalPnl()) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
+//                        "\n├ Price Movement: " + nf.format(((zenBullPrice + zenBullPnl.deltaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
+//                        "\n├ Speed of Price Movement: " + nf.format(((zenBullPrice + zenBullPnl.gammaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
+//                        "\n├ Volatility: " + nf.format(((zenBullPrice + zenBullPnl.vegaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%" +
+//                        "\n└ Time: " + nf.format(((zenBullPrice + zenBullPnl.thetaPnl) - zenBullPrice)/(zenBullPrice) * 100) + "%",
+//                false
+//        );
         
         return eb;
     }
@@ -218,28 +218,28 @@ public class Simulate extends BotCommand<MessageEmbed> {
         );
     }
 
-    private GreekPnlComponents calculateZenBull(@NonNull double[] input, @NonNull PriceData priceData) {
-        double ethPrice = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
-        double totalSupply;
-
-        try {
-            totalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
-                    Addresses.Squeeth.zenbull,
-                    CommonFunctions.callTotalSupply
-            ).get(0).getValue()).doubleValue() / Math.pow(10,18);
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        ZenBull.ZenBullGreeks greeks = ZenBull.calculateGreeks();
-
-        return new GreekPnlComponents(
-                greeks.delta() * (ethPrice * input[1]) / totalSupply,
-                0.5 * greeks.gamma() * Math.pow(ethPrice * input[1], 2) / totalSupply,
-                greeks.vega() * input[2] / totalSupply,
-                greeks.theta() * input[0] / totalSupply
-        );
-    }
+//    private GreekPnlComponents calculateZenBull(@NonNull double[] input, @NonNull PriceData priceData) {
+//        double ethPrice = priceData.ethUsdc.doubleValue() / Math.pow(10,18);
+//        double totalSupply;
+//
+//        try {
+//            totalSupply = ((BigInteger) EthereumRPCHandler.ethCallAtLatestBlock(
+//                    Addresses.Squeeth.zenbull,
+//                    CommonFunctions.callTotalSupply
+//            ).get(0).getValue()).doubleValue() / Math.pow(10,18);
+//        } catch (ExecutionException | InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        ZenBull.ZenBullGreeks greeks = ZenBull.calculateGreeks();
+//
+//        return new GreekPnlComponents(
+//                greeks.delta() * (ethPrice * input[1]) / totalSupply,
+//                0.5 * greeks.gamma() * Math.pow(ethPrice * input[1], 2) / totalSupply,
+//                greeks.vega() * input[2] / totalSupply,
+//                greeks.theta() * input[0] / totalSupply
+//        );
+//    }
 
     @NonNull
     private PriceData currentPriceData() {
@@ -249,7 +249,7 @@ public class Simulate extends BotCommand<MessageEmbed> {
                     PriceData.Prices.ETHUSD,
                     PriceData.Prices.OSQTHETH,
                     PriceData.Prices.CRABV2ETH,
-                    PriceData.Prices.ZENBULL,
+//                    PriceData.Prices.ZENBULL,
                     PriceData.Prices.SQUEETHVOL,
                     PriceData.Prices.NORMFACTOR
             });
